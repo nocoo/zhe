@@ -30,7 +30,7 @@ export function UploadsSection({ stats }: { stats: OverviewStats }) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
           <Card className="lg:col-span-2">
             <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
-              <Upload className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+              <Upload className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
               <CardTitle className="text-sm font-medium">上传趋势</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
@@ -40,7 +40,7 @@ export function UploadsSection({ stats }: { stats: OverviewStats }) {
 
           <Card>
             <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
-              <FileType className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+              <FileType className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
               <CardTitle className="text-sm font-medium">文件类型</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 md:px-5 md:pb-5">

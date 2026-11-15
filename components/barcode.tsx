@@ -31,7 +31,7 @@ export function Barcode() {
       {BARS.map((bar) => (
         <div
           key={bar.id}
-          className="rounded-[0.5px] bg-primary-foreground"
+          className="rounded-[0.5px] bg-basalt-primary-foreground"
           style={{ width: `${bar.w * 1.5}px`, opacity: bar.dim ? 0.5 : 0.9 }}
         />
       ))}

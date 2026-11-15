@@ -77,7 +77,7 @@ export function CardActions({
                 loading={pending ?? false}
                 className={cn(
                   "text-inherit",
-                  destructive && "text-destructive hover:text-destructive",
+                  destructive && "text-basalt-destructive hover:text-basalt-destructive",
                 )}
                 icon={<Icon aria-hidden />}
               />
@@ -91,7 +91,7 @@ export function CardActions({
               ref={triggerRef}
               variant="ghost"
               label="更多收藏操作"
-              className="text-inherit data-[state=open]:bg-accent data-[state=open]:text-foreground"
+              className="text-inherit data-[state=open]:bg-basalt-accent data-[state=open]:text-basalt-foreground"
             >
               <MoreHorizontal aria-hidden />
             </IconAction>
@@ -122,7 +122,11 @@ export function CardActions({
                     onSelect={() => {
                       selectedAction.current = onSelect;
                     }}
-                    className={destructive ? "text-destructive focus:text-destructive" : undefined}
+                    className={
+                      destructive
+                        ? "text-basalt-destructive focus:text-basalt-destructive"
+                        : undefined
+                    }
                   >
                     {pending ? (
                       <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden />
@@ -132,7 +136,9 @@ export function CardActions({
                     <span className="min-w-0 break-words">
                       {label}
                       {description && (
-                        <span className="block text-xs text-muted-foreground">{description}</span>
+                        <span className="block text-xs text-basalt-muted-foreground">
+                          {description}
+                        </span>
                       )}
                     </span>
                   </DropdownMenuItem>

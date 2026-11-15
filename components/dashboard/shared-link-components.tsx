@@ -112,7 +112,7 @@ export function TagPicker({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-basalt-border px-2 py-0.5 text-[11px] text-basalt-muted-foreground hover:text-basalt-foreground hover:border-basalt-foreground/30 transition-colors"
           aria-label="Add tag"
           data-testid="tag-picker-trigger"
         >
@@ -124,7 +124,7 @@ export function TagPicker({
         <Command shouldFilter={false}>
           <CommandInput placeholder="搜索或创建标签..." value={search} onValueChange={setSearch} />
           <CommandList>
-            <CommandEmpty className="py-3 text-center text-sm text-muted-foreground">
+            <CommandEmpty className="py-3 text-center text-sm text-basalt-muted-foreground">
               未找到标签
             </CommandEmpty>
             <CommandGroup>

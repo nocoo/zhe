@@ -30,7 +30,7 @@ export function LinksSection({ stats }: { stats: OverviewStats }) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
           <Card className="lg:col-span-2 flex flex-col">
             <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+              <TrendingUp className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
               <CardTitle className="text-sm font-medium">点击趋势</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col flex-1 px-4 pb-4 md:px-5 md:pb-5">
@@ -40,7 +40,7 @@ export function LinksSection({ stats }: { stats: OverviewStats }) {
 
           <Card>
             <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
-              <Crown className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+              <Crown className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
               <CardTitle className="text-sm font-medium">热门链接</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
@@ -52,7 +52,7 @@ export function LinksSection({ stats }: { stats: OverviewStats }) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
-              <Monitor className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+              <Monitor className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
               <CardTitle className="text-sm font-medium">设备分布</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
@@ -62,7 +62,7 @@ export function LinksSection({ stats }: { stats: OverviewStats }) {
 
           <Card>
             <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
-              <Globe className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+              <Globe className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
               <CardTitle className="text-sm font-medium">浏览器分布</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
@@ -72,7 +72,7 @@ export function LinksSection({ stats }: { stats: OverviewStats }) {
 
           <Card>
             <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
-              <Monitor className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+              <Monitor className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
               <CardTitle className="text-sm font-medium">操作系统</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4 md:px-5 md:pb-5">

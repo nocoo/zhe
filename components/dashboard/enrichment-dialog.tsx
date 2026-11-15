@@ -45,12 +45,12 @@ export function EnrichmentTaskStatus({ task }: { task: EnrichmentTask }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs">
       <Badge variant="secondary">{ENRICHMENT_STATES[task.state]}</Badge>
-      <span className="text-muted-foreground">
+      <span className="text-basalt-muted-foreground">
         本轮尝试 {task.attempts} 次 · 重试 {Math.max(0, task.attempts - 1)} 次
         {task.recordedFailures > 0 && ` · 已记录失败 ${task.recordedFailures} 次`}
       </span>
       {["failed", "partial"].includes(task.state) && (
-        <span className="text-warning">
+        <span className="text-basalt-warning">
           {task.attempts >= 5
             ? "已达自动重试上限"
             : `下次尝试：${new Date(task.nextAttemptAt).toLocaleString("zh-CN")}`}
@@ -150,7 +150,7 @@ export function EnrichmentDialog({
         className="max-h-[90dvh] gap-0 overflow-hidden p-0 sm:p-0"
         data-testid="enrichment-dialog"
       >
-        <DialogHeader className="border-b border-border px-5 py-4 pr-12">
+        <DialogHeader className="border-b border-basalt-border px-5 py-4 pr-12">
           <DialogClose asChild>
             <Button
               variant="ghost"
@@ -166,12 +166,12 @@ export function EnrichmentDialog({
         </DialogHeader>
         {vm.detailId !== null ? (
           <>
-            <div className="flex flex-wrap items-center gap-2 border-b border-border px-5 py-3">
+            <div className="flex flex-wrap items-center gap-2 border-b border-basalt-border px-5 py-3">
               <Button variant="ghost" size="sm" onClick={() => vm.setDetailId(null)}>
                 <ArrowLeft />
                 全部记录
               </Button>
-              <span className="mr-auto text-xs text-muted-foreground">
+              <span className="mr-auto text-xs text-basalt-muted-foreground">
                 #{vm.detailId}
                 {task ? ` · ${ENRICHMENT_SOURCES[task.source]}` : ""}
                 <CreatedTimestamp value={link?.createdAt} />
@@ -195,9 +195,11 @@ export function EnrichmentDialog({
               {task && (
                 <>
                   <EnrichmentTaskStatus task={task} />
-                  <p className="mt-2 text-sm text-muted-foreground">{enrichmentContent(task)}</p>
+                  <p className="mt-2 text-sm text-basalt-muted-foreground">
+                    {enrichmentContent(task)}
+                  </p>
                   {task.errorCode && (
-                    <p className="mt-2 break-words text-sm text-warning">
+                    <p className="mt-2 break-words text-sm text-basalt-warning">
                       {enrichmentError(task.errorCode)}{" "}
                       <span className="text-xs">({task.errorCode})</span>
                     </p>
@@ -220,7 +222,7 @@ export function EnrichmentDialog({
           </>
         ) : (
           <>
-            <div className="space-y-3 border-b border-border px-5 py-3">
+            <div className="space-y-3 border-b border-basalt-border px-5 py-3">
               <div className="flex flex-wrap items-center gap-2">
                 <Input
                   value={vm.search}
@@ -266,7 +268,7 @@ export function EnrichmentDialog({
                 </Button>
               </div>
               <div
-                className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+                className="flex flex-wrap items-center gap-2 text-xs text-basalt-muted-foreground"
                 role="status"
               >
                 {Object.entries(ENRICHMENT_STATES).map(([state, label]) => (
@@ -282,7 +284,7 @@ export function EnrichmentDialog({
                   disabled={!vm.retryable.length || busy}
                   onCheckedChange={vm.toggleAll}
                 />
-                <span className="mr-auto text-xs text-muted-foreground">
+                <span className="mr-auto text-xs text-basalt-muted-foreground">
                   已选 {vm.selectedIds.length} 条
                 </span>
                 <Button
@@ -301,12 +303,12 @@ export function EnrichmentDialog({
                   正在读取采集记录…
                 </p>
               ) : !vm.visible.length ? (
-                <p className="p-5 text-sm text-muted-foreground">没有符合条件的采集记录</p>
+                <p className="p-5 text-sm text-basalt-muted-foreground">没有符合条件的采集记录</p>
               ) : (
                 vm.visible.map((item) => (
                   <div
                     key={item.linkId}
-                    className="flex items-start gap-3 border-b border-border/60 px-5 py-3"
+                    className="flex items-start gap-3 border-b border-basalt-border/60 px-5 py-3"
                     data-testid={`enrichment-task-${item.linkId}`}
                   >
                     <Checkbox
@@ -324,18 +326,20 @@ export function EnrichmentDialog({
                         >
                           {item.title}
                         </span>
-                        <span className="shrink-0 text-xs text-muted-foreground">
+                        <span className="shrink-0 text-xs text-basalt-muted-foreground">
                           {ENRICHMENT_SOURCES[item.source]}
                         </span>
                       </div>
                       <EnrichmentTaskStatus task={item} />
-                      <p className="text-xs text-muted-foreground">{enrichmentContent(item)}</p>
+                      <p className="text-xs text-basalt-muted-foreground">
+                        {enrichmentContent(item)}
+                      </p>
                       {item.errorCode && (
-                        <p className="break-words text-xs text-warning">
+                        <p className="break-words text-xs text-basalt-warning">
                           {enrichmentError(item.errorCode)}
                         </p>
                       )}
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-basalt-muted-foreground">
                         <span>
                           #{item.linkId} · {new Date(item.updatedAt).toLocaleString("zh-CN")}
                         </span>
@@ -349,7 +353,7 @@ export function EnrichmentDialog({
                 ))
               )}
             </div>
-            <div className="flex items-center gap-2 border-t border-border px-5 py-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 border-t border-basalt-border px-5 py-3 text-xs text-basalt-muted-foreground">
               <span className="mr-auto">共 {vm.filtered.length} 条 · 每 10 秒更新</span>
               <span>
                 {vm.currentPage + 1} / {vm.pages}
@@ -376,7 +380,7 @@ export function EnrichmentDialog({
           </>
         )}
         {vm.error && (
-          <p role="alert" className="px-5 py-3 text-sm text-warning">
+          <p role="alert" className="px-5 py-3 text-sm text-basalt-warning">
             采集记录暂时无法读取，请刷新重试。
           </p>
         )}

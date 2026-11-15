@@ -32,10 +32,10 @@ export function CredentialRow({
   const ids = TEST_ID_MAP[testId];
   return (
     <div className="space-y-1.5">
-      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-xs text-basalt-muted-foreground">{label}</p>
       <div className="flex items-center gap-2">
         <code
-          className={`rounded bg-accent px-2 py-1 text-xs ${breakAll ? "break-all" : ""}`}
+          className={`rounded bg-basalt-accent px-2 py-1 text-xs ${breakAll ? "break-all" : ""}`}
           data-testid={ids.value}
         >
           {value}
@@ -102,7 +102,7 @@ export function RateLimitControl({ rateLimit, setRateLimit, onCommit }: RateLimi
   return (
     <div className="max-w-2xl space-y-2">
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">速率限制</p>
+        <p className="text-xs text-basalt-muted-foreground">速率限制</p>
         <p className="text-xs font-medium" data-testid="rate-limit-value">
           {rateLimit} 次/分钟
         </p>

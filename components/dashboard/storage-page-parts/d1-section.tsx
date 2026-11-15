@@ -9,7 +9,7 @@ export function D1Section({ data }: { data: StorageScanResult["d1"] }) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <Database className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+        <Database className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
         <h3 className="text-sm font-medium">Cloudflare D1</h3>
         {data.connected ? (
           <Badge variant="success" className="text-[10px]">
@@ -26,11 +26,11 @@ export function D1Section({ data }: { data: StorageScanResult["d1"] }) {
         <Card className="overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-secondary/50">
-                <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
+              <tr className="bg-basalt-secondary/50">
+                <th className="px-4 py-2 text-left text-xs font-medium text-basalt-muted-foreground">
                   Table
                 </th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">
+                <th className="px-4 py-2 text-right text-xs font-medium text-basalt-muted-foreground">
                   Rows
                 </th>
               </tr>
@@ -39,10 +39,10 @@ export function D1Section({ data }: { data: StorageScanResult["d1"] }) {
               {data.tables.map((table) => (
                 <tr
                   key={table.name}
-                  className="border-t border-border hover:bg-background/50 transition-colors"
+                  className="border-t border-basalt-border hover:bg-basalt-background/50 transition-colors"
                 >
-                  <td className="px-4 py-2 font-mono text-foreground">{table.name}</td>
-                  <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">
+                  <td className="px-4 py-2 font-mono text-basalt-foreground">{table.name}</td>
+                  <td className="px-4 py-2 text-right tabular-nums text-basalt-muted-foreground">
                     {table.rows.toLocaleString()}
                   </td>
                 </tr>

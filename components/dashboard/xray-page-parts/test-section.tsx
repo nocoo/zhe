@@ -46,14 +46,14 @@ function TestInputArea({ vm }: { vm: XrayViewModel }) {
         <div className="flex items-center gap-2 text-xs">
           {vm.extractedId ? (
             <>
-              <CheckCircle className="h-3.5 w-3.5 text-success" />
-              <span className="text-muted-foreground">Tweet ID:</span>
-              <code className="rounded bg-accent px-1.5 py-0.5">{vm.extractedId}</code>
+              <CheckCircle className="h-3.5 w-3.5 text-basalt-success" />
+              <span className="text-basalt-muted-foreground">Tweet ID:</span>
+              <code className="rounded bg-basalt-accent px-1.5 py-0.5">{vm.extractedId}</code>
             </>
           ) : (
             <>
-              <AlertTriangle className="h-3.5 w-3.5 text-warning" />
-              <span className="text-warning">无法解析 Tweet ID</span>
+              <AlertTriangle className="h-3.5 w-3.5 text-basalt-warning" />
+              <span className="text-basalt-warning">无法解析 Tweet ID</span>
             </>
           )}
         </div>
@@ -64,9 +64,9 @@ function TestInputArea({ vm }: { vm: XrayViewModel }) {
 
 function FetchErrorBanner({ error }: { error: string }) {
   return (
-    <div className="mt-4 flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/5 p-3">
-      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
-      <p className="text-sm text-destructive">{error}</p>
+    <div className="mt-4 flex items-start gap-2 rounded-md border border-basalt-destructive/20 bg-basalt-destructive/5 p-3">
+      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-basalt-destructive" />
+      <p className="text-sm text-basalt-destructive">{error}</p>
     </div>
   );
 }
@@ -80,7 +80,7 @@ function TweetResultBlock({ vm }: { vm: XrayViewModel }) {
         onClick={vm.toggleRawJson}
         variant="ghost"
         size="default"
-        className="text-xs text-muted-foreground"
+        className="text-xs text-basalt-muted-foreground"
       >
         {vm.showRawJson ? (
           <ChevronUp className="mr-1.5 h-3.5 w-3.5" />
@@ -90,7 +90,7 @@ function TweetResultBlock({ vm }: { vm: XrayViewModel }) {
         {vm.showRawJson ? "收起" : "展开"} 原始 JSON
       </Button>
       {vm.showRawJson && (
-        <pre className="max-h-96 overflow-auto rounded-widget bg-background p-3 text-xs leading-relaxed">
+        <pre className="max-h-96 overflow-auto rounded-widget bg-basalt-background p-3 text-xs leading-relaxed">
           {JSON.stringify(vm.tweetResult, null, 2)}
         </pre>
       )}
@@ -107,7 +107,9 @@ export function TestSection({ vm }: { vm: XrayViewModel }) {
       description={
         <>
           粘贴 Twitter/X 帖子链接，自动提取 ID 并调用 API 获取内容。
-          {!vm.isConfigured && <span className="ml-1 text-warning">（请先配置 Xray API）</span>}
+          {!vm.isConfigured && (
+            <span className="ml-1 text-basalt-warning">（请先配置 Xray API）</span>
+          )}
         </>
       }
     >

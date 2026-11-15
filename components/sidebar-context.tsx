@@ -22,16 +22,11 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       value={{
         collapsed: vm.collapsed,
         toggle: vm.toggleSidebar,
-        setCollapsed: () => {
-          /* reserved — toggle handles both directions */
-        },
+        setCollapsed: vm.setCollapsed,
         isMobile: vm.isMobile,
         mobileOpen: vm.mobileOpen,
         closeMobileSidebar: vm.closeMobileSidebar,
-        setMobileOpen: (open: boolean) => {
-          if (!open) vm.closeMobileSidebar();
-          else vm.toggleSidebar();
-        },
+        setMobileOpen: vm.setMobileOpen,
       }}
     >
       {children}

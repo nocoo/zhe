@@ -168,10 +168,10 @@ export function InlineEditArea({
       data-testid="edit-area"
     >
       <DialogTitle className="flex items-center gap-2">
-        <Pencil className="size-4 text-muted-foreground" strokeWidth={1.5} aria-hidden />
+        <Pencil className="size-4 text-basalt-muted-foreground" strokeWidth={1.5} aria-hidden />
         编辑收藏
       </DialogTitle>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-basalt-muted-foreground">
         收藏于 {new Date(link.createdAt).toLocaleString("zh-CN")}
       </p>
       <div className="grid grid-cols-1 gap-3 @xs/edit:grid-cols-2">
@@ -249,7 +249,7 @@ export function InlineEditArea({
             placeholder="https://example.com/screenshot.png"
           />
           {editVm.screenshotAction && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs text-basalt-muted-foreground">
               <BookmarkActionButton
                 action={{
                   ...editVm.screenshotAction,
@@ -265,7 +265,7 @@ export function InlineEditArea({
       {!!bookmark?.tweet?.media.length && (
         <fieldset className="min-w-0 space-y-3">
           <legend className="mb-1 text-xs font-medium">媒体比例</legend>
-          <p className="text-xs leading-5 text-muted-foreground">
+          <p className="text-xs leading-5 text-basalt-muted-foreground">
             横屏 16:9，竖屏 9:16；也可填写实际宽高。
           </p>
           {bookmark.tweet.media.map((media, index) => (
@@ -306,12 +306,12 @@ export function InlineEditArea({
       </div>
 
       {(mediaError || editVm.error) && (
-        <p role="alert" className="text-xs text-destructive">
+        <p role="alert" className="text-xs text-basalt-destructive">
           {mediaError || editVm.error}
         </p>
       )}
 
-      <div className="flex justify-end gap-2 border-t border-border/60 pt-3">
+      <div className="flex justify-end gap-2 border-t border-basalt-border/60 pt-3">
         <Button
           size="lg"
           variant="ghost"

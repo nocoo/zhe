@@ -82,7 +82,7 @@ export const IdeaCard = memo(function IdeaCard({
     <div
       data-card-actions-container
       className={cn(
-        "group relative flex flex-col rounded-card border-0 bg-secondary ring-1 ring-border/50 p-4 transition-shadow hover:ring-border text-left w-full",
+        "group relative flex flex-col rounded-card border-0 bg-basalt-secondary ring-1 ring-basalt-border/50 p-4 transition-shadow hover:ring-basalt-border text-left w-full",
         className,
       )}
     >
@@ -100,10 +100,12 @@ export const IdeaCard = memo(function IdeaCard({
       />
 
       <div className="relative z-10 flex flex-col flex-1 pointer-events-none">
-        <h3 className="font-medium text-foreground line-clamp-1 mb-2">{displayTitle}</h3>
+        <h3 className="font-medium text-basalt-foreground line-clamp-1 mb-2">{displayTitle}</h3>
 
         {idea.excerpt && (
-          <p className="text-sm text-muted-foreground line-clamp-3 flex-1 mb-3">{idea.excerpt}</p>
+          <p className="text-sm text-basalt-muted-foreground line-clamp-3 flex-1 mb-3">
+            {idea.excerpt}
+          </p>
         )}
 
         {ideaTags.length > 0 && (
@@ -124,8 +126,8 @@ export const IdeaCard = memo(function IdeaCard({
           </div>
         )}
 
-        <div className="flex items-center justify-between mt-auto pt-2 border-t border-border/30">
-          <span className="text-xs text-muted-foreground">
+        <div className="flex items-center justify-between mt-auto pt-2 border-t border-basalt-border/30">
+          <span className="text-xs text-basalt-muted-foreground">
             {formatRelativeDate(idea.updatedAt)}
           </span>
           <CardActions
@@ -189,7 +191,7 @@ export const IdeaRow = memo(function IdeaRow({
     <div
       data-card-actions-container
       className={cn(
-        "group relative flex items-center gap-4 rounded-card border-0 bg-secondary ring-1 ring-border/50 px-4 py-3 transition-shadow hover:ring-border text-left w-full",
+        "group relative flex items-center gap-4 rounded-card border-0 bg-basalt-secondary ring-1 ring-basalt-border/50 px-4 py-3 transition-shadow hover:ring-basalt-border text-left w-full",
         className,
       )}
     >
@@ -206,13 +208,13 @@ export const IdeaRow = memo(function IdeaRow({
         aria-label={`打开想法 ${displayTitle}`}
       />
 
-      <div className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-background pointer-events-none">
-        <TagIcon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+      <div className="relative z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-basalt-background pointer-events-none">
+        <TagIcon className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
       </div>
 
       <div className="relative z-10 flex-1 min-w-0 pointer-events-none">
         <div className="flex items-center gap-2">
-          <h3 className="font-medium text-foreground truncate">{displayTitle}</h3>
+          <h3 className="font-medium text-basalt-foreground truncate">{displayTitle}</h3>
           {ideaTags.length > 0 && (
             <div className="hidden sm:flex items-center gap-1">
               {ideaTags.slice(0, 2).map((tag) => {
@@ -227,17 +229,17 @@ export const IdeaRow = memo(function IdeaRow({
                 );
               })}
               {ideaTags.length > 2 && (
-                <span className="text-xs text-muted-foreground">+{ideaTags.length - 2}</span>
+                <span className="text-xs text-basalt-muted-foreground">+{ideaTags.length - 2}</span>
               )}
             </div>
           )}
         </div>
         {idea.excerpt && (
-          <p className="text-sm text-muted-foreground truncate mt-0.5">{idea.excerpt}</p>
+          <p className="text-sm text-basalt-muted-foreground truncate mt-0.5">{idea.excerpt}</p>
         )}
       </div>
 
-      <span className="relative z-10 hidden md:block text-xs text-muted-foreground whitespace-nowrap pointer-events-none">
+      <span className="relative z-10 hidden md:block text-xs text-basalt-muted-foreground whitespace-nowrap pointer-events-none">
         {formatRelativeDate(idea.updatedAt)}
       </span>
 

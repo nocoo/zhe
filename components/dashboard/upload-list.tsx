@@ -19,10 +19,10 @@ function UploadListSkeleton() {
     <div>
       <PageHeader title="文件上传" description="加载中…" />
       <div className="mb-6 flex items-center gap-4">
-        <div className="h-6 w-36 rounded-widget bg-secondary animate-pulse motion-reduce:animate-none" />
+        <div className="h-6 w-36 rounded-widget bg-basalt-secondary animate-pulse motion-reduce:animate-none" />
       </div>
       <div className="mb-6">
-        <div className="h-32 rounded-card border-2 border-dashed border-muted bg-secondary animate-pulse motion-reduce:animate-none" />
+        <div className="h-32 rounded-card border-2 border-dashed border-basalt-muted bg-basalt-secondary animate-pulse motion-reduce:animate-none" />
       </div>
       <CardListSkeleton rows={4} variant="upload" />
     </div>
@@ -49,13 +49,16 @@ function UploadOptions({
           checked={autoConvertPng}
           onCheckedChange={setAutoConvertPng}
         />
-        <Label htmlFor="auto-convert-png" className="text-xs text-muted-foreground cursor-pointer">
+        <Label
+          htmlFor="auto-convert-png"
+          className="text-xs text-basalt-muted-foreground cursor-pointer"
+        >
           PNG 自动转 JPG
         </Label>
       </div>
       {autoConvertPng && (
         <div className="flex items-center gap-2">
-          <Label className="text-xs text-muted-foreground whitespace-nowrap">质量</Label>
+          <Label className="text-xs text-basalt-muted-foreground whitespace-nowrap">质量</Label>
           <Slider
             value={[jpegQuality]}
             onValueChange={([v]) => setJpegQuality(v ?? jpegQuality)}
@@ -65,7 +68,7 @@ function UploadOptions({
             className="w-24"
             aria-label="JPG 质量"
           />
-          <span className="w-6 text-right text-xs tabular-nums text-muted-foreground">
+          <span className="w-6 text-right text-xs tabular-nums text-basalt-muted-foreground">
             {jpegQuality}
           </span>
         </div>

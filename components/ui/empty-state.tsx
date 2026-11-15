@@ -25,7 +25,7 @@ export function EmptyState({
     <Empty
       title={title}
       icon={<Icon className="w-10 h-10" strokeWidth={1.5} />}
-      className={cn("rounded-card bg-secondary p-12", className)}
+      className={cn("rounded-card bg-basalt-secondary p-12", className)}
       {...(description === undefined ? {} : { description })}
       {...(action === undefined ? {} : { action })}
       {...(testId === undefined ? {} : { "data-testid": testId })}

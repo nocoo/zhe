@@ -28,7 +28,9 @@ export function SpecialSourceFilter({
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-60 space-y-3">
-        <p className="text-xs text-muted-foreground">在书签中包含以下来源，选择会自动保存。</p>
+        <p className="text-xs text-basalt-muted-foreground">
+          在书签中包含以下来源，选择会自动保存。
+        </p>
         {(
           [
             { source: "github", name: "GitHub", Icon: GithubIcon },

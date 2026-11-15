@@ -56,7 +56,7 @@ export function XSourceBadge({
     <span
       title="来源：X"
       className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-widget bg-foreground text-background",
+        "inline-flex shrink-0 items-center gap-1.5 rounded-widget bg-basalt-foreground text-basalt-background",
         compact ? "p-1.5" : "px-2 py-1.5",
       )}
     >
@@ -66,7 +66,7 @@ export function XSourceBadge({
         className={
           compact
             ? "sr-only"
-            : "border-l border-background/25 pl-2 text-[11px] font-medium leading-none"
+            : "border-l border-basalt-background/25 pl-2 text-[11px] font-medium leading-none"
         }
       >
         {type === "video" ? (
@@ -89,7 +89,7 @@ function PostText({ text, compact = false }: { text: string; compact?: boolean }
     <div>
       <p
         className={cn(
-          "whitespace-pre-wrap break-words text-sm text-foreground",
+          "whitespace-pre-wrap break-words text-sm text-basalt-foreground",
           compact ? "line-clamp-3 leading-5" : "leading-6",
           !compact && collapsible && !expanded && "line-clamp-6",
         )}
@@ -102,7 +102,7 @@ function PostText({ text, compact = false }: { text: string; compact?: boolean }
           size="sm"
           aria-expanded={expanded}
           onClick={() => setExpanded(!expanded)}
-          className="-ml-2 mt-1 text-primary"
+          className="-ml-2 mt-1 text-basalt-primary"
         >
           {expanded ? "收起全文" : "展开全文"}
         </Button>
@@ -163,7 +163,7 @@ function PostMedia({
   );
   if (failed)
     return (
-      <div className="flex min-h-32 flex-col items-center justify-center gap-3 rounded-widget border border-dashed border-border bg-background/60 p-3 text-muted-foreground">
+      <div className="flex min-h-32 flex-col items-center justify-center gap-3 rounded-widget border border-dashed border-basalt-border bg-basalt-background/60 p-3 text-basalt-muted-foreground">
         <ImageOff className="size-6" strokeWidth={1.5} aria-hidden />
         <span role="status" className="text-xs">
           {media.type === "PHOTO" ? "图片暂时无法加载" : "媒体暂时无法播放"}
@@ -177,7 +177,7 @@ function PostMedia({
     return (
       <Button
         variant="ghost"
-        className="group/media relative block h-auto w-full overflow-hidden rounded-widget border border-border/60 bg-accent p-0 hover:bg-accent"
+        className="group/media relative block h-auto w-full overflow-hidden rounded-widget border border-basalt-border/60 bg-basalt-accent p-0 hover:bg-basalt-accent"
         aria-label={`播放视频 ${index + 1}`}
         aria-haspopup={onPlay ? "dialog" : undefined}
         onClick={onPlay ?? (() => setPlaying(true))}
@@ -198,7 +198,7 @@ function PostMedia({
             style={{ aspectRatio }}
           >
             <XIcon
-              className="absolute -bottom-3 -right-3 size-28 text-foreground/[0.06]"
+              className="absolute -bottom-3 -right-3 size-28 text-basalt-foreground/[0.06]"
               aria-hidden
             />
           </span>
@@ -216,7 +216,7 @@ function PostMedia({
     );
   if (media.type !== "PHOTO")
     return (
-      <div className="relative overflow-hidden rounded-widget border border-border/60 bg-black">
+      <div className="relative overflow-hidden rounded-widget border border-basalt-border/60 bg-black">
         <video
           ref={videoRef}
           src={media.type === "GIF" ? undefined : media.url}
@@ -245,7 +245,7 @@ function PostMedia({
       <DialogTrigger asChild>
         <Button
           variant="ghost"
-          className="block h-auto w-full overflow-hidden rounded-widget border border-border/60 bg-background/60 p-0"
+          className="block h-auto w-full overflow-hidden rounded-widget border border-basalt-border/60 bg-basalt-background/60 p-0"
           aria-label={`查看图片 ${index + 1}`}
         >
           <img
@@ -344,16 +344,16 @@ function PostLinks({
           rel="noopener noreferrer"
           title={url}
           className={cn(
-            "group/article relative block overflow-hidden rounded-widget border border-border/70 bg-background/60 text-foreground transition-colors hover:border-primary/30 hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "group/article relative block overflow-hidden rounded-widget border border-basalt-border/70 bg-basalt-background/60 text-basalt-foreground transition-colors hover:border-basalt-primary/30 hover:bg-basalt-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring",
             compact ? "p-3" : "p-4",
           )}
           data-testid="x-link-preview"
         >
           {isXArticle && (
-            <XIcon className="pointer-events-none absolute -right-3 -top-3 size-28 text-foreground/[0.035]" />
+            <XIcon className="pointer-events-none absolute -right-3 -top-3 size-28 text-basalt-foreground/[0.035]" />
           )}
           <div className="relative space-y-2">
-            <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-basalt-muted-foreground">
               {isArticle ? (
                 <FileText className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
               ) : (
@@ -370,14 +370,14 @@ function PostLinks({
               {headline || (isXArticle ? "阅读 X 文章" : hostname)}
             </p>
             <div className="flex items-center justify-between gap-2 text-xs">
-              <span className="min-w-0 truncate text-muted-foreground">
+              <span className="min-w-0 truncate text-basalt-muted-foreground">
                 {headline || isXArticle
                   ? hostname
                   : new URL(url).pathname === "/"
                     ? "外部网站"
                     : new URL(url).pathname}
               </span>
-              <span className="inline-flex shrink-0 items-center gap-1 font-medium text-foreground group-hover/article:text-primary">
+              <span className="inline-flex shrink-0 items-center gap-1 font-medium text-basalt-foreground group-hover/article:text-basalt-primary">
                 {!compact && (isArticle ? "阅读全文" : "打开链接")}
                 <ArrowUpRight className="size-3.5" strokeWidth={1.5} aria-hidden />
               </span>
@@ -395,7 +395,7 @@ function Quote({ tweet, compact = false }: { tweet: XPost; compact?: boolean }) 
     <blockquote
       aria-label="引用的 X 帖子"
       className={cn(
-        "min-w-0 space-y-2 rounded-widget border border-border/70 bg-background/40",
+        "min-w-0 space-y-2 rounded-widget border border-basalt-border/70 bg-basalt-background/40",
         compact ? "p-3" : "p-4",
       )}
     >
@@ -415,10 +415,10 @@ function Quote({ tweet, compact = false }: { tweet: XPost; compact?: boolean }) 
           className="min-w-0 truncate text-xs font-semibold hover:underline"
         >
           {tweet.author.name}{" "}
-          <span className="font-normal text-muted-foreground">@{tweet.author.username}</span>
+          <span className="font-normal text-basalt-muted-foreground">@{tweet.author.username}</span>
         </a>
         <QuoteIcon
-          className="ml-auto size-4 shrink-0 text-muted-foreground"
+          className="ml-auto size-4 shrink-0 text-basalt-muted-foreground"
           strokeWidth={1.5}
           aria-label="引用"
         />
@@ -478,7 +478,7 @@ export function XBookmarkContent({
         </div>
       )}
       <div className={cn("flex items-center", compact ? "gap-2" : "gap-2.5")}>
-        <Avatar className={cn("shrink-0 ring-1 ring-border/60", compact && "size-7")}>
+        <Avatar className={cn("shrink-0 ring-1 ring-basalt-border/60", compact && "size-7")}>
           <AvatarImage
             src={tweet.author.profile_image_url}
             alt={tweet.author.name}
@@ -498,13 +498,13 @@ export function XBookmarkContent({
             </a>
             {tweet.author.is_verified && (
               <BadgeCheck
-                className="size-3.5 shrink-0 text-muted-foreground"
+                className="size-3.5 shrink-0 text-basalt-muted-foreground"
                 strokeWidth={1.5}
                 aria-label="认证账号"
               />
             )}
           </div>
-          <div className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="flex min-w-0 items-center gap-1.5 text-xs text-basalt-muted-foreground">
             <span className="truncate">@{tweet.author.username}</span>
             {!compact && (
               <>
@@ -529,7 +529,7 @@ export function XBookmarkContent({
       {(tweet.media.some((media) => media.type !== "PHOTO" && media.size) ||
         bookmark.mediaErrors?.length) && (
         <div
-          className="space-y-1.5 text-xs leading-5 text-muted-foreground"
+          className="space-y-1.5 text-xs leading-5 text-basalt-muted-foreground"
           data-testid="x-video-archive-info"
         >
           {tweet.media
@@ -546,7 +546,7 @@ export function XBookmarkContent({
               </p>
             ))}
           {bookmark.mediaErrors?.map((error) => (
-            <p key={error.mediaId} className="break-words text-warning" role="status">
+            <p key={error.mediaId} className="break-words text-basalt-warning" role="status">
               {xMediaFailureMessage(error.code, error.attempts, error.type)}
             </p>
           ))}
@@ -558,7 +558,7 @@ export function XBookmarkContent({
       )}
       {!compact && (
         <section
-          className="border-t border-border/60 pt-3 text-xs text-muted-foreground"
+          className="border-t border-basalt-border/60 pt-3 text-xs text-basalt-muted-foreground"
           aria-label="帖子统计"
         >
           <div className="grid grid-cols-4 gap-2">
@@ -591,7 +591,7 @@ export function XBookmarkPending({ link, compact = false }: { link: Link; compac
       <div className={cn("flex items-center", compact ? "gap-2" : "gap-3")}>
         <span
           className={cn(
-            "flex shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/60 text-muted-foreground",
+            "flex shrink-0 items-center justify-center rounded-full border border-basalt-border/60 bg-basalt-background/60 text-basalt-muted-foreground",
             compact ? "size-7" : "size-9",
           )}
         >
@@ -599,7 +599,7 @@ export function XBookmarkPending({ link, compact = false }: { link: Link; compac
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">已保存的 X 帖子</p>
-          <p className="text-xs text-muted-foreground">内容暂未补全</p>
+          <p className="text-xs text-basalt-muted-foreground">内容暂未补全</p>
         </div>
         <XSourceBadge type="pending" compact={compact} />
       </div>
@@ -611,10 +611,10 @@ export function XBookmarkPending({ link, compact = false }: { link: Link; compac
       <CardText text={display.note} code />
       <p
         className={cn(
-          "text-sm text-muted-foreground",
+          "text-sm text-basalt-muted-foreground",
           compact
             ? "line-clamp-3 leading-5"
-            : "rounded-widget border border-dashed border-border bg-background/40 p-4 leading-6",
+            : "rounded-widget border border-dashed border-basalt-border bg-basalt-background/40 p-4 leading-6",
         )}
       >
         {link.metaDescription || "帖子内容尚未补全，可以先打开原帖查看。"}

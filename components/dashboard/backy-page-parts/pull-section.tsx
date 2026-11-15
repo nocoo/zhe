@@ -26,7 +26,11 @@ function CopyButton({ value, label }: { value: string; label: string }) {
       onClick={handleCopy}
       aria-label={label}
     >
-      {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+      {copied ? (
+        <Check className="h-3.5 w-3.5 text-basalt-success" />
+      ) : (
+        <Copy className="h-3.5 w-3.5" />
+      )}
     </Button>
   );
 }
@@ -43,22 +47,26 @@ function CredentialsView({
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
-        <p className="text-xs text-muted-foreground">Webhook URL</p>
+        <p className="text-xs text-basalt-muted-foreground">Webhook URL</p>
         <div className="flex items-center gap-2">
-          <code className="rounded bg-accent px-2 py-1 text-xs break-all">{pullWebhookUrl}</code>
+          <code className="rounded bg-basalt-accent px-2 py-1 text-xs break-all">
+            {pullWebhookUrl}
+          </code>
           <CopyButton value={pullWebhookUrl} label="复制 Webhook URL" />
         </div>
       </div>
       <div className="space-y-1.5">
         <div className="flex items-center gap-1">
-          <p className="text-xs text-muted-foreground">Key</p>
-          <code className="rounded bg-accent/60 px-1.5 py-0.5 text-[10px] text-muted-foreground/70 font-mono">
+          <p className="text-xs text-basalt-muted-foreground">Key</p>
+          <code className="rounded bg-basalt-accent/60 px-1.5 py-0.5 text-[10px] text-basalt-muted-foreground/70 font-mono">
             X-Webhook-Key
           </code>
           <CopyButton value="X-Webhook-Key" label="复制 Header 名" />
         </div>
         <div className="flex items-center gap-2">
-          <code className="rounded bg-accent px-2 py-1 text-xs break-all font-mono">{pullKey}</code>
+          <code className="rounded bg-basalt-accent px-2 py-1 text-xs break-all font-mono">
+            {pullKey}
+          </code>
           <CopyButton value={pullKey} label="复制 Key" />
         </div>
       </div>
@@ -90,9 +98,9 @@ function CredentialsView({
           撤销
         </Button>
       </div>
-      <div className="rounded-widget bg-background p-3">
-        <p className="mb-2 text-xs font-medium text-muted-foreground">调用示例</p>
-        <code className="block whitespace-pre-wrap text-[11px] text-muted-foreground">
+      <div className="rounded-widget bg-basalt-background p-3">
+        <p className="mb-2 text-xs font-medium text-basalt-muted-foreground">调用示例</p>
+        <code className="block whitespace-pre-wrap text-[11px] text-basalt-muted-foreground">
           {`curl -X POST ${pullWebhookUrl} \\\n  -H "X-Webhook-Key: ${pullKey}"`}
         </code>
       </div>
@@ -103,7 +111,7 @@ function CredentialsView({
 function EmptyView({ vm }: { vm: BackyViewModel }) {
   return (
     <div className="space-y-3">
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-basalt-muted-foreground">
         生成 Webhook Key 后，可将 URL 和 Key 配置到 Backy，实现定时自动备份。
       </p>
       <Button
@@ -137,7 +145,7 @@ export function PullSection({ vm }: { vm: BackyViewModel }) {
       description="提供给 Backy 调用的 Webhook 地址，Backy 可通过此接口触发备份推送。"
     >
       {vm.isLoading ? (
-        <p className="text-sm text-muted-foreground">加载中...</p>
+        <p className="text-sm text-basalt-muted-foreground">加载中...</p>
       ) : vm.pullKey ? (
         <CredentialsView vm={vm} pullKey={vm.pullKey} pullWebhookUrl={pullWebhookUrl} />
       ) : (

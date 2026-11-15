@@ -19,7 +19,7 @@ export function BreakdownSection({
 }) {
   return (
     <div className="min-w-0">
-      <h4 className="mb-2 text-xs font-medium text-muted-foreground">{title}</h4>
+      <h4 className="mb-2 text-xs font-medium text-basalt-muted-foreground">{title}</h4>
       {entries.length > 0 ? (
         <div className="space-y-1">
           {entries.map(([label, count]) => (
@@ -31,11 +31,13 @@ export function BreakdownSection({
             </div>
           ))}
           {total !== undefined && total > entries.length && (
-            <span className="text-xs text-muted-foreground">另有 {total - entries.length} 个</span>
+            <span className="text-xs text-basalt-muted-foreground">
+              另有 {total - entries.length} 个
+            </span>
           )}
         </div>
       ) : (
-        <span className="text-xs text-muted-foreground">暂无记录</span>
+        <span className="text-xs text-basalt-muted-foreground">暂无记录</span>
       )}
     </div>
   );
@@ -65,18 +67,22 @@ export function AnalyticsPanel({
   return (
     <section
       className={cn(
-        "@container/analytics space-y-4 border-t border-border/60 bg-background/30 p-4",
+        "@container/analytics space-y-4 border-t border-basalt-border/60 bg-basalt-background/30 p-4",
         className,
       )}
       aria-label="短链接统计"
     >
       <div className="flex items-center justify-between gap-3">
         <h3 className="flex items-center gap-2 text-xs font-semibold">
-          <BarChart3 className="size-3.5 text-muted-foreground" strokeWidth={1.5} aria-hidden />
+          <BarChart3
+            className="size-3.5 text-basalt-muted-foreground"
+            strokeWidth={1.5}
+            aria-hidden
+          />
           短链接统计
         </h3>
         {analyticsStats && (
-          <span className="text-xs tabular-nums text-muted-foreground">
+          <span className="text-xs tabular-nums text-basalt-muted-foreground">
             {analyticsStats.totalClicks} 次点击
           </span>
         )}
@@ -105,7 +111,7 @@ export function AnalyticsPanel({
       ) : (
         <p
           role="status"
-          className="flex items-center gap-2 text-xs leading-5 text-muted-foreground"
+          className="flex items-center gap-2 text-xs leading-5 text-basalt-muted-foreground"
         >
           {isLoadingAnalytics && (
             <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden />

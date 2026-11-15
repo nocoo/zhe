@@ -9,10 +9,10 @@ import type { OpenApiSpec } from "@/models/webhook";
 export function MethodsTable({ spec }: { spec: OpenApiSpec }) {
   return (
     <div className="space-y-1.5">
-      <p className="text-xs text-muted-foreground">支持的方法</p>
+      <p className="text-xs text-basalt-muted-foreground">支持的方法</p>
       <table className="w-full text-xs">
         <thead>
-          <tr className="border-b border-border/50 text-left text-muted-foreground">
+          <tr className="border-b border-basalt-border/50 text-left text-basalt-muted-foreground">
             <th className="pb-1.5 pr-3 font-medium">方法</th>
             <th className="pb-1.5 font-medium">说明</th>
           </tr>
@@ -21,9 +21,9 @@ export function MethodsTable({ spec }: { spec: OpenApiSpec }) {
           {(["head", "get", "post"] as const).map((method) => {
             const op = spec.paths["/"][method];
             return (
-              <tr key={method} className="border-b border-border/30">
+              <tr key={method} className="border-b border-basalt-border/30">
                 <td className="py-1.5 pr-3 font-mono">{method.toUpperCase()}</td>
-                <td className="py-1.5 text-muted-foreground">{op.summary}</td>
+                <td className="py-1.5 text-basalt-muted-foreground">{op.summary}</td>
               </tr>
             );
           })}
@@ -51,10 +51,10 @@ export function PostParamsTable({
 }) {
   return (
     <div className="space-y-1.5">
-      <p className="text-xs text-muted-foreground">POST 请求参数</p>
+      <p className="text-xs text-basalt-muted-foreground">POST 请求参数</p>
       <table className="w-full text-xs">
         <thead>
-          <tr className="border-b border-border/50 text-left text-muted-foreground">
+          <tr className="border-b border-basalt-border/50 text-left text-basalt-muted-foreground">
             <th className="pb-1.5 pr-3 font-medium">参数</th>
             <th className="pb-1.5 pr-3 font-medium">类型</th>
             <th className="pb-1.5 pr-3 font-medium">必填</th>
@@ -63,11 +63,11 @@ export function PostParamsTable({
         </thead>
         <tbody>
           {Object.entries(properties).map(([name, prop]) => (
-            <tr key={name} className="border-b border-border/30">
+            <tr key={name} className="border-b border-basalt-border/30">
               <td className="py-1.5 pr-3 font-mono">{name}</td>
-              <td className="py-1.5 pr-3 text-muted-foreground">{prop.type}</td>
+              <td className="py-1.5 pr-3 text-basalt-muted-foreground">{prop.type}</td>
               <td className="py-1.5 pr-3">{required.includes(name) ? "是" : "否"}</td>
-              <td className="py-1.5 text-muted-foreground">{prop.description}</td>
+              <td className="py-1.5 text-basalt-muted-foreground">{prop.description}</td>
             </tr>
           ))}
         </tbody>
@@ -83,10 +83,10 @@ export function ErrorCodesTable({
 }) {
   return (
     <div className="space-y-1.5">
-      <p className="text-xs text-muted-foreground">错误码</p>
+      <p className="text-xs text-basalt-muted-foreground">错误码</p>
       <table className="w-full text-xs">
         <thead>
-          <tr className="border-b border-border/50 text-left text-muted-foreground">
+          <tr className="border-b border-basalt-border/50 text-left text-basalt-muted-foreground">
             <th className="pb-1.5 pr-3 font-medium">状态码</th>
             <th className="pb-1.5 font-medium">说明</th>
           </tr>
@@ -95,9 +95,9 @@ export function ErrorCodesTable({
           {Object.entries(responses)
             .filter(([code]) => Number(code) >= 400)
             .map(([code, resp]) => (
-              <tr key={code} className="border-b border-border/30">
+              <tr key={code} className="border-b border-basalt-border/30">
                 <td className="py-1.5 pr-3 font-mono">{code}</td>
-                <td className="py-1.5 text-muted-foreground">{resp.description}</td>
+                <td className="py-1.5 text-basalt-muted-foreground">{resp.description}</td>
               </tr>
             ))}
         </tbody>
@@ -118,20 +118,21 @@ export function CurlExamples({
   return (
     <>
       <div className="space-y-1.5">
-        <p className="text-xs text-muted-foreground">请求示例</p>
-        <pre className="overflow-x-auto rounded bg-accent px-3 py-2 text-xs leading-relaxed">
+        <p className="text-xs text-basalt-muted-foreground">请求示例</p>
+        <pre className="overflow-x-auto rounded bg-basalt-accent px-3 py-2 text-xs leading-relaxed">
           {`# HEAD\ncurl -I ${webhookUrl}\n\n# GET\ncurl ${webhookUrl}\n\n# POST\ncurl -X POST ${webhookUrl} \\\n  -H "Content-Type: application/json" \\\n  -d '{"url": "https://example.com/page", "note": "Interesting article"}'`}
         </pre>
       </div>
 
       {tmpUploadUrl && (
         <div className="space-y-1.5" data-testid="tmp-upload-docs">
-          <p className="text-xs text-muted-foreground">临时文件上传</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-basalt-muted-foreground">临时文件上传</p>
+          <p className="text-xs text-basalt-muted-foreground">
             使用相同令牌上传临时文件到 R2 存储，文件在{" "}
-            <strong className="text-foreground">1 小时</strong>后自动清理。最大文件大小 10 MB。
+            <strong className="text-basalt-foreground">1 小时</strong>后自动清理。最大文件大小 10
+            MB。
           </p>
-          <pre className="overflow-x-auto rounded bg-accent px-3 py-2 text-xs leading-relaxed">
+          <pre className="overflow-x-auto rounded bg-basalt-accent px-3 py-2 text-xs leading-relaxed">
             {`# Upload a file\ncurl -X POST ${tmpUploadUrl} \\\n  -F "file=@myfile.zip"`}
           </pre>
         </div>
@@ -143,8 +144,8 @@ export function CurlExamples({
 export function PostResponseFormat() {
   return (
     <div className="space-y-1.5">
-      <p className="text-xs text-muted-foreground">POST 响应格式</p>
-      <pre className="overflow-x-auto rounded bg-accent px-3 py-2 text-xs leading-relaxed">
+      <p className="text-xs text-basalt-muted-foreground">POST 响应格式</p>
+      <pre className="overflow-x-auto rounded bg-basalt-accent px-3 py-2 text-xs leading-relaxed">
         {JSON.stringify(
           {
             slug: "(string) The generated or custom slug",
@@ -164,10 +165,10 @@ export function PostResponseFormat() {
 export function RateLimitNote({ rateLimit }: { rateLimit: number }) {
   return (
     <div className="space-y-1.5">
-      <p className="text-xs text-muted-foreground">速率限制</p>
-      <p className="text-xs text-muted-foreground">
-        每个令牌最多 <strong className="text-foreground">{rateLimit}</strong> 次请求 / 分钟（仅限
-        POST）
+      <p className="text-xs text-basalt-muted-foreground">速率限制</p>
+      <p className="text-xs text-basalt-muted-foreground">
+        每个令牌最多 <strong className="text-basalt-foreground">{rateLimit}</strong> 次请求 /
+        分钟（仅限 POST）
       </p>
     </div>
   );
@@ -176,8 +177,8 @@ export function RateLimitNote({ rateLimit }: { rateLimit: number }) {
 export function BehaviorNotes() {
   return (
     <div className="space-y-1.5">
-      <p className="text-xs text-muted-foreground">行为说明</p>
-      <ul className="list-disc space-y-1 pl-4 text-xs text-muted-foreground">
+      <p className="text-xs text-basalt-muted-foreground">行为说明</p>
+      <ul className="list-disc space-y-1 pl-4 text-xs text-basalt-muted-foreground">
         <li>
           幂等：如果同一 URL 已被缩短，返回已有链接（200）而非创建新链接（201）。此时
           customSlug、folder、note 参数被忽略。
@@ -195,9 +196,12 @@ export function AgentPromptSection({
   copyToClipboard: (text: string) => void | Promise<void>;
 }) {
   return (
-    <div className="space-y-1.5 border-t border-border/50 pt-4" data-testid="webhook-agent-prompt">
+    <div
+      className="space-y-1.5 border-t border-basalt-border/50 pt-4"
+      data-testid="webhook-agent-prompt"
+    >
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-foreground">AI Agent Prompt</p>
+        <p className="text-xs font-medium text-basalt-foreground">AI Agent Prompt</p>
         <Button
           variant="ghost"
           size="default"
@@ -210,12 +214,12 @@ export function AgentPromptSection({
           复制
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-xs text-basalt-muted-foreground">
         将以下 Prompt 复制给 AI Agent，它将自动了解如何调用此 Webhook，并可通过 GET 请求发现完整的
         OpenAPI 3.1 Schema。
       </p>
       <pre
-        className="max-h-64 overflow-auto whitespace-pre-wrap rounded bg-accent px-3 py-2 text-xs leading-relaxed"
+        className="max-h-64 overflow-auto whitespace-pre-wrap rounded bg-basalt-accent px-3 py-2 text-xs leading-relaxed"
         data-testid="agent-prompt-content"
       >
         {agentPrompt}

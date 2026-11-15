@@ -17,6 +17,6 @@ describe("Sheet overlay surface", () => {
     );
     const panel = screen.getByRole("dialog");
     expect(panel.hasAttribute("data-basalt-surface-root")).toBe(true);
-    expect(panel.className).not.toMatch(/\bbg-background\b/);
+    expect(panel.className).not.toMatch(/\bbg-basalt-background\b/);
   });
 });

@@ -29,7 +29,9 @@ export function MarkdownPreview({
 }: MarkdownPreviewProps) {
   if (!content.trim()) {
     return (
-      <div className={cn("text-muted-foreground/50 italic text-sm", className)}>{placeholder}</div>
+      <div className={cn("text-basalt-muted-foreground/50 italic text-sm", className)}>
+        {placeholder}
+      </div>
     );
   }
 
@@ -40,16 +42,16 @@ export function MarkdownPreview({
         // Headings
         "prose-headings:font-semibold",
         // Links
-        "prose-a:text-primary prose-a:no-underline hover:prose-a:underline",
+        "prose-a:text-basalt-primary prose-a:no-underline hover:prose-a:underline",
         // Code blocks
-        "prose-pre:bg-background prose-pre:rounded-widget",
-        "prose-code:text-foreground prose-code:bg-background prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-xs prose-code:before:content-none prose-code:after:content-none",
+        "prose-pre:bg-basalt-background prose-pre:rounded-widget",
+        "prose-code:text-basalt-foreground prose-code:bg-basalt-background prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-xs prose-code:before:content-none prose-code:after:content-none",
         // Keep transparent logos and diagrams readable in both themes.
         "prose-img:rounded-md prose-img:bg-white prose-img:scheme-light",
         // Tables
         "prose-th:text-left",
         // Task lists
-        "prose-li:marker:text-muted-foreground",
+        "prose-li:marker:text-basalt-muted-foreground",
         className,
       )}
     >

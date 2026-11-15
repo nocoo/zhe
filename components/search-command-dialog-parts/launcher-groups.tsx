@@ -119,9 +119,9 @@ export function PageJumpGroup({ query, visibleWhenEmpty = 5, onNavigate }: PageJ
             onSelect={() => onNavigate(page.href)}
             className="flex items-center gap-3"
           >
-            <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+            <Icon className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
             <span className="flex-1">{page.title}</span>
-            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/60" />
+            <ArrowRight className="h-3.5 w-3.5 text-basalt-muted-foreground/60" />
           </CommandItem>
         );
       })}
@@ -167,7 +167,7 @@ export function ActionGroup({ query, actions, visibleWhenEmpty = 5 }: ActionGrou
             onSelect={action.run}
             className="flex items-center gap-3"
           >
-            <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+            <Icon className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
             <span className="flex-1">{action.title}</span>
           </CommandItem>
         );

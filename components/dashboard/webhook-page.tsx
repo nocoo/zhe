@@ -129,7 +129,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
       <Card>
         <CardContent className="px-4 py-4 md:px-5 md:py-5">
           {vm.isLoading ? (
-            <p className="text-sm text-muted-foreground">加载中...</p>
+            <p className="text-sm text-basalt-muted-foreground">加载中...</p>
           ) : vm.token && vm.webhookUrl ? (
             <ConfiguredView
               token={vm.token}
@@ -147,7 +147,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
               onRateLimitChange={vm.handleRateLimitChange}
             />
           ) : (
-            <p className="text-sm text-muted-foreground">尚未生成 Webhook 令牌。</p>
+            <p className="text-sm text-basalt-muted-foreground">尚未生成 Webhook 令牌。</p>
           )}
         </CardContent>
       </Card>

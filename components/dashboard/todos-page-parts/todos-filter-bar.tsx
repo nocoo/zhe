@@ -74,7 +74,7 @@ export function TodosFilterBar({
   return (
     <>
       <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-basalt-muted-foreground" />
         <Input
           size="sm"
           value={searchQuery}
@@ -115,7 +115,7 @@ export function TodosFilterBar({
         </SelectContent>
       </Select>
 
-      <Label className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground whitespace-nowrap">
+      <Label className="flex items-center gap-1.5 text-xs font-normal text-basalt-muted-foreground whitespace-nowrap">
         <Checkbox
           size="sm"
           checked={showDone}

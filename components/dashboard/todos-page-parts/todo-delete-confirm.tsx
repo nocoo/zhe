@@ -58,7 +58,7 @@ export function TodoDeleteConfirm({
               onConfirm();
             }}
             disabled={isDeleting}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="bg-basalt-destructive text-basalt-destructive-foreground hover:bg-basalt-destructive/90"
           >
             {isDeleting ? "删除中…" : "删除"}
           </AlertDialogAction>

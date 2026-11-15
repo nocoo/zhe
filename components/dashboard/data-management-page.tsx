@@ -31,12 +31,12 @@ export function DataManagementPage() {
       <Card>
         <CardHeader className="px-4 py-3 md:px-5 md:py-4">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <Download className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+            <Download className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
             数据导出
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-          <p className="mb-4 text-sm text-muted-foreground">
+          <p className="mb-4 text-sm text-basalt-muted-foreground">
             将所有链接数据导出为 JSON 文件，可用于备份或迁移。
           </p>
           <Button onClick={handleExport} disabled={isExporting} variant="outline" size="default">
@@ -49,21 +49,21 @@ export function DataManagementPage() {
       <Card>
         <CardHeader className="px-4 py-3 md:px-5 md:py-4">
           <CardTitle className="flex items-center gap-2 text-sm font-medium">
-            <Upload className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+            <Upload className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
             数据导入
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-          <p className="mb-4 text-sm text-muted-foreground">
+          <p className="mb-4 text-sm text-basalt-muted-foreground">
             从 JSON 文件导入链接数据。已存在的短链接将被自动跳过。
           </p>
 
           {isImporting ? (
-            <p className="text-sm text-muted-foreground">导入中...</p>
+            <p className="text-sm text-basalt-muted-foreground">导入中...</p>
           ) : importResult ? (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm">
-                <CheckCircle className="h-4 w-4 text-success" />
+                <CheckCircle className="h-4 w-4 text-basalt-success" />
                 <span>
                   导入完成：成功 <strong>{importResult.created}</strong> 条，跳过{" "}
                   <strong>{importResult.skipped}</strong> 条
@@ -81,7 +81,7 @@ export function DataManagementPage() {
                 accept=".json"
                 onChange={onFileChange}
                 data-testid="import-file-input"
-                className="block text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-accent file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-foreground hover:file:bg-accent/80 file:cursor-pointer"
+                className="block text-sm text-basalt-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-basalt-accent file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-basalt-foreground hover:file:bg-basalt-accent/80 file:cursor-pointer"
               />
             </div>
           )}

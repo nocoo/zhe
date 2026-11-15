@@ -281,7 +281,7 @@ describe("AppShell", () => {
     it("shows mobile menu button", async () => {
       mockSidebarCtx.isMobile = true;
       await renderShell();
-      expect(screen.getByRole("button", { name: "Open menu" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "打开导航" })).toBeInTheDocument();
     });
 
     it("calls toggle when mobile menu button is clicked", async () => {
@@ -294,7 +294,7 @@ describe("AppShell", () => {
         (btn: Element) => !btn.getAttribute("title")?.includes("Theme"),
       );
       fireEvent.click(unwrap(menuButton));
-      expect(mockSidebarCtx.toggle).toHaveBeenCalledOnce();
+      expect(mockSidebarCtx.setMobileOpen).toHaveBeenCalledWith(true);
     });
 
     it("renders Sheet overlay and sidebar when drawer is open", async () => {
@@ -402,7 +402,7 @@ describe("AppShell", () => {
     it("uses the radius-island token for the content panel", async () => {
       const { container } = await renderShell();
 
-      const contentPanel = container.querySelector(".rounded-island");
+      const contentPanel = container.querySelector("[data-basalt-island]");
       expect(contentPanel).toBeInTheDocument();
     });
   });

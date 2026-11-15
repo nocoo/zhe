@@ -137,7 +137,7 @@ export function DeleteIdeaConfirm({ vm }: { vm: IdeasViewModel }) {
 
 export function ErrorToast({ message, onClear }: { message: string; onClear: () => void }) {
   return (
-    <div className="fixed bottom-4 right-4 bg-destructive text-destructive-foreground px-4 py-2 rounded-md shadow-lg flex items-center gap-2">
+    <div className="fixed bottom-4 right-4 bg-basalt-destructive text-basalt-destructive-foreground px-4 py-2 rounded-md shadow-lg flex items-center gap-2">
       <span>{message}</span>
       <button type="button" onClick={onClear}>
         <X className="h-4 w-4" />

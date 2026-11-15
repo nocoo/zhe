@@ -28,7 +28,10 @@ export function ModeTabs({ mode, setMode }: ModeTabsProps) {
           key={option}
           variant="outline"
           aria-pressed={mode === option}
-          className={cn("flex-1", mode === option && "border-primary/40 text-primary")}
+          className={cn(
+            "flex-1",
+            mode === option && "border-basalt-primary/40 text-basalt-primary",
+          )}
           onClick={() => setMode(option)}
         >
           {option === "simple" ? "简单模式" : "自定义 slug"}
@@ -55,7 +58,7 @@ export function SlugInput({
         自定义 slug
       </Label>
       <div className="flex items-center gap-2">
-        <span className="text-muted-foreground text-sm whitespace-nowrap">
+        <span className="text-basalt-muted-foreground text-sm whitespace-nowrap">
           {stripProtocol(siteUrl)}/
         </span>
         <Input

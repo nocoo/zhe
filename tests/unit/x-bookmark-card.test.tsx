@@ -221,7 +221,7 @@ describe("X bookmark presentation", () => {
     expect(preview).toHaveAttribute("href", url);
     expect(preview).not.toHaveTextContent("I want to build an AI agent today");
     expect(screen.getByText("I want to build an AI agent today").closest("details")).toHaveClass(
-      "bg-primary/5",
+      "bg-basalt-primary/5",
     );
     expect(preview).toHaveTextContent("阅读全文");
     expect(screen.queryByText("https://t.co/KW3rQbdBJT")).not.toBeInTheDocument();

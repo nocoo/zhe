@@ -139,7 +139,7 @@ export const TodoTreeRow = memo(function TodoTreeRow({
       aria-expanded={node.isInternal ? node.isOpen : undefined}
       className={cn(
         "group flex h-full items-center gap-1.5 mx-1 pr-2 text-sm select-none cursor-pointer rounded-widget transition-colors",
-        isSelected ? "bg-accent/80 text-foreground" : "hover:bg-accent/40",
+        isSelected ? "bg-basalt-accent/80 text-basalt-foreground" : "hover:bg-basalt-accent/40",
         todo.done && "opacity-60",
       )}
       data-todo-row={todo.id}
@@ -153,7 +153,7 @@ export const TodoTreeRow = memo(function TodoTreeRow({
             node.toggle();
           }}
           aria-label={node.isOpen ? "Collapse" : "Expand"}
-          className="p-1 rounded-widget hover:bg-accent/60 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
+          className="p-1 rounded-widget hover:bg-basalt-accent/60 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-basalt-ring"
         >
           {node.isOpen ? (
             <ChevronDown className="h-4 w-4" aria-hidden />
@@ -223,14 +223,18 @@ export const TodoTreeRow = memo(function TodoTreeRow({
 
       <span className="ml-auto flex items-center gap-1" data-todo-row-guard>
         {todo.hasContent ? (
-          <FileText className="h-3 w-3 text-muted-foreground" role="img" aria-label="Has notes" />
+          <FileText
+            className="h-3 w-3 text-basalt-muted-foreground"
+            role="img"
+            aria-label="Has notes"
+          />
         ) : null}
         {todo.tagNames.slice(0, 3).map((name) => (
           <TodoTagChip key={name} name={name} />
         ))}
         {todo.tagNames.length > 3 ? (
           <span
-            className="text-[10px] text-muted-foreground"
+            className="text-[10px] text-basalt-muted-foreground"
             title={todo.tagNames.slice(3).join(", ")}
           >
             +{todo.tagNames.length - 3}
@@ -354,7 +358,7 @@ function RowMenuItems({
       <Separator />
       <Item
         onSelect={() => onConfirmDelete(todo)}
-        className="text-destructive focus:text-destructive"
+        className="text-basalt-destructive focus:text-basalt-destructive"
       >
         <Trash2 aria-hidden /> 删除…
       </Item>

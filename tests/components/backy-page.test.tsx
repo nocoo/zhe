@@ -253,7 +253,7 @@ describe("BackyPage", () => {
 
     const testResult = screen.getByTestId("backy-test-result");
     expect(testResult).toHaveTextContent("连接成功");
-    expect(testResult.className).toContain("border-success/20");
+    expect(testResult.className).toContain("border-basalt-success/20");
   });
 
   it("shows test result (failure) in red box with alert icon", () => {
@@ -265,7 +265,7 @@ describe("BackyPage", () => {
 
     const testResult = screen.getByTestId("backy-test-result");
     expect(testResult).toHaveTextContent("连接失败 (401)");
-    expect(testResult.className).toContain("border-destructive/20");
+    expect(testResult.className).toContain("border-basalt-destructive/20");
   });
 
   it("shows push result with detailed info", () => {
@@ -310,7 +310,7 @@ describe("BackyPage", () => {
     const pushResult = screen.getByTestId("backy-push-result");
     expect(pushResult).toHaveTextContent("推送失败 (413)");
     expect(pushResult).toHaveTextContent("HTTP 413");
-    expect(pushResult.className).toContain("border-destructive/20");
+    expect(pushResult.className).toContain("border-basalt-destructive/20");
   });
 
   it("shows backup history in grid layout", () => {
@@ -534,14 +534,14 @@ describe("BackyPage", () => {
     });
 
     // Check icon should appear
-    expect(copyBtn.querySelector(".text-success")).toBeInTheDocument();
+    expect(copyBtn.querySelector(".text-basalt-success")).toBeInTheDocument();
 
     // Advance past timeout
     act(() => {
       vi.advanceTimersByTime(900);
     });
 
-    expect(copyBtn.querySelector(".text-success")).not.toBeInTheDocument();
+    expect(copyBtn.querySelector(".text-basalt-success")).not.toBeInTheDocument();
     vi.useRealTimers();
   });
 });

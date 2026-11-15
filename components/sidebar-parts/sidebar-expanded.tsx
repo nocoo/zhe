@@ -3,11 +3,13 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@nocoo/basalt/components/avatar";
 import {
   SidebarFooter,
+  SidebarGroup,
+  SidebarItem,
   SidebarNav,
   SidebarSearch,
   SidebarUser,
 } from "@nocoo/basalt/components/sidebar";
-import { LogOut, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
 import { SidebarFolderItem } from "@/components/sidebar-folder-item";
 import { Badge } from "@/components/ui/badge";
@@ -49,21 +51,15 @@ function StaticNavGroupBlock({
   group,
   pathname,
   groupOpen,
-  toggleGroup,
 }: {
   group: NavGroup;
   pathname: string;
   groupOpen: Record<string, boolean>;
-  toggleGroup: (label: string) => void;
 }) {
   return (
-    <CollapsibleNavGroup
-      label={group.label}
-      open={groupOpen[group.label] ?? true}
-      onOpenChange={() => toggleGroup(group.label)}
-    >
+    <SidebarGroup label={group.label} defaultOpen={groupOpen[group.label] ?? true}>
       {group.items.map((item) => (
-        <NavRowLink
+        <SidebarItem
           key={item.href}
           href={item.href}
           active={isStaticNavActive(pathname, item.href)}
@@ -78,9 +74,9 @@ function StaticNavGroupBlock({
               {item.badge}
             </Badge>
           )}
-        </NavRowLink>
+        </SidebarItem>
       ))}
-    </CollapsibleNavGroup>
+    </SidebarGroup>
   );
 }
 
@@ -171,18 +167,16 @@ export function SidebarExpanded({
 }: SidebarExpandedProps) {
   return (
     <>
-      <div className="px-basalt-nav-inset">
-        <SidebarSearch onClick={openSearch}>搜索收藏与记录…</SidebarSearch>
-      </div>
-
       <SidebarNav>
+        <SidebarSearch shortcut="⌘K" onClick={openSearch}>
+          搜索收藏与记录…
+        </SidebarSearch>
         {PRE_LINK_NAV_GROUPS.map((group) => (
           <StaticNavGroupBlock
             key={group.label}
             group={group}
             pathname={pathname}
             groupOpen={groupOpen}
-            toggleGroup={toggleGroup}
           />
         ))}
 
@@ -201,7 +195,6 @@ export function SidebarExpanded({
             group={group}
             pathname={pathname}
             groupOpen={groupOpen}
-            toggleGroup={toggleGroup}
           />
         ))}
       </SidebarNav>
@@ -216,13 +209,10 @@ export function SidebarExpanded({
               <AvatarFallback className="text-basalt-sm">{user?.name?.[0] || "U"}</AvatarFallback>
             </Avatar>
           }
-          action={
-            <form action={signOutAction}>
-              <Button type="submit" variant="ghost" size="icon" aria-label="Sign out">
-                <LogOut aria-hidden />
-              </Button>
-            </form>
-          }
+          signOutLabel="退出登录"
+          onSignOut={() => {
+            void signOutAction();
+          }}
         />
       </SidebarFooter>
     </>

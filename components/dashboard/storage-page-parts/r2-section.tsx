@@ -34,7 +34,7 @@ interface R2SectionProps {
 function R2Header({ connected }: { connected: boolean }) {
   return (
     <div className="flex items-center gap-2">
-      <HardDrive className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+      <HardDrive className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
       <h3 className="text-sm font-medium">Cloudflare R2</h3>
       {connected ? (
         <Badge variant="success" className="text-[10px]">
@@ -140,7 +140,7 @@ function ActionBar(props: ActionBarProps) {
               onClick={onSelectAllOrphans}
               className="gap-1.5"
             >
-              <AlertTriangle className="h-3.5 w-3.5 text-warning" strokeWidth={1.5} />
+              <AlertTriangle className="h-3.5 w-3.5 text-basalt-warning" strokeWidth={1.5} />
               选择全部孤儿文件
             </Button>
             {selectedKeys.size > 0 && (
@@ -157,7 +157,7 @@ function ActionBar(props: ActionBarProps) {
 
         {selectedKeys.size > 0 && (
           <Fragment>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-basalt-muted-foreground">
               已选 {selectedKeys.size} 个文件 ({formatBytes(selectedSize)})
             </span>
             <Button
@@ -193,8 +193,8 @@ function FileList({
   if (files.length === 0) {
     return (
       <Card className="p-8 text-center">
-        <CheckCircle className="h-8 w-8 text-success mx-auto mb-2" strokeWidth={1.5} />
-        <p className="text-sm text-muted-foreground">R2 存储为空</p>
+        <CheckCircle className="h-8 w-8 text-basalt-success mx-auto mb-2" strokeWidth={1.5} />
+        <p className="text-sm text-basalt-muted-foreground">R2 存储为空</p>
       </Card>
     );
   }

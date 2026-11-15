@@ -68,37 +68,37 @@ export function SearchResult({ hit, query }: { hit: SearchHit; query: string }) 
   return (
     <div className="flex w-full min-w-0 items-start gap-3">
       <div
-        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-widget border border-border/60 text-muted-foreground"
+        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-widget border border-basalt-border/60 text-basalt-muted-foreground"
         aria-hidden="true"
       >
         <Icon className="size-4" strokeWidth={1.5} />
       </div>
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex min-w-0 items-baseline gap-2">
-          <span className="min-w-0 truncate text-sm font-medium text-foreground">
+          <span className="min-w-0 truncate text-sm font-medium text-basalt-foreground">
             <SearchHighlights segments={searchHighlight(hit.title, query)} />
           </span>
           {hit.originalTitle && (
             <span
-              className="hidden max-w-[30%] truncate text-xs text-muted-foreground sm:inline"
+              className="hidden max-w-[30%] truncate text-xs text-basalt-muted-foreground sm:inline"
               title={hit.originalTitle}
             >
               <SearchHighlights segments={searchHighlight(hit.originalTitle, query)} />
             </span>
           )}
-          <span className="ml-auto shrink-0 text-xs text-muted-foreground">
+          <span className="ml-auto shrink-0 text-xs text-basalt-muted-foreground">
             {SEARCH_SOURCE_LABELS[hit.source]}
           </span>
           {hit.kind === "link" && (
             <ExternalLink
-              className="size-3 shrink-0 text-muted-foreground"
+              className="size-3 shrink-0 text-basalt-muted-foreground"
               aria-label="新标签页打开"
             />
           )}
         </div>
         {summary && (
           <p
-            className={`line-clamp-2 break-words text-sm leading-relaxed ${hit.note ? "text-foreground" : "text-muted-foreground"}`}
+            className={`line-clamp-2 break-words text-sm leading-relaxed ${hit.note ? "text-basalt-foreground" : "text-basalt-muted-foreground"}`}
           >
             <SearchHighlights segments={searchSnippet(summary, query)} />
           </p>
@@ -106,13 +106,13 @@ export function SearchResult({ hit, query }: { hit: SearchHit; query: string }) 
         {evidence.slice(0, 2).map((match) => (
           <p
             key={`${match.label}:${match.segments.map((part) => part.text).join("")}`}
-            className="line-clamp-2 break-words text-xs leading-relaxed text-muted-foreground"
+            className="line-clamp-2 break-words text-xs leading-relaxed text-basalt-muted-foreground"
           >
             <span className="mr-2 font-medium">{match.label}</span>
             <SearchHighlights segments={match.segments} />
           </p>
         ))}
-        <div className="flex min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap text-xs text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-2 overflow-hidden whitespace-nowrap text-xs text-basalt-muted-foreground">
           <span className="min-w-0 truncate">
             <SearchHighlights
               segments={searchHighlight(

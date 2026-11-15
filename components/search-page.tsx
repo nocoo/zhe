@@ -86,7 +86,7 @@ export function SearchPage() {
         <h1 className="shrink-0 text-xl font-semibold tracking-tight">搜索</h1>
         <div className="relative min-w-0 flex-1 basis-64">
           <Search
-            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-basalt-muted-foreground"
             aria-hidden="true"
           />
           <Input
@@ -108,7 +108,7 @@ export function SearchPage() {
             在链接、X、GitHub、想法和待办中查找，↑ ↓ 选择，Enter 打开，Esc 返回
           </span>
         </div>
-        <div aria-live="polite" aria-atomic="true" className="text-xs text-muted-foreground">
+        <div aria-live="polite" aria-atomic="true" className="text-xs text-basalt-muted-foreground">
           {result.loading
             ? result.message || "正在搜索…"
             : result.data
@@ -125,7 +125,7 @@ export function SearchPage() {
         />
       </div>
       {!normalizeSearchText(query) && (
-        <div className="py-10 text-center text-muted-foreground">
+        <div className="py-10 text-center text-basalt-muted-foreground">
           <Search className="mx-auto mb-3 h-7 w-7 opacity-50" />
           <p className="text-sm">输入关键词，找回收藏与记录</p>
           <p className="mt-2 text-xs">可组合作者、标签和正文关键词，用空格分开</p>
@@ -142,14 +142,16 @@ export function SearchPage() {
       {result.loading && (
         <div aria-hidden="true" className="space-y-3 py-3">
           {[1, 2, 3, 4].map((key) => (
-            <div key={key} className="h-20 animate-pulse rounded-widget bg-muted/60" />
+            <div key={key} className="h-20 animate-pulse rounded-widget bg-basalt-muted/60" />
           ))}
         </div>
       )}
       {result.data?.total === 0 && (
         <div className="py-16 text-center">
           <p className="text-sm font-medium">没有找到匹配的结果</p>
-          <p className="mt-2 text-xs text-muted-foreground">试试更短的关键词，或选择其他来源</p>
+          <p className="mt-2 text-xs text-basalt-muted-foreground">
+            试试更短的关键词，或选择其他来源
+          </p>
         </div>
       )}
       <ul
@@ -165,7 +167,7 @@ export function SearchPage() {
               href={hit.url}
               target={hit.kind === "link" ? "_blank" : undefined}
               rel={hit.kind === "link" ? "noopener noreferrer" : undefined}
-              className="block rounded-widget px-3 py-3 transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="block rounded-widget px-3 py-3 transition-colors hover:bg-basalt-muted/50 focus-visible:bg-basalt-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring"
             >
               <SearchResult hit={hit} query={query} />
             </Link>
@@ -185,7 +187,7 @@ export function SearchPage() {
           >
             上一页
           </Button>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-basalt-muted-foreground">
             {offset + 1}–{Math.min(offset + 20, result.data.total)} / {result.data.total}
           </span>
           <Button

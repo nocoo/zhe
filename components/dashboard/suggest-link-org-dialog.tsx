@@ -32,10 +32,10 @@ import type { SuggestLinkOrgViewModel } from "@/viewmodels/useSuggestLinkOrgView
 function Transcript({ title, text }: { title: string; text: string }) {
   return (
     <details className="min-w-0">
-      <summary className="cursor-pointer py-1 text-xs leading-5 text-muted-foreground">
+      <summary className="cursor-pointer py-1 text-xs leading-5 text-basalt-muted-foreground">
         {title}
       </summary>
-      <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-widget border border-border p-3 font-mono text-xs leading-5">
+      <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-widget border border-basalt-border p-3 font-mono text-xs leading-5">
         {text || "暂无"}
       </pre>
     </details>
@@ -62,13 +62,13 @@ function TagChoice({
       aria-pressed={create ? undefined : checked}
       aria-label={create ? `创建标签 ${name}` : undefined}
       onClick={onClick}
-      className="max-w-full cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+      className="max-w-full cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring disabled:pointer-events-none disabled:opacity-50"
     >
       <Badge
         variant="outline"
         className={cn(
           "max-w-full transition-colors",
-          checked ? "border-transparent" : "text-muted-foreground",
+          checked ? "border-transparent" : "text-basalt-muted-foreground",
           create && "border-dashed",
         )}
         style={checked ? styles.badge : undefined}
@@ -120,7 +120,7 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
         <div className="flex shrink-0 items-start justify-between gap-4">
           <DialogHeader className="min-w-0">
             <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="size-4 text-primary" strokeWidth={1.5} aria-hidden />
+              <Sparkles className="size-4 text-basalt-primary" strokeWidth={1.5} aria-hidden />
               AI 整理
             </DialogTitle>
             <DialogDescription data-testid="suggest-step-caption" aria-live="polite">
@@ -145,7 +145,7 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
           </Button>
         </div>
         <ol
-          className="flex shrink-0 items-center gap-2 border-b border-border pb-4"
+          className="flex shrink-0 items-center gap-2 border-b border-basalt-border pb-4"
           aria-label="整理进度"
           data-testid="suggest-steps"
         >
@@ -163,10 +163,10 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
                   className={cn(
                     "flex min-w-0 flex-1 items-center gap-1.5 whitespace-nowrap text-xs leading-5",
                     failed
-                      ? "text-destructive"
+                      ? "text-basalt-destructive"
                       : index === current
-                        ? "font-medium text-primary"
-                        : "text-muted-foreground",
+                        ? "font-medium text-basalt-primary"
+                        : "text-basalt-muted-foreground",
                   )}
                 >
                   {done ? (
@@ -178,7 +178,10 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
                   <span className="sm:hidden">{["资料", "生成", "校验", "待应用"][index]}</span>
                 </span>
                 {index < SUGGEST_STEPS.length - 1 && (
-                  <ChevronRight className="size-3 shrink-0 text-muted-foreground/50" aria-hidden />
+                  <ChevronRight
+                    className="size-3 shrink-0 text-basalt-muted-foreground/50"
+                    aria-hidden
+                  />
                 )}
               </li>
             );
@@ -186,14 +189,14 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
         </ol>
         <div className="min-h-0 space-y-4 overflow-y-auto -m-1 p-1">
           {vm.notices.map((notice) => (
-            <p key={notice} className="text-xs leading-5 text-muted-foreground">
+            <p key={notice} className="text-xs leading-5 text-basalt-muted-foreground">
               {notice}
             </p>
           ))}
           {vm.error && (
             <div
               role="alert"
-              className="space-y-2 text-sm leading-5 text-destructive"
+              className="space-y-2 text-sm leading-5 text-basalt-destructive"
               data-testid="suggest-error"
             >
               <p>{vm.error}</p>
@@ -207,15 +210,17 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
           <fieldset disabled={busy || !vm.ready} className="min-w-0 space-y-4 disabled:opacity-60">
             <section
               aria-label="1 标题"
-              className="space-y-2 rounded-card border border-border p-4"
+              className="space-y-2 rounded-card border border-basalt-border p-4"
             >
               <Label htmlFor="suggest-title" className="block text-xs font-medium leading-4">
-                <span aria-hidden className="mr-2 text-primary">
+                <span aria-hidden className="mr-2 text-basalt-primary">
                   1
                 </span>
                 标题
               </Label>
-              <p className="text-xs leading-5 text-muted-foreground">核对标题是否准确概括内容。</p>
+              <p className="text-xs leading-5 text-basalt-muted-foreground">
+                核对标题是否准确概括内容。
+              </p>
               <Input
                 id="suggest-title"
                 value={vm.draftTitle}
@@ -226,22 +231,22 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
                 aria-describedby={titleTooLong ? "suggest-title-error" : undefined}
               />
               {titleTooLong && (
-                <p id="suggest-title-error" className="text-xs text-destructive">
+                <p id="suggest-title-error" className="text-xs text-basalt-destructive">
                   标题过长，请精简
                 </p>
               )}
             </section>
             <section
               aria-label="2 备注"
-              className="space-y-2 rounded-card border border-border p-4"
+              className="space-y-2 rounded-card border border-basalt-border p-4"
             >
               <Label htmlFor="suggest-note" className="block text-xs font-medium leading-4">
-                <span aria-hidden className="mr-2 text-primary">
+                <span aria-hidden className="mr-2 text-basalt-primary">
                   2
                 </span>
                 备注
               </Label>
-              <p className="text-xs leading-5 text-muted-foreground">
+              <p className="text-xs leading-5 text-basalt-muted-foreground">
                 核对摘要中的事实与重点，删改不准确的内容。
               </p>
               <Textarea
@@ -256,15 +261,15 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
             </section>
             <section
               aria-label="3 分类"
-              className="min-w-0 space-y-2 rounded-card border border-border p-4"
+              className="min-w-0 space-y-2 rounded-card border border-basalt-border p-4"
             >
               <Label htmlFor="suggest-folder" className="block text-xs font-medium leading-4">
-                <span aria-hidden className="mr-2 text-primary">
+                <span aria-hidden className="mr-2 text-basalt-primary">
                   3
                 </span>
                 分类
               </Label>
-              <p className="text-xs leading-5 text-muted-foreground">
+              <p className="text-xs leading-5 text-basalt-muted-foreground">
                 核对归属文件夹，也可以改选其他分类。
               </p>
               <Select
@@ -288,7 +293,7 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
                 </SelectContent>
               </Select>
               {vm.folders.find((folder) => folder.folderId === vm.selectedFolderId)?.reason && (
-                <p className="text-xs leading-5 text-muted-foreground">
+                <p className="text-xs leading-5 text-basalt-muted-foreground">
                   推荐理由：
                   {vm.folders.find((folder) => folder.folderId === vm.selectedFolderId)?.reason}
                 </p>
@@ -304,21 +309,23 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
                     >
                       改选 {folder.name}
                     </Button>
-                    <p className="text-xs leading-5 text-muted-foreground">{folder.reason}</p>
+                    <p className="text-xs leading-5 text-basalt-muted-foreground">
+                      {folder.reason}
+                    </p>
                   </div>
                 ))}
             </section>
             <section
               aria-label="4 标签"
-              className="min-w-0 space-y-3 rounded-card border border-border p-4"
+              className="min-w-0 space-y-3 rounded-card border border-basalt-border p-4"
             >
               <h3 className="text-xs font-medium leading-4">
-                <span aria-hidden className="mr-2 text-primary">
+                <span aria-hidden className="mr-2 text-basalt-primary">
                   4
                 </span>
                 标签
               </h3>
-              <p className="text-xs leading-5 text-muted-foreground">
+              <p className="text-xs leading-5 text-basalt-muted-foreground">
                 已有标签的推荐默认勾选，可点击取消；新标签需主动创建。
               </p>
               <p className="text-xs font-medium">已有标签</p>
@@ -332,26 +339,28 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
                       onClick={() => vm.toggleTag(vm.tags.indexOf(tag))}
                     />
                     {tag.reason && (
-                      <p className="text-xs leading-5 text-muted-foreground">
+                      <p className="text-xs leading-5 text-basalt-muted-foreground">
                         推荐理由：{tag.reason}
                       </p>
                     )}
                   </div>
                 ))}
                 {!visibleTags.length && (
-                  <p className="text-xs text-muted-foreground">未选择标签，可在管理标签中添加。</p>
+                  <p className="text-xs text-basalt-muted-foreground">
+                    未选择标签，可在管理标签中添加。
+                  </p>
                 )}
               </div>
               {vm.newTagSuggestions.length > 0 && (
-                <div className="space-y-2 border-t border-border pt-3">
+                <div className="space-y-2 border-t border-basalt-border pt-3">
                   <p className="text-xs font-medium">建议新建</p>
-                  <p className="text-xs leading-5 text-muted-foreground">
+                  <p className="text-xs leading-5 text-basalt-muted-foreground">
                     默认不创建。点击标签即可创建并选中，确认保存后关联到这条链接。
                   </p>
                   {vm.newTagSuggestions.map((tag) => (
                     <div key={tag.name} className="space-y-1">
                       <TagChoice name={tag.name} create onClick={() => void vm.addTag(tag.name)} />
-                      <p className="text-xs leading-5 text-muted-foreground">
+                      <p className="text-xs leading-5 text-basalt-muted-foreground">
                         推荐理由：{tag.reason}
                       </p>
                     </div>
@@ -359,12 +368,12 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
                 </div>
               )}
               {vm.tagError && (
-                <p role="alert" className="text-xs text-destructive">
+                <p role="alert" className="text-xs text-basalt-destructive">
                   {vm.tagError}
                 </p>
               )}
               <details className="min-w-0">
-                <summary className="cursor-pointer text-xs leading-5 text-muted-foreground">
+                <summary className="cursor-pointer text-xs leading-5 text-basalt-muted-foreground">
                   管理标签
                 </summary>
                 <div className="mt-3 space-y-4">
@@ -389,7 +398,9 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
                             onClick={() => vm.toggleTag(vm.tags.indexOf(tag))}
                           />
                         ))}
-                      {!vm.tags.length && <p className="text-xs text-muted-foreground">暂无标签</p>}
+                      {!vm.tags.length && (
+                        <p className="text-xs text-basalt-muted-foreground">暂无标签</p>
+                      )}
                     </div>
                   </div>
                   <div className="min-w-0 space-y-2">
@@ -420,12 +431,12 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
               </details>
             </section>
           </fieldset>
-          <details className="min-w-0 border-t border-border pt-3">
-            <summary className="cursor-pointer text-xs leading-5 text-muted-foreground">
+          <details className="min-w-0 border-t border-basalt-border pt-3">
+            <summary className="cursor-pointer text-xs leading-5 text-basalt-muted-foreground">
               运行详情
             </summary>
             <div className="mt-3 space-y-2">
-              <p className="text-xs leading-5 text-muted-foreground">
+              <p className="text-xs leading-5 text-basalt-muted-foreground">
                 {[
                   vm.provider,
                   vm.model,
@@ -434,7 +445,9 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
                   .filter(Boolean)
                   .join(" · ")}
               </p>
-              <p className="text-xs leading-5 text-muted-foreground">{vm.supplied.join(" · ")}</p>
+              <p className="text-xs leading-5 text-basalt-muted-foreground">
+                {vm.supplied.join(" · ")}
+              </p>
               <Transcript
                 title="推荐理由"
                 text={[...vm.folders, ...vm.tags]
@@ -451,7 +464,7 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
             </div>
           </details>
         </div>
-        <DialogFooter className="mt-0 grid shrink-0 grid-cols-3 gap-2 border-t border-border pt-4 sm:flex sm:items-center [&>button]:whitespace-nowrap [&>button]:px-3">
+        <DialogFooter className="mt-0 grid shrink-0 grid-cols-3 gap-2 border-t border-basalt-border pt-4 sm:flex sm:items-center [&>button]:whitespace-nowrap [&>button]:px-3">
           <Button
             variant="ghost"
             size="lg"

@@ -34,8 +34,8 @@ function Favicon({ src }: { src: string | null | undefined }) {
     );
   }
   return (
-    <div className="w-3.5 h-3.5 rounded-[3px] bg-accent flex items-center justify-center">
-      <Link2 className="w-2 h-2 text-muted-foreground/60" strokeWidth={2} />
+    <div className="w-3.5 h-3.5 rounded-[3px] bg-basalt-accent flex items-center justify-center">
+      <Link2 className="w-2 h-2 text-basalt-muted-foreground/60" strokeWidth={2} />
     </div>
   );
 }
@@ -54,15 +54,15 @@ function LinkMetaRow({
   onNavigateToFolder,
 }: Omit<LinkResultItemProps, "onOpenOriginalUrl">) {
   return (
-    <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground leading-none flex-wrap">
+    <div className="flex items-center gap-1.5 mt-1 text-[11px] text-basalt-muted-foreground leading-none flex-wrap">
       <span className="flex items-center gap-0.5 shrink-0">
-        <Link2 className="h-[9px] w-[9px] text-muted-foreground/60" strokeWidth={1.5} />
+        <Link2 className="h-[9px] w-[9px] text-basalt-muted-foreground/60" strokeWidth={1.5} />
         <HighlightText segments={highlight(link.slug, trimmedQuery)} />
       </span>
       <button
         type="button"
         aria-label={`Copy ${buildShortUrl(siteUrl, link.slug)}`}
-        className="shrink-0 rounded-sm p-px text-muted-foreground/60 hover:text-foreground transition-colors"
+        className="shrink-0 rounded-sm p-px text-basalt-muted-foreground/60 hover:text-basalt-foreground transition-colors"
         onClick={(e) => {
           e.stopPropagation();
           onCopyShortUrl(link.slug);
@@ -79,10 +79,10 @@ function LinkMetaRow({
 
       {folderName && link.folderId && (
         <>
-          <span className="text-border">·</span>
+          <span className="text-basalt-border">·</span>
           <button
             type="button"
-            className="flex items-center gap-0.5 text-[11px] text-muted-foreground/60 hover:text-foreground transition-colors shrink-0"
+            className="flex items-center gap-0.5 text-[11px] text-basalt-muted-foreground/60 hover:text-basalt-foreground transition-colors shrink-0"
             onClick={(e) => {
               e.stopPropagation();
               if (link.folderId) onNavigateToFolder(link.folderId);
@@ -102,7 +102,7 @@ function LinkMetaRow({
 
       {tags && tags.length > 0 && (
         <>
-          <span className="text-border">·</span>
+          <span className="text-basalt-border">·</span>
           <TagBadges tags={tags} />
         </>
       )}
@@ -130,12 +130,12 @@ export function LinkResultItem(props: LinkResultItemProps) {
           <HighlightText segments={highlight(titleText, trimmedQuery)} />
         </p>
         {link.metaDescription && (
-          <p className="truncate text-xs text-muted-foreground/70 mt-0.5 leading-tight">
+          <p className="truncate text-xs text-basalt-muted-foreground/70 mt-0.5 leading-tight">
             <HighlightText segments={highlight(link.metaDescription, trimmedQuery)} />
           </p>
         )}
         {link.note && (
-          <p className="truncate text-xs text-muted-foreground/60 mt-0.5 italic leading-tight">
+          <p className="truncate text-xs text-basalt-muted-foreground/60 mt-0.5 italic leading-tight">
             <HighlightText segments={highlight(link.note, trimmedQuery)} />
           </p>
         )}

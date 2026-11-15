@@ -184,7 +184,7 @@ export function CreateLinkModal({
             onCreateTag={handleCreateTag}
           />
 
-          {vm.error && <p className="text-sm text-destructive">{vm.error}</p>}
+          {vm.error && <p className="text-sm text-basalt-destructive">{vm.error}</p>}
 
           <SubmitButton isLoading={vm.isLoading} />
         </form>

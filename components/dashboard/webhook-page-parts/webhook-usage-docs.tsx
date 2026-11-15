@@ -40,8 +40,11 @@ export function WebhookUsageDocs({
   const agentPrompt = buildAgentPrompt(webhookUrl, rateLimit, tmpUploadUrl ?? undefined);
 
   return (
-    <div className="space-y-4 border-t border-border/50 pt-4" data-testid="webhook-usage-docs">
-      <p className="text-xs font-medium text-foreground">使用说明</p>
+    <div
+      className="space-y-4 border-t border-basalt-border/50 pt-4"
+      data-testid="webhook-usage-docs"
+    >
+      <p className="text-xs font-medium text-basalt-foreground">使用说明</p>
 
       <MethodsTable spec={spec} />
       <CurlExamples webhookUrl={webhookUrl} tmpUploadUrl={tmpUploadUrl} />

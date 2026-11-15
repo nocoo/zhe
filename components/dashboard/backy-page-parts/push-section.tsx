@@ -58,7 +58,7 @@ function ConfigForm({ vm }: { vm: BackyViewModel }) {
         />
       </div>
       {vm.error && (
-        <p className="text-xs text-destructive" data-testid="backy-error">
+        <p className="text-xs text-basalt-destructive" data-testid="backy-error">
           {vm.error}
         </p>
       )}
@@ -85,12 +85,14 @@ function ConfigDisplay({ vm }: { vm: BackyViewModel }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">Webhook:</span>
-        <code className="rounded bg-accent px-2 py-0.5 text-xs break-all">{vm.webhookUrl}</code>
+        <span className="text-xs text-basalt-muted-foreground">Webhook:</span>
+        <code className="rounded bg-basalt-accent px-2 py-0.5 text-xs break-all">
+          {vm.webhookUrl}
+        </code>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">API Key:</span>
-        <code className="rounded bg-accent px-2 py-0.5 text-xs">{vm.maskedApiKey}</code>
+        <span className="text-xs text-basalt-muted-foreground">API Key:</span>
+        <code className="rounded bg-basalt-accent px-2 py-0.5 text-xs">{vm.maskedApiKey}</code>
         <Button
           variant="ghost"
           size="default"
@@ -110,16 +112,18 @@ function TestResult({ result }: { result: BackyViewModel["testResult"] }) {
   return (
     <div
       className={`flex items-start gap-2 rounded-md border p-3 ${
-        result.ok ? "border-success/20 bg-success/5" : "border-destructive/20 bg-destructive/5"
+        result.ok
+          ? "border-basalt-success/20 bg-basalt-success/5"
+          : "border-basalt-destructive/20 bg-basalt-destructive/5"
       }`}
       data-testid="backy-test-result"
     >
       {result.ok ? (
-        <p className="text-sm text-success">{result.message}</p>
+        <p className="text-sm text-basalt-success">{result.message}</p>
       ) : (
         <>
-          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
-          <p className="text-sm text-destructive">{result.message}</p>
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-basalt-destructive" />
+          <p className="text-sm text-basalt-destructive">{result.message}</p>
         </>
       )}
     </div>
@@ -131,15 +135,17 @@ function PushResult({ result }: { result: BackyViewModel["pushResult"] }) {
   return (
     <div
       className={`rounded-md border p-3 ${
-        result.ok ? "border-success/20 bg-success/5" : "border-destructive/20 bg-destructive/5"
+        result.ok
+          ? "border-basalt-success/20 bg-basalt-success/5"
+          : "border-basalt-destructive/20 bg-basalt-destructive/5"
       }`}
       data-testid="backy-push-result"
     >
       {result.ok ? (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-success">{result.message}</p>
+          <p className="text-sm font-medium text-basalt-success">{result.message}</p>
           {result.request && (
-            <div className="space-y-1 text-xs text-success">
+            <div className="space-y-1 text-xs text-basalt-success">
               <p>Tag: {result.request.tag}</p>
               <p>
                 文件: {result.request.fileName} ({formatFileSize(result.request.fileSizeBytes)})
@@ -156,8 +162,8 @@ function PushResult({ result }: { result: BackyViewModel["pushResult"] }) {
         </div>
       ) : (
         <div className="flex items-start gap-2">
-          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
-          <div className="text-sm text-destructive">
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-basalt-destructive" />
+          <div className="text-sm text-basalt-destructive">
             <p>{result.message}</p>
             {result.response && (
               <p className="mt-1 text-xs">
@@ -176,7 +182,7 @@ function HistoryPanel({ vm }: { vm: BackyViewModel }) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <History className="h-4 w-4 text-muted-foreground" />
+          <History className="h-4 w-4 text-basalt-muted-foreground" />
           <span className="text-sm font-medium">远程备份记录</span>
           {vm.history && <Badge variant="secondary">{vm.history.total_backups} 份</Badge>}
         </div>
@@ -194,22 +200,27 @@ function HistoryPanel({ vm }: { vm: BackyViewModel }) {
         vm.history.recent_backups.length > 0 ? (
           <div className="grid gap-2 sm:grid-cols-2" data-testid="backy-history">
             {vm.history.recent_backups.map((entry) => (
-              <div key={entry.id} className="space-y-1 rounded-widget bg-background p-3 text-xs">
+              <div
+                key={entry.id}
+                className="space-y-1 rounded-widget bg-basalt-background p-3 text-xs"
+              >
                 <div className="flex items-center justify-between">
                   <Badge variant={entry.environment === "prod" ? "success" : "warning"}>
                     {entry.environment}
                   </Badge>
-                  <span className="text-muted-foreground">{formatFileSize(entry.file_size)}</span>
+                  <span className="text-basalt-muted-foreground">
+                    {formatFileSize(entry.file_size)}
+                  </span>
                 </div>
-                <p className="truncate text-muted-foreground" title={entry.tag}>
+                <p className="truncate text-basalt-muted-foreground" title={entry.tag}>
                   {entry.tag}
                 </p>
-                <p className="text-muted-foreground">{formatTimeAgo(entry.created_at)}</p>
+                <p className="text-basalt-muted-foreground">{formatTimeAgo(entry.created_at)}</p>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground" data-testid="backy-history">
+          <p className="text-xs text-basalt-muted-foreground" data-testid="backy-history">
             暂无备份记录
           </p>
         )
@@ -260,7 +271,7 @@ export function PushSection({ vm }: { vm: BackyViewModel }) {
       description="将数据备份推送到 Backy 远程存储服务，支持版本管理和历史记录。"
     >
       {vm.isLoading ? (
-        <p className="text-sm text-muted-foreground">加载中...</p>
+        <p className="text-sm text-basalt-muted-foreground">加载中...</p>
       ) : !vm.isConfigured || vm.isEditing ? (
         <ConfigForm vm={vm} />
       ) : (

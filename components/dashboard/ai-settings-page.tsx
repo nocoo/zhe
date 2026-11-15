@@ -25,7 +25,7 @@ export function AiSettingsPage() {
       {!vm.loaded ? (
         <Card>
           <CardContent className="flex items-center justify-center py-12">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <Loader2 className="h-5 w-5 animate-spin text-basalt-muted-foreground" />
           </CardContent>
         </Card>
       ) : (
@@ -128,7 +128,7 @@ export function AiSettingsPage() {
                     onChange={(e) => vm.setSettings((s) => ({ ...s, baseURL: e.target.value }))}
                     placeholder="https://api.example.com/v1"
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-basalt-muted-foreground">
                     OpenAI 兼容网关通常需要以 /v1 结尾。点「测试连接」做最终校验。
                   </p>
                 </div>
@@ -162,7 +162,7 @@ export function AiSettingsPage() {
                         <SelectItem value="bearer">强制 Bearer</SelectItem>
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-basalt-muted-foreground">
                       Manifest 等网关只认 Authorization: Bearer，Anthropic 协议请选强制 Bearer。
                     </p>
                   </div>
@@ -185,12 +185,12 @@ export function AiSettingsPage() {
             </div>
 
             {vm.testStatus === "error" && vm.testError && (
-              <p className="text-xs text-destructive" data-testid="ai-test-error">
+              <p className="text-xs text-basalt-destructive" data-testid="ai-test-error">
                 {vm.testError}
               </p>
             )}
             {vm.testStatus === "success" && (
-              <p className="text-xs text-success" data-testid="ai-test-success">
+              <p className="text-xs text-basalt-success" data-testid="ai-test-success">
                 连接成功
               </p>
             )}

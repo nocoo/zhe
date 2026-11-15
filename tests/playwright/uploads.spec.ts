@@ -115,8 +115,8 @@ test.describe
       const firstItem = page.locator('[data-testid="upload-item"]').first();
       await firstItem.getByRole("button", { name: "Copy link" }).click();
 
-      // The check icon should appear (svg with class text-success)
-      await expect(firstItem.locator(".text-success")).toBeVisible({ timeout: 3_000 });
+      // The check icon should appear (svg with class text-basalt-success)
+      await expect(firstItem.locator(".text-basalt-success")).toBeVisible({ timeout: 3_000 });
     });
 
     test("external link has correct target and href", async ({ page }) => {

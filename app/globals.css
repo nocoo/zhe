@@ -8,95 +8,6 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/*
- * Map the shadcn/ui CSS-variable design tokens to Tailwind v4 theme
- * namespace so utilities like bg-background, text-foreground, etc. work.
- *
- * In v4, custom colors are registered as --color-<name> and Tailwind
- * auto-generates the corresponding utility classes.
- */
-@theme inline {
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-
-  --color-sidebar: hsl(var(--sidebar-background));
-  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
-  --color-sidebar-primary: hsl(var(--sidebar-primary));
-  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
-  --color-sidebar-accent: hsl(var(--sidebar-accent));
-  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
-  --color-sidebar-border: hsl(var(--sidebar-border));
-  --color-sidebar-ring: hsl(var(--sidebar-ring));
-
-  --color-success: hsl(var(--success));
-  --color-success-foreground: hsl(var(--success-foreground));
-  --color-warning: hsl(var(--warning));
-  --color-warning-foreground: hsl(var(--warning-foreground));
-  --color-info: hsl(var(--info));
-  --color-info-foreground: hsl(var(--info-foreground));
-  --color-purple: hsl(var(--purple));
-  --color-purple-foreground: hsl(var(--purple-foreground));
-  --color-teal: hsl(var(--teal));
-  --color-teal-foreground: hsl(var(--teal-foreground));
-  --color-badge-red: hsl(var(--badge-red));
-  --color-badge-red-foreground: hsl(var(--badge-red-foreground));
-
-  --color-highlight: hsl(var(--highlight));
-
-  --color-chart-1: hsl(var(--chart-1));
-  --color-chart-2: hsl(var(--chart-2));
-  --color-chart-3: hsl(var(--chart-3));
-  --color-chart-4: hsl(var(--chart-4));
-  --color-chart-5: hsl(var(--chart-5));
-  --color-chart-6: hsl(var(--chart-6));
-  --color-chart-7: hsl(var(--chart-7));
-  --color-chart-8: hsl(var(--chart-8));
-  --color-chart-9: hsl(var(--chart-9));
-  --color-chart-10: hsl(var(--chart-10));
-  --color-chart-11: hsl(var(--chart-11));
-  --color-chart-12: hsl(var(--chart-12));
-  --color-chart-axis: hsl(var(--chart-axis));
-  --color-chart-muted: hsl(var(--chart-muted));
-
-  /* Container plugin replacement — v4 removed the built-in container plugin,
-   * so we expose the same defaults via @utility below. */
-
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-island: var(--radius-island);
-  --radius-card: var(--radius-card);
-  --radius-widget: var(--radius-widget);
-
-  --animate-accordion-down: accordion-down var(--motion-fast) ease-out;
-  --animate-accordion-up: accordion-up var(--motion-fast) ease-out;
-  --animate-fade-up: fade-up var(--motion-slow) ease-out both;
-}
-
 @keyframes accordion-down {
   from {
     height: 0;
@@ -126,17 +37,11 @@
   }
 }
 
-/* Overlays sit above every page surface. Their panels and controls stay at
- * the brightest theme surface, including nested cards and the flip editor. */
 :is([role="dialog"], [role="alertdialog"])[data-basalt-surface-root] {
   --basalt-background: var(--basalt-bright);
   --basalt-card: var(--basalt-bright);
   --basalt-secondary: var(--basalt-bright);
   --basalt-muted: var(--basalt-bright);
-  --background: var(--basalt-bright);
-  --card: var(--basalt-bright);
-  --secondary: var(--basalt-bright);
-  --muted: var(--basalt-bright);
   --basalt-control-fill: hsl(var(--basalt-bright));
 }
 
@@ -144,8 +49,6 @@
   --basalt-control-fill: hsl(var(--basalt-popover));
 }
 
-/* The dialog supplies focus trapping and scroll locking; only the two card
- * faces move. The original card stays in place as a layout placeholder. */
 .link-card-editor[data-basalt-surface-root] {
   padding: 0;
   overflow: visible;
@@ -187,9 +90,9 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   transform: rotateY(180deg);
-  background: hsl(var(--secondary));
+  background: hsl(var(--basalt-secondary));
   box-shadow: 0 24px 80px -20px rgb(0 0 0 / 0.3);
-  outline: 1px solid hsl(var(--border) / 0.6);
+  outline: 1px solid hsl(var(--basalt-border) / 0.6);
 }
 
 @supports (height: 100dvh) {
@@ -202,7 +105,6 @@
   pointer-events: none;
 }
 
-/* Drop the 3D layers at rest so text and form controls remain crisp. */
 .link-card-editor[data-phase="editing"] .link-card-flight,
 .link-card-editor[data-phase="editing"] .link-card-back {
   transform: none;
@@ -223,180 +125,38 @@
 }
 
 :root {
-  /* Surfaces alias Basalt L0–L3 so existing bg-background / bg-card
-   * utilities paint the same stack as bg-basalt-*. Semantic primary
-   * matches AccentProvider on the raw 262 83% 58% swatch. */
-  --basalt-primary: 262 83% 58%;
-  --basalt-primary-foreground: 0 0% 100%;
-  --basalt-ring: 262 83% 58%;
-  /* Basalt mixes hover from the primary (204 blue by default); our brand
-   * primary is a saturated purple, so a primary-tinted hover over neutral
-   * chrome reads as a selection wash. Keep hover matte: a foreground tint
-   * over the elevated surface, in both themes. */
   --basalt-hover: color-mix(
     in srgb,
     hsl(var(--basalt-foreground)) 8%,
     hsl(var(--basalt-surface-elevated))
   );
 
-  --background: var(--basalt-background);
-  --foreground: var(--basalt-foreground);
-  --card: var(--basalt-card);
-  --card-foreground: var(--basalt-card-foreground);
-  --secondary: var(--basalt-secondary);
-  --secondary-foreground: var(--basalt-secondary-foreground);
-  --popover: var(--basalt-popover);
-  --popover-foreground: var(--basalt-popover-foreground);
-  --primary: var(--basalt-primary);
-  --primary-foreground: var(--basalt-primary-foreground);
-  --muted: var(--basalt-muted);
-  --muted-foreground: var(--basalt-muted-foreground);
-  --accent: var(--basalt-accent);
-  --accent-foreground: var(--basalt-accent-foreground);
-  --destructive: var(--basalt-destructive);
-  --destructive-foreground: var(--basalt-destructive-foreground);
-  --border: var(--basalt-border);
-  --input: var(--basalt-input);
-  --ring: var(--basalt-ring);
-
   --radius: 0.75rem;
   --radius-island: 20px;
   --radius-card: 14px;
-  /* --radius-widget (10px) is the project's small-control radius.
-   * Tailwind's default `rounded-md` resolves to the same 10px via
-   * calc(--radius - 2px). The two are interchangeable on purpose;
-   * prefer `rounded-widget` for intentional small controls so the
-   * design intent is searchable.
-   *
-   * Radius ladder (do not invent ad-hoc rounded-lg/sm on controls):
-   *   island 20px → page / AppShell content panel
-   *   card   14px → list cards, two-pane sections
-   *   widget 10px → Button / Input / Select / emoji trigger
-   *   chip   full → Tag / Due chips only (pill)
-   */
   --radius-widget: 10px;
 
-  /* Control density — see docs/22-design-tokens.md.
-   *
-   *   lg:                40px (h-10) + text-sm  — form primary / modal actions
-   *   default:           36px (h-9)  + text-sm  — form secondary (settings)
-   *   sm:                32px (h-8)  + text-xs  — toolbar compact
-   *
-   * Do not invent xs / icon-sm. Icon-only buttons use size="icon" (h-9 w-9). */
-
-  /* Motion duration tokens — three tiers + a stagger constant.
-   * Values include the `ms` suffix so they compose into shorthand
-   * `transition`/`animation` declarations and into inline calc():
-   *   style={{ animationDelay: `calc(var(--motion-stagger) * ${i})` }}
-   * Tailwind's `duration-150 / duration-200 / duration-300` utilities
-   * map to the same values for component-level use, and Tailwind JIT
-   * accepts `duration-[var(--motion-base)]` for explicit token use.
-   *
-   *   fast (150ms): chevrons, hover bg, focus rings, small toggles
-   *   base (250ms): expand/collapse, popovers, dropdowns, sidebar
-   *   slow (400ms): cross-page transitions, deliberate fade-ups
-   *   stagger (80ms): per-item delay inside lists (e.g. KPI tiles)
-   */
   --motion-fast: 150ms;
   --motion-base: 250ms;
   --motion-slow: 400ms;
   --motion-stagger: 80ms;
 
-  --sidebar-background: var(--basalt-background);
-  --sidebar-foreground: var(--basalt-foreground);
-  --sidebar-primary: var(--basalt-primary);
-  --sidebar-primary-foreground: var(--basalt-primary-foreground);
-  --sidebar-accent: var(--basalt-accent);
-  --sidebar-accent-foreground: var(--basalt-accent-foreground);
-  --sidebar-border: var(--basalt-border);
-  --sidebar-ring: var(--basalt-ring);
-
-  --success: 142 71% 45%;
-  --success-foreground: 0 0% 100%;
-  --warning: 45 93% 47%;
-  --warning-foreground: 0 0% 12%;
-  --info: 217 91% 60%;
-  --info-foreground: 0 0% 100%;
-  --purple: 270 70% 60%;
-  --purple-foreground: 0 0% 100%;
-  --teal: 186 72% 38%;
-  --teal-foreground: 0 0% 100%;
-  --badge-red: 340 82% 55%;
-  --badge-red-foreground: 0 0% 100%;
-
-  --highlight: 50 100% 72%;
-
-  /* Visualization palette — 12 categorical colors covering the hue
-   * wheel with enough hue distance between adjacent indices for
-   * stacked area/line charts to read clearly. The "trio" used by
-   * the click-trend chart is index 0 (purple — brand), 4 (green),
-   * 8 (orange), chosen to be roughly equidistant on the wheel.
-   * Neutral grays are NOT in this scale — use --chart-axis /
-   * --chart-muted for axes, gridlines, and tertiary tracks. */
-  --chart-1: 262 83% 58%; /* purple — brand */
-  --chart-2: 200 90% 55%; /* blue */
-  --chart-3: 186 80% 45%; /* teal */
-  --chart-4: 166 72% 44%; /* green-teal */
-  --chart-5: 142 71% 45%; /* green */
-  --chart-6: 84 65% 46%; /* lime */
-  --chart-7: 45 93% 47%; /* yellow */
-  --chart-8: 30 90% 55%; /* orange */
-  --chart-9: 15 85% 52%; /* red-orange */
-  --chart-10: 0 72% 51%; /* red */
-  --chart-11: 340 82% 55%; /* pink */
-  --chart-12: 290 65% 55%; /* magenta */
-
-  --chart-axis: 0 0% 40%;
-  --chart-muted: 0 0% 70%;
+  --chart-1: var(--basalt-chart-1);
+  --chart-2: var(--basalt-chart-2);
+  --chart-3: var(--basalt-chart-3);
+  --chart-4: var(--basalt-chart-4);
+  --chart-5: var(--basalt-chart-5);
+  --chart-6: var(--basalt-chart-1);
+  --chart-7: var(--basalt-chart-2);
+  --chart-8: var(--basalt-chart-3);
+  --chart-9: var(--basalt-chart-4);
+  --chart-10: var(--basalt-chart-5);
+  --chart-11: var(--basalt-chart-1);
+  --chart-12: var(--basalt-chart-2);
+  --chart-axis: var(--basalt-chart-axis);
+  --chart-muted: var(--basalt-chart-muted);
 }
 
-.dark {
-  /* Lifted purple fill + near-black ink. 74% keeps --primary usable as
-   * text on L0–L3 dark surfaces; 4% ink on that fill is ~7:1 (AAA) for
-   * small button/badge type. AccentProvider is applyToDocument=false so
-   * these CSS values are the runtime source of truth. */
-  --basalt-primary: 262 83% 74%;
-  --basalt-primary-foreground: 0 0% 4%;
-  --basalt-ring: 262 83% 74%;
-
-  --success: 142 65% 38%;
-  --success-foreground: 142 60% 90%;
-  --warning: 45 80% 42%;
-  --warning-foreground: 45 80% 92%;
-  --info: 217 70% 45%;
-  --info-foreground: 217 70% 92%;
-  --purple: 270 60% 48%;
-  --purple-foreground: 270 60% 92%;
-  --teal: 186 60% 35%;
-  --teal-foreground: 186 60% 92%;
-  --badge-red: 340 82% 55%;
-  --badge-red-foreground: 0 0% 100%;
-
-  --highlight: 50 90% 35%;
-
-  /* Visualization palette — same 12-color scale as light, but each
-   * hue boosted ~5–8% lightness so it lifts above the L0 dark body. */
-  --chart-1: 262 83% 63%;
-  --chart-2: 200 90% 60%;
-  --chart-3: 186 80% 50%;
-  --chart-4: 166 72% 50%;
-  --chart-5: 142 71% 50%;
-  --chart-6: 84 65% 52%;
-  --chart-7: 45 93% 52%;
-  --chart-8: 30 90% 60%;
-  --chart-9: 15 85% 57%;
-  --chart-10: 0 72% 56%;
-  --chart-11: 340 82% 60%;
-  --chart-12: 290 65% 60%;
-
-  --chart-axis: 0 0% 50%;
-  --chart-muted: 0 0% 35%;
-}
-
-/*
- * Container utility — v4 removed the built-in container plugin.
- * Replicates the legacy zhe config (center + 2rem padding + 1400px @ 2xl).
- */
 @utility container {
   margin-inline: auto;
   padding-inline: 2rem;
@@ -409,7 +169,7 @@
 
 @layer base {
   * {
-    border-color: hsl(var(--border));
+    border-color: hsl(var(--basalt-border));
   }
   html,
   html.light,
@@ -426,12 +186,9 @@
   }
   body {
     @apply bg-basalt-background text-basalt-foreground antialiased;
-    /* Latin first, then a CJK fallback chain so 中文 falls back to the
-       platform's preferred Han font instead of the browser default. */
     font-family:
       "Inter", system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
       "Noto Sans SC", sans-serif;
-    /* CJK reading benefits from a slightly looser leading than Latin. */
     line-height: 1.625;
     text-wrap: pretty;
   }
@@ -442,7 +199,7 @@
 }
 
 .global-create-fab {
-  right: calc(env(safe-area-inset-right) + 1.5rem);
+  right: calc(env(safe-area-inset-right) + 6rem);
   bottom: calc(env(safe-area-inset-bottom) + 1.5rem);
 }
 

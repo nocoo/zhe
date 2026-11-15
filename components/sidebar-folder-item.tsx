@@ -158,7 +158,7 @@ export function SidebarFolderItem({
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => onDelete(folder.id)}
-            className="text-destructive focus:text-destructive"
+            className="text-basalt-destructive focus:text-basalt-destructive"
           >
             <Trash2 aria-hidden />
             删除

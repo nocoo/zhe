@@ -51,14 +51,13 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
 
   return (
     <BasaltSidebar collapsed={collapsed}>
-      <SidebarMarkHeader collapsed={collapsed} onToggle={toggle} isMobile={isMobile} />
+      <SidebarMarkHeader onToggle={toggle} isMobile={isMobile} />
       {collapsed ? (
         <SidebarCollapsed
           pathname={pathname}
           currentFolder={currentFolder}
           user={user}
           folders={foldersVm.folders}
-          onToggle={toggle}
           openSearch={openSearch}
         />
       ) : (

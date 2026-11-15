@@ -44,8 +44,8 @@ export function Favicon({
     );
   }
   return (
-    <div className={`${cls} shrink-0 rounded-sm bg-accent flex items-center justify-center`}>
-      <Link2 className={`${iconCls} text-muted-foreground/60`} strokeWidth={2} />
+    <div className={`${cls} shrink-0 rounded-sm bg-basalt-accent flex items-center justify-center`}>
+      <Link2 className={`${iconCls} text-basalt-muted-foreground/60`} strokeWidth={2} />
     </div>
   );
 }
@@ -67,7 +67,7 @@ function TitleAnchor({
     />
   );
   const className =
-    "min-w-0 truncate text-left text-sm font-medium leading-5 text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+    "min-w-0 truncate text-left text-sm font-medium leading-5 text-basalt-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring";
   return (
     <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
       {content}
@@ -103,14 +103,14 @@ export function TitleRow({
 export function SourceLinks({ link, shortUrl }: { link: Link; shortUrl: string }) {
   return (
     <div
-      className="flex h-5 min-w-0 items-center gap-2 text-xs text-muted-foreground"
+      className="flex h-5 min-w-0 items-center gap-2 text-xs text-basalt-muted-foreground"
       data-bookmark-links
     >
       <a
         href={link.originalUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="min-w-0 truncate hover:text-foreground"
+        className="min-w-0 truncate hover:text-basalt-foreground"
         title={link.originalUrl}
       >
         {new URL(link.originalUrl).hostname}
@@ -120,14 +120,14 @@ export function SourceLinks({ link, shortUrl }: { link: Link; shortUrl: string }
         href={shortUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="min-w-0 truncate hover:text-foreground"
+        className="min-w-0 truncate hover:text-basalt-foreground"
         title={shortUrl}
       >
         /{link.slug}
       </a>
       {link.expiresAt && (
         <span
-          className="shrink-0 text-warning"
+          className="shrink-0 text-basalt-warning"
           title={new Date(link.expiresAt).toLocaleString("zh-CN")}
         >
           限时
@@ -174,7 +174,7 @@ export function Description({
           {display.description || "暂无描述"}
         </p>
         {display.originalDescription && (
-          <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
+          <p className="whitespace-pre-wrap break-words text-sm text-basalt-muted-foreground">
             {display.originalDescription}
           </p>
         )}

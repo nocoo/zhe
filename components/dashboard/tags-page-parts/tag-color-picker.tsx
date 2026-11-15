@@ -26,7 +26,7 @@ export function TagColorPicker({ value, onChange, disabled }: TagColorPickerProp
             onClick={() => onChange(color)}
             className={cn(
               "h-6 w-6 rounded-full border border-transparent",
-              selected && "ring-2 ring-ring ring-offset-2 ring-offset-background",
+              selected && "ring-2 ring-basalt-ring ring-offset-2 ring-offset-basalt-background",
             )}
             style={{ backgroundColor: styles.dot.backgroundColor }}
           />

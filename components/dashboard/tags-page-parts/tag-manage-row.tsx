@@ -55,7 +55,7 @@ export function TagManageRow({ row, disabled, onRename, onRecolor, onDelete }: T
   return (
     <div
       data-basalt-surface=""
-      className="flex flex-col gap-3 rounded-card bg-secondary p-3 md:flex-row md:items-center"
+      className="flex flex-col gap-3 rounded-card bg-basalt-secondary p-3 md:flex-row md:items-center"
       data-testid="tag-manage-row"
       data-tag-id={row.id}
     >
@@ -97,7 +97,7 @@ export function TagManageRow({ row, disabled, onRename, onRecolor, onDelete }: T
         }}
       />
 
-      <p className="text-xs text-muted-foreground md:ml-auto" data-testid="tag-usage">
+      <p className="text-xs text-basalt-muted-foreground md:ml-auto" data-testid="tag-usage">
         {usageLabel(row.linkCount, row.ideaCount)}
       </p>
 
@@ -123,7 +123,7 @@ export function TagManageRow({ row, disabled, onRename, onRecolor, onDelete }: T
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-basalt-destructive text-basalt-destructive-foreground hover:bg-basalt-destructive/90"
               onClick={() => void onDelete(row.id)}
             >
               删除

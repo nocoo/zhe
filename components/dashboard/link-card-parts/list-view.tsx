@@ -14,7 +14,7 @@ export function ListView(props: LinkPreviewProps) {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="打开原链接"
-        className="hidden h-20 w-28 shrink-0 items-center justify-center overflow-hidden rounded-widget border border-border/60 bg-accent sm:flex"
+        className="hidden h-20 w-28 shrink-0 items-center justify-center overflow-hidden rounded-widget border border-basalt-border/60 bg-basalt-accent sm:flex"
       >
         {image ? (
           <Image
@@ -26,7 +26,7 @@ export function ListView(props: LinkPreviewProps) {
             unoptimized
           />
         ) : (
-          <ImageIcon className="size-6 text-muted-foreground" />
+          <ImageIcon className="size-6 text-basalt-muted-foreground" />
         )}
       </a>
       <div className="min-w-0 flex-1 space-y-1">

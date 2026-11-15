@@ -27,31 +27,31 @@ export function TodoResultItem({ todo, trimmedQuery, now, onNavigate }: TodoResu
       onSelect={() => onNavigate(todo.id)}
     >
       <div className="mt-0.5 shrink-0">
-        <div className="w-3.5 h-3.5 rounded-[3px] bg-accent flex items-center justify-center">
-          <ListTodo className="w-2 h-2 text-muted-foreground/60" strokeWidth={2} />
+        <div className="w-3.5 h-3.5 rounded-[3px] bg-basalt-accent flex items-center justify-center">
+          <ListTodo className="w-2 h-2 text-basalt-muted-foreground/60" strokeWidth={2} />
         </div>
       </div>
       <div className="min-w-0 flex-1">
         <p
           className={
             "truncate text-sm font-medium leading-tight" +
-            (todo.done ? " line-through text-muted-foreground/70" : "")
+            (todo.done ? " line-through text-basalt-muted-foreground/70" : "")
           }
         >
           <HighlightText segments={highlightMatches(displayTitle, trimmedQuery)} />
         </p>
         {todo.excerpt ? (
-          <p className="truncate text-xs text-muted-foreground/70 mt-0.5 leading-tight">
+          <p className="truncate text-xs text-basalt-muted-foreground/70 mt-0.5 leading-tight">
             <HighlightText segments={highlightMatches(todo.excerpt, trimmedQuery)} />
           </p>
         ) : null}
         {(todo.tagNames.length > 0 || todo.dueAt !== null) && (
-          <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground leading-none flex-wrap">
+          <div className="flex items-center gap-1.5 mt-1 text-[11px] text-basalt-muted-foreground leading-none flex-wrap">
             {todo.tagNames.slice(0, 3).map((name) => (
               <TodoTagChip key={name} name={name} />
             ))}
             {todo.tagNames.length > 3 ? (
-              <span className="text-[10px] text-muted-foreground/70">
+              <span className="text-[10px] text-basalt-muted-foreground/70">
                 +{todo.tagNames.length - 3}
               </span>
             ) : null}

@@ -23,18 +23,18 @@ export function SummaryCard({
     <div
       className={cn(
         "animate-fade-up rounded-card p-4",
-        variant === "warning" && "bg-warning/5",
-        variant === "success" && "bg-success/5",
-        variant === "default" && "bg-secondary",
+        variant === "warning" && "bg-basalt-warning/5",
+        variant === "success" && "bg-basalt-success/5",
+        variant === "default" && "bg-basalt-secondary",
       )}
       style={{ animationDelay: `calc(var(--motion-stagger) * ${index})` }}
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">{label}</span>
-        <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+        <span className="text-xs text-basalt-muted-foreground">{label}</span>
+        <Icon className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
       </div>
       <p className="mt-2 text-xl font-semibold font-display tabular-nums tracking-tight">{value}</p>
-      {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+      {sub && <p className="text-xs text-basalt-muted-foreground mt-0.5">{sub}</p>}
     </div>
   );
 }

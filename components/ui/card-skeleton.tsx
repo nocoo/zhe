@@ -7,10 +7,10 @@ export const CARD_GRID_CLASS =
 export const BOOKMARK_GRID_CLASS =
   "grid grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-3";
 export const BOOKMARK_CARD_CLASS =
-  "group flex min-w-0 flex-col overflow-hidden rounded-card ring-1 ring-border/50 transition-shadow hover:ring-border";
+  "group flex min-w-0 flex-col overflow-hidden rounded-card ring-1 ring-basalt-border/50 transition-shadow hover:ring-basalt-border";
 
 function Bone({ className }: { className: string }) {
-  return <div className={cn("shrink-0 rounded bg-muted-foreground/10", className)} />;
+  return <div className={cn("shrink-0 rounded bg-basalt-muted-foreground/10", className)} />;
 }
 
 function BookmarkFooterBones({
@@ -26,7 +26,7 @@ function BookmarkFooterBones({
     <div
       className={cn(
         "mt-auto shrink-0",
-        compact && "sm:flex sm:items-center sm:border-t sm:border-border/60",
+        compact && "sm:flex sm:items-center sm:border-t sm:border-basalt-border/60",
       )}
     >
       {showClassification && (
@@ -37,7 +37,7 @@ function BookmarkFooterBones({
       )}
       <div
         className={cn(
-          "flex min-h-10 items-center gap-1 border-t border-border/60 px-3 py-1",
+          "flex min-h-10 items-center gap-1 border-t border-basalt-border/60 px-3 py-1",
           compact && "sm:border-t-0",
         )}
       >
@@ -107,7 +107,7 @@ export function CardListSkeleton({
           key={id}
           aria-hidden
           className={cn(
-            "overflow-hidden rounded-card bg-secondary p-4 ring-1 ring-border/40 animate-pulse motion-reduce:animate-none",
+            "overflow-hidden rounded-card bg-basalt-secondary p-4 ring-1 ring-basalt-border/40 animate-pulse motion-reduce:animate-none",
             variant === "idea" && "py-3",
             rowHeightClass,
           )}
@@ -164,7 +164,7 @@ function GridCardBones({ variant, index }: { variant: GridVariant; index: number
           <Bone className="h-3 w-2/3" />
         </div>
         <Bone className="mb-3 h-5 w-16 rounded-full" />
-        <div className="flex h-[37px] items-center justify-between border-t border-border/60 pt-2">
+        <div className="flex h-[37px] items-center justify-between border-t border-basalt-border/60 pt-2">
           <Bone className="h-3 w-12" />
           <Bone className="h-5 w-12" />
         </div>
@@ -201,7 +201,7 @@ export function CardGridSkeleton({
       key={id}
       aria-hidden
       className={cn(
-        "overflow-hidden rounded-card bg-secondary ring-1 ring-border/40 animate-pulse motion-reduce:animate-none",
+        "overflow-hidden rounded-card bg-basalt-secondary ring-1 ring-basalt-border/40 animate-pulse motion-reduce:animate-none",
         variant !== "idea" && BOOKMARK_CARD_CLASS,
         variant !== "idea" && variant !== "x" && "h-96",
         aspectClass,

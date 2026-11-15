@@ -31,8 +31,8 @@ export function SearchSourceFilter({
           aria-pressed={value === source}
           className={
             value === source
-              ? "text-primary ring-1 ring-inset ring-primary/25"
-              : "text-muted-foreground"
+              ? "text-basalt-primary ring-1 ring-inset ring-basalt-primary/25"
+              : "text-basalt-muted-foreground"
           }
           onClick={() => onChange(source)}
         >

@@ -145,7 +145,7 @@ export function SearchCommandDialog({ open, onOpenChange }: SearchCommandDialogP
           </div>
           <CommandList className="max-h-[min(60dvh,32rem)]" aria-busy={result.loading}>
             {!hasQuery && (
-              <div className="flex flex-col items-center gap-2 py-6 text-muted-foreground">
+              <div className="flex flex-col items-center gap-2 py-6 text-basalt-muted-foreground">
                 <Search className="h-5 w-5" />
                 <p className="text-sm">输入关键词搜索</p>
                 <p className="text-xs">搜索链接、X、GitHub、想法与待办；多个关键词用空格分开</p>
@@ -154,12 +154,12 @@ export function SearchCommandDialog({ open, onOpenChange }: SearchCommandDialogP
             {hasQuery && (
               <>
                 {result.loading && (
-                  <p role="status" className="px-4 py-5 text-sm text-muted-foreground">
+                  <p role="status" className="px-4 py-5 text-sm text-basalt-muted-foreground">
                     {result.message || "正在搜索…"}
                   </p>
                 )}
                 {result.error && (
-                  <div role="alert" className="p-4 text-sm text-destructive">
+                  <div role="alert" className="p-4 text-sm text-basalt-destructive">
                     {result.error}
                     <button type="button" className="ml-2 underline" onClick={result.retry}>
                       重试
@@ -186,7 +186,7 @@ export function SearchCommandDialog({ open, onOpenChange }: SearchCommandDialogP
                             {hit.folderId && (
                               <button
                                 type="button"
-                                className="flex size-8 items-center justify-center rounded-widget text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                className="flex size-8 items-center justify-center rounded-widget text-basalt-muted-foreground hover:text-basalt-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring"
                                 aria-label={`打开分类 ${hit.folderName}`}
                                 onKeyDown={(e) => e.stopPropagation()}
                                 onClick={(e) => {
@@ -202,7 +202,7 @@ export function SearchCommandDialog({ open, onOpenChange }: SearchCommandDialogP
                             {hit.slug && (
                               <button
                                 type="button"
-                                className="flex size-8 items-center justify-center rounded-widget text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                className="flex size-8 items-center justify-center rounded-widget text-basalt-muted-foreground hover:text-basalt-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring"
                                 aria-label={`复制短链接 ${hit.slug}`}
                                 onKeyDown={(e) => e.stopPropagation()}
                                 onClick={async (e) => {
@@ -224,7 +224,9 @@ export function SearchCommandDialog({ open, onOpenChange }: SearchCommandDialogP
                       </CommandItem>
                     ))}
                     {result.data.total === 0 && (
-                      <p className="px-2 py-4 text-sm text-muted-foreground">没有找到匹配的结果</p>
+                      <p className="px-2 py-4 text-sm text-basalt-muted-foreground">
+                        没有找到匹配的结果
+                      </p>
                     )}
                   </CommandGroup>
                 )}
@@ -250,7 +252,7 @@ export function SearchCommandDialog({ open, onOpenChange }: SearchCommandDialogP
               </>
             )}
           </CommandList>
-          <div className="border-t px-4 py-2 text-xs text-muted-foreground">
+          <div className="border-t px-4 py-2 text-xs text-basalt-muted-foreground">
             ↑ ↓ 选择 · Enter 打开 · Esc 关闭
           </div>
         </Command>

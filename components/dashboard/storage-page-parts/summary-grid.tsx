@@ -18,18 +18,18 @@ interface SummaryCardProps {
 function Card({ label, value, sub, icon: Icon, variant = "default" }: SummaryCardProps) {
   const accentClass =
     variant === "warning"
-      ? "text-warning"
+      ? "text-basalt-warning"
       : variant === "success"
-        ? "text-success"
-        : "text-muted-foreground";
+        ? "text-basalt-success"
+        : "text-basalt-muted-foreground";
   return (
-    <div className="rounded-card bg-secondary p-4 space-y-2">
+    <div className="rounded-card bg-basalt-secondary p-4 space-y-2">
       <div className="flex items-center gap-2">
         <Icon className={`h-4 w-4 ${accentClass}`} strokeWidth={1.5} />
-        <span className="text-xs text-muted-foreground">{label}</span>
+        <span className="text-xs text-basalt-muted-foreground">{label}</span>
       </div>
       <div className="text-lg font-semibold tabular-nums">{value}</div>
-      <div className="text-xs text-muted-foreground">{sub}</div>
+      <div className="text-xs text-basalt-muted-foreground">{sub}</div>
     </div>
   );
 }

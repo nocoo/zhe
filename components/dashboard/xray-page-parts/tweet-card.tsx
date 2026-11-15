@@ -48,9 +48,9 @@ function AuthorRow({ tweet }: { tweet: XrayTweetData }) {
           >
             {tweet.author.name}
           </a>
-          {tweet.author.is_verified && <BadgeCheck className="h-4 w-4 shrink-0 text-info" />}
+          {tweet.author.is_verified && <BadgeCheck className="h-4 w-4 shrink-0 text-basalt-info" />}
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 text-xs text-basalt-muted-foreground">
           <a
             href={`https://x.com/${tweet.author.username}`}
             target="_blank"
@@ -78,7 +78,7 @@ function EntitiesBlock({ entities }: { entities: XrayTweetData["entities"] }) {
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-info hover:underline break-all"
+              className="text-xs text-basalt-info hover:underline break-all"
             >
               {url}
             </a>
@@ -102,7 +102,7 @@ function EntitiesBlock({ entities }: { entities: XrayTweetData["entities"] }) {
               href={`https://x.com/${user}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-info hover:underline"
+              className="text-xs text-basalt-info hover:underline"
             >
               @{user}
             </a>
@@ -115,7 +115,7 @@ function EntitiesBlock({ entities }: { entities: XrayTweetData["entities"] }) {
 
 function MetadataRow({ tweet }: { tweet: XrayTweetData }) {
   return (
-    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+    <div className="flex items-center gap-2 text-xs text-basalt-muted-foreground">
       <span>{formatTweetDate(tweet.created_at)}</span>
       <span>·</span>
       <span className="uppercase">{tweet.lang}</span>
@@ -139,7 +139,7 @@ function MetadataRow({ tweet }: { tweet: XrayTweetData }) {
         href={tweet.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+        className="inline-flex items-center gap-1 hover:text-basalt-foreground transition-colors"
       >
         原帖
         <ExternalLink className="h-3 w-3" />
@@ -168,7 +168,7 @@ function MetricItem({
 
 function MetricsBar({ metrics }: { metrics: XrayTweetData["metrics"] }) {
   return (
-    <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+    <div className="flex flex-wrap gap-4 text-xs text-basalt-muted-foreground">
       <MetricItem icon={Eye} value={metrics.view_count} label="浏览" />
       <MetricItem icon={Heart} value={metrics.like_count} label="喜欢" />
       <MetricItem icon={Repeat2} value={metrics.retweet_count} label="转推" />
@@ -228,7 +228,7 @@ function MediaGrid({ media }: { media: XrayTweetMedia[] }) {
 
 export function TweetCard({ tweet, action }: { tweet: XrayTweetData; action?: React.ReactNode }) {
   return (
-    <div className="rounded-card bg-secondary p-4 space-y-3">
+    <div className="rounded-card bg-basalt-secondary p-4 space-y-3">
       <AuthorRow tweet={tweet} />
 
       <p className="text-sm whitespace-pre-wrap leading-relaxed">{tweet.text}</p>
@@ -245,8 +245,8 @@ export function TweetCard({ tweet, action }: { tweet: XrayTweetData; action?: Re
       {tweet.quoted_tweet && (
         <>
           <Separator />
-          <div className="pl-3 border-l-2 border-muted-foreground/20">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">
+          <div className="pl-3 border-l-2 border-basalt-muted-foreground/20">
+            <p className="text-[10px] uppercase tracking-wider text-basalt-muted-foreground mb-2">
               引用推文
             </p>
             <TweetCard tweet={tweet.quoted_tweet} />

@@ -27,7 +27,7 @@ export function KVCacheSection({
   if (!health) {
     return (
       <SectionRule title="KV 缓存" data-testid="section-kv">
-        <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
+        <div className="flex h-32 items-center justify-center text-sm text-basalt-muted-foreground">
           无法加载 KV 缓存状态
         </div>
       </SectionRule>

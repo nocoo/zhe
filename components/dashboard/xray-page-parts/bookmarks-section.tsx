@@ -13,8 +13,8 @@ export function BookmarksSection({ vm }: { vm: XrayViewModel }) {
       <CardHeader className="px-4 py-3 md:px-5 md:py-4">
         <CardTitle className="flex items-center justify-between text-sm font-medium">
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-warning/10">
-              <BookmarkIcon className="h-4 w-4 text-warning" strokeWidth={1.5} />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-basalt-warning/10">
+              <BookmarkIcon className="h-4 w-4 text-basalt-warning" strokeWidth={1.5} />
             </div>
             <span>我的书签</span>
             {vm.bookmarks.length > 0 && (
@@ -40,16 +40,18 @@ export function BookmarksSection({ vm }: { vm: XrayViewModel }) {
       </CardHeader>
       <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
         {!vm.isConfigured ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-basalt-muted-foreground">
             请先在上方配置 xray API，然后即可加载您的 X 书签。
           </p>
         ) : vm.bookmarksError ? (
-          <div className="flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/5 p-3">
-            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-destructive" />
-            <p className="text-sm text-destructive">{vm.bookmarksError}</p>
+          <div className="flex items-start gap-2 rounded-md border border-basalt-destructive/20 bg-basalt-destructive/5 p-3">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-basalt-destructive" />
+            <p className="text-sm text-basalt-destructive">{vm.bookmarksError}</p>
           </div>
         ) : vm.bookmarks.length === 0 ? (
-          <p className="text-sm text-muted-foreground">点击「加载书签」获取您的 X 书签列表。</p>
+          <p className="text-sm text-basalt-muted-foreground">
+            点击「加载书签」获取您的 X 书签列表。
+          </p>
         ) : (
           <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4">
             {vm.bookmarks.map((tweet) => (
@@ -94,7 +96,7 @@ function BookmarkAddButton({
 }) {
   if (isAdded) {
     return (
-      <Button variant="ghost" size="default" disabled className="text-success">
+      <Button variant="ghost" size="default" disabled className="text-basalt-success">
         <Check className="mr-1.5 h-4 w-4" />
         已收录
       </Button>

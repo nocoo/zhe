@@ -46,15 +46,15 @@ export function Sparkline({ data }: { data: number[] }) {
       <title>Sparkline</title>
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-          <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+          <stop offset="0%" stopColor="hsl(var(--basalt-primary))" stopOpacity={0.3} />
+          <stop offset="100%" stopColor="hsl(var(--basalt-primary))" stopOpacity={0} />
         </linearGradient>
       </defs>
       <polygon points={`0,${h} ${points} ${w},${h}`} fill={`url(#${gradientId})`} />
       <polyline
         points={points}
         fill="none"
-        stroke="hsl(var(--primary))"
+        stroke="hsl(var(--basalt-primary))"
         strokeWidth={1.5}
         strokeLinejoin="round"
         strokeLinecap="round"
@@ -73,8 +73,8 @@ export function StatCard({ label, value, icon: Icon, sparkline, index = 0 }: Sta
     >
       <CardContent className="p-4 md:p-5">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">{label}</span>
-          <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+          <span className="text-xs text-basalt-muted-foreground">{label}</span>
+          <Icon className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
         </div>
         <div className="mt-2 flex items-center gap-3">
           <p
@@ -97,10 +97,10 @@ export function StatSkeleton() {
     <Card className="animate-pulse" data-testid="stat-skeleton">
       <CardContent className="p-4 md:p-5">
         <div className="flex items-center justify-between">
-          <div className="h-3 w-16 rounded bg-background" />
-          <div className="h-4 w-4 rounded bg-background" />
+          <div className="h-3 w-16 rounded bg-basalt-background" />
+          <div className="h-4 w-4 rounded bg-basalt-background" />
         </div>
-        <div className="mt-3 h-7 w-20 rounded bg-background" />
+        <div className="mt-3 h-7 w-20 rounded bg-basalt-background" />
       </CardContent>
     </Card>
   );
@@ -110,10 +110,10 @@ export function ChartSkeleton({ className }: { className?: string }) {
   return (
     <Card className={className} data-testid="stat-skeleton">
       <CardHeader className="px-4 py-3 md:px-5 md:py-4">
-        <div className="h-4 w-24 rounded bg-background animate-pulse" />
+        <div className="h-4 w-24 rounded bg-basalt-background animate-pulse" />
       </CardHeader>
       <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
-        <div className="h-[200px] w-full rounded bg-background animate-pulse" />
+        <div className="h-[200px] w-full rounded bg-basalt-background animate-pulse" />
       </CardContent>
     </Card>
   );
@@ -124,7 +124,7 @@ export function ChartSkeleton({ className }: { className?: string }) {
 export function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
   if (data.length === 0) {
     return (
-      <div className="flex min-h-[200px] flex-1 items-center justify-center text-sm text-muted-foreground">
+      <div className="flex min-h-[200px] flex-1 items-center justify-center text-sm text-basalt-muted-foreground">
         暂无点击数据
       </div>
     );
@@ -168,8 +168,8 @@ export function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
           />
           <Tooltip
             contentStyle={{
-              background: "hsl(var(--popover))",
-              border: "1px solid hsl(var(--border))",
+              background: "hsl(var(--basalt-popover))",
+              border: "1px solid hsl(var(--basalt-border))",
               borderRadius: "8px",
               fontSize: "12px",
             }}
@@ -218,7 +218,7 @@ export function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
 export function UploadTrendChart({ data }: { data: UploadTrendPoint[] }) {
   if (data.length === 0) {
     return (
-      <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-[200px] items-center justify-center text-sm text-basalt-muted-foreground">
         暂无上传数据
       </div>
     );
@@ -254,8 +254,8 @@ export function UploadTrendChart({ data }: { data: UploadTrendPoint[] }) {
           />
           <Tooltip
             contentStyle={{
-              background: "hsl(var(--popover))",
-              border: "1px solid hsl(var(--border))",
+              background: "hsl(var(--basalt-popover))",
+              border: "1px solid hsl(var(--basalt-border))",
               borderRadius: "8px",
               fontSize: "12px",
             }}
@@ -282,7 +282,7 @@ export function BreakdownDonut({ data }: { data: Record<string, number> }) {
 
   if (entries.length === 0) {
     return (
-      <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-[200px] items-center justify-center text-sm text-basalt-muted-foreground">
         暂无数据
       </div>
     );
@@ -310,8 +310,8 @@ export function BreakdownDonut({ data }: { data: Record<string, number> }) {
             </Pie>
             <Tooltip
               contentStyle={{
-                background: "hsl(var(--popover))",
-                border: "1px solid hsl(var(--border))",
+                background: "hsl(var(--basalt-popover))",
+                border: "1px solid hsl(var(--basalt-border))",
                 borderRadius: "8px",
                 fontSize: "12px",
               }}
@@ -327,7 +327,7 @@ export function BreakdownDonut({ data }: { data: Record<string, number> }) {
               className="inline-block h-2.5 w-2.5 rounded-full"
               style={{ background: CHART_COLORS[i % CHART_COLORS.length] }}
             />
-            <span className="text-muted-foreground">{name}</span>
+            <span className="text-basalt-muted-foreground">{name}</span>
             <span className="font-medium">{count}</span>
           </div>
         ))}
@@ -341,7 +341,7 @@ export function BreakdownDonut({ data }: { data: Record<string, number> }) {
 export function TopLinksList({ links }: { links: TopLinkEntry[] }) {
   if (links.length === 0) {
     return (
-      <div className="flex h-[200px] items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-[200px] items-center justify-center text-sm text-basalt-muted-foreground">
         暂无链接
       </div>
     );
@@ -352,14 +352,16 @@ export function TopLinksList({ links }: { links: TopLinkEntry[] }) {
       {links.slice(0, 8).map((link, i) => (
         <div
           key={link.slug}
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-accent/50 transition-colors"
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-basalt-accent/50 transition-colors"
           data-testid="top-link-item"
           data-slug={link.slug}
         >
-          <span className="w-5 text-center text-xs text-muted-foreground font-medium">{i + 1}</span>
+          <span className="w-5 text-center text-xs text-basalt-muted-foreground font-medium">
+            {i + 1}
+          </span>
           <div className="flex-1 min-w-0">
             <p className="font-medium truncate">{link.slug}</p>
-            <p className="text-xs text-muted-foreground truncate">{link.originalUrl}</p>
+            <p className="text-xs text-basalt-muted-foreground truncate">{link.originalUrl}</p>
           </div>
           <span className="text-sm font-medium tabular-nums">{formatClickCount(link.clicks)}</span>
         </div>

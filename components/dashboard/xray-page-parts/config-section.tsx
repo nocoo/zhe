@@ -39,7 +39,7 @@ function UrlModeSelector({ vm }: { vm: XrayViewModel }) {
           className="mt-1.5 h-9"
         />
       ) : (
-        <p className="mt-1 text-xs text-muted-foreground">{vm.apiUrl}</p>
+        <p className="mt-1 text-xs text-basalt-muted-foreground">{vm.apiUrl}</p>
       )}
     </div>
   );
@@ -66,7 +66,7 @@ function ConfigForm({ vm }: { vm: XrayViewModel }) {
       </div>
 
       {vm.error && (
-        <p className="text-xs text-destructive" data-testid="xray-error">
+        <p className="text-xs text-basalt-destructive" data-testid="xray-error">
           {vm.error}
         </p>
       )}
@@ -91,12 +91,12 @@ function ConfiguredView({ vm }: { vm: XrayViewModel }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">API URL:</span>
-        <code className="rounded bg-accent px-2 py-0.5 text-xs break-all">{vm.apiUrl}</code>
+        <span className="text-xs text-basalt-muted-foreground">API URL:</span>
+        <code className="rounded bg-basalt-accent px-2 py-0.5 text-xs break-all">{vm.apiUrl}</code>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">Key:</span>
-        <code className="rounded bg-accent px-2 py-0.5 text-xs">{vm.maskedToken}</code>
+        <span className="text-xs text-basalt-muted-foreground">Key:</span>
+        <code className="rounded bg-basalt-accent px-2 py-0.5 text-xs">{vm.maskedToken}</code>
         <Button
           variant="ghost"
           size="default"
@@ -120,7 +120,7 @@ export function ConfigSection({ vm }: { vm: XrayViewModel }) {
       description="配置 xray API 的地址和认证 Key，用于获取 Twitter/X 帖子内容。"
     >
       {vm.isLoading ? (
-        <p className="text-sm text-muted-foreground">加载中...</p>
+        <p className="text-sm text-basalt-muted-foreground">加载中...</p>
       ) : !vm.isConfigured || vm.isEditing ? (
         <ConfigForm vm={vm} />
       ) : (

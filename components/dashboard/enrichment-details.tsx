@@ -89,21 +89,21 @@ export function EnrichmentDetails({
       <section className="space-y-2" aria-label="执行记录">
         <h4 className="text-sm font-medium">执行记录</h4>
         {task && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-basalt-muted-foreground">
             已记录 {task.recordedFailures} 次失败
             {!task.historyComplete && " · 早期逐次记录缺失，以下现状快照不计入失败统计"}
           </p>
         )}
         {!events.length && !loading && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-basalt-muted-foreground">
             尚无执行记录，Connector 发现任务后会自动排队。
           </p>
         )}
-        <ol className="divide-y divide-border rounded-widget border border-border text-xs">
+        <ol className="divide-y divide-border rounded-widget border border-basalt-border text-xs">
           {events.map((event) => (
             <li key={event.id} className="space-y-1 px-3 py-2">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <time className="text-muted-foreground">
+                <time className="text-basalt-muted-foreground">
                   {new Date(event.createdAt).toLocaleString("zh-CN")}
                 </time>
                 <span className="font-medium">
@@ -117,16 +117,16 @@ export function EnrichmentDetails({
                 </span>
                 <span>{event.attempts ? `本轮第 ${event.attempts} 次尝试` : "等待执行"}</span>
                 {event.connectorName && (
-                  <span className="text-muted-foreground">{event.connectorName}</span>
+                  <span className="text-basalt-muted-foreground">{event.connectorName}</span>
                 )}
               </div>
               {event.errorCode && (
-                <p className="break-words text-warning">
+                <p className="break-words text-basalt-warning">
                   {enrichmentError(event.errorCode)} ({event.errorCode})
                 </p>
               )}
               {(event.kind === "finished" || event.kind === "snapshot") && (
-                <p className="text-muted-foreground">
+                <p className="text-basalt-muted-foreground">
                   {event.source === "screenshot"
                     ? `截图 ${event.mediaCount} 张`
                     : `${event.source === "github" ? "README" : "正文"} ${event.textChars} 字符${event.source === "x" ? ` · 附件 ${event.mediaCount}/${event.mediaTotal}` : ""}`}
@@ -137,12 +137,12 @@ export function EnrichmentDetails({
           ))}
         </ol>
         {loading && (
-          <p role="status" className="text-xs text-muted-foreground">
+          <p role="status" className="text-xs text-basalt-muted-foreground">
             正在读取记录…
           </p>
         )}
         {error && (
-          <p role="alert" className="text-sm text-warning">
+          <p role="alert" className="text-sm text-basalt-warning">
             执行记录或采集内容暂时无法读取。
           </p>
         )}
@@ -158,7 +158,7 @@ export function EnrichmentDetails({
           bookmark?.tweet ? (
             <XBookmarkContent bookmark={bookmark} />
           ) : (
-            <p className="text-sm text-muted-foreground">尚未获得帖子正文与附件。</p>
+            <p className="text-sm text-basalt-muted-foreground">尚未获得帖子正文与附件。</p>
           )
         ) : task?.source === "github" && link ? (
           <GitHubReadme key={task.updatedAt} link={link} />
@@ -166,10 +166,10 @@ export function EnrichmentDetails({
           <img
             src={previewUrl}
             alt="已保存的网站截图"
-            className="w-full rounded-widget border border-border"
+            className="w-full rounded-widget border border-basalt-border"
           />
         ) : (
-          <p className="text-sm text-muted-foreground">尚未获得采集内容。</p>
+          <p className="text-sm text-basalt-muted-foreground">尚未获得采集内容。</p>
         )}
       </section>
     </div>

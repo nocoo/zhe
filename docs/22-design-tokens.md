@@ -15,14 +15,14 @@
 
 四层表面，由浅到深（light）/ 由暗到亮（dark）可读：
 
-| 层级       | Token                                                                         | 用途                                       |
-| ---------- | ----------------------------------------------------------------------------- | ------------------------------------------ |
-| L0 body    | `--background` / `bg-background`                                              | 整页底、Sidebar 底                         |
-| L1 panel   | `--card` / `bg-card`                                                          | AppShell 内容大面板                        |
-| L2 card    | `--secondary` / `bg-secondary`                                                | 列表区、双栏 section、内嵌卡片             |
-| L3 control | `bg-basalt-control` (`--basalt-control-fill`) + `border-border` + `shadow-xs` | Button outline / Input / Select / Textarea |
-- shadcn 的 `--card` 在本项目语义上是 **L1 面板**，不是 `<Card>` 默认底。
-- `<Card>` 故意用 `bg-secondary`（L2），以便嵌在 L1 面板内浮起。
+| 层级       | Token                                                                                | 用途                                       |
+| ---------- | ------------------------------------------------------------------------------------ | ------------------------------------------ |
+| L0 body    | `--basalt-background` / `bg-basalt-background`                                       | 整页底、Sidebar 底                         |
+| L1 panel   | `--basalt-card` / `bg-basalt-card`                                                   | AppShell 内容大面板                        |
+| L2 card    | `--basalt-secondary` / `bg-basalt-secondary`                                         | 列表区、双栏 section、内嵌卡片             |
+| L3 control | `bg-basalt-control` (`--basalt-control-fill`) + `border-basalt-border` + `shadow-xs` | Button outline / Input / Select / Textarea |
+- Basalt 的 `--basalt-card` 是 L1 面板，`LayerCard` 是嵌入后的 L2 卡片。
+- 普通 `<Card>` 故意使用 `bg-basalt-secondary`（L2），以便嵌在 L1 面板内浮起。
 - 控件填充跟当前表面走 `bg-basalt-control`，不要写死 `bg-secondary` / `bg-card`。
 - Dialog / AlertDialog 通过 `data-basalt-surface-root` 使用最高层表面 `--basalt-bright`。弹窗面板、嵌套区域和表单控件统一使用该表面，浅色主题为白色，不再嵌入灰色层级；暗色主题沿用对应的 bright token。下拉菜单中的控件跟随 popover 表面。
 
@@ -298,8 +298,8 @@ Selection overlays focus their checkbox with `preventScroll` when the card body 
 
 ### Basalt 3 adoption
 
-Pinned package: `@nocoo/basalt@3.2.1`; compatibility and integration guidance
-checked against the published package and Basalt source revision `13a0fe1`.
+Pinned package: `@nocoo/basalt@3.3.6`; compatibility and integration guidance
+checked against the published 3.3.6 package.
 The 3.2 upgrade retains existing imports and peer requirements; the package owns
 its updated island hierarchy, typography, hover and dialog tokens.
 Control fills contrast with their container: surface roots use

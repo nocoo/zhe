@@ -197,9 +197,12 @@ export function XLibraryPage() {
                       return (
                         <SelectItem key={value} value={value}>
                           <span className="flex min-w-0 items-center gap-2 whitespace-nowrap">
-                            <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                            <Icon
+                              className="size-4 shrink-0 text-basalt-muted-foreground"
+                              aria-hidden
+                            />
                             <span>{label}</span>
-                            <span className="text-xs tabular-nums text-muted-foreground">
+                            <span className="text-xs tabular-nums text-basalt-muted-foreground">
                               {count}
                             </span>
                           </span>

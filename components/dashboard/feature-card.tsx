@@ -5,12 +5,12 @@ type AccentColor = "info" | "teal" | "warning" | "purple" | "success" | "destruc
 
 /** Color map for icon container background and icon foreground */
 const ACCENT_CLASSES: Record<AccentColor, { bg: string; fg: string }> = {
-  info: { bg: "bg-info/10", fg: "text-info" },
-  teal: { bg: "bg-teal/10", fg: "text-teal" },
-  warning: { bg: "bg-warning/10", fg: "text-warning" },
-  purple: { bg: "bg-purple/10", fg: "text-purple" },
-  success: { bg: "bg-success/10", fg: "text-success" },
-  destructive: { bg: "bg-destructive/10", fg: "text-destructive" },
+  info: { bg: "bg-basalt-info/10", fg: "text-basalt-info" },
+  teal: { bg: "bg-basalt-badge-teal/10", fg: "text-basalt-badge-teal" },
+  warning: { bg: "bg-basalt-warning/10", fg: "text-basalt-warning" },
+  purple: { bg: "bg-basalt-badge-purple/10", fg: "text-basalt-badge-purple" },
+  success: { bg: "bg-basalt-success/10", fg: "text-basalt-success" },
+  destructive: { bg: "bg-basalt-destructive/10", fg: "text-basalt-destructive" },
 };
 
 interface FeatureCardProps {
@@ -52,7 +52,7 @@ export function FeatureCard({
           <span className="shrink-0">{typeof title === "string" ? title : title}</span>
           <span
             {...(typeof description === "string" ? { title: description } : {})}
-            className="min-w-0 flex-1 truncate text-xs font-normal text-muted-foreground"
+            className="min-w-0 flex-1 truncate text-xs font-normal text-basalt-muted-foreground"
           >
             {description}
           </span>

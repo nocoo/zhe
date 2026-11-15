@@ -14,16 +14,15 @@ describe("theme tokens", () => {
     );
   });
 
-  it("uses ink on a lifted purple in dark mode, not the raw 63% swatch", () => {
-    const darkBlock = css.split(".dark {")[1]?.split("@utility")[0] ?? "";
-    expect(darkBlock).toContain("--basalt-primary: 262 83% 74%");
-    expect(darkBlock).toContain("--basalt-primary-foreground: 0 0% 4%");
-    expect(darkBlock).toContain("--basalt-ring: 262 83% 74%");
-    expect(darkBlock).not.toMatch(/--basalt-primary:\s*262 83% 63%/);
+  it("keeps Zhe purple in the supported Basalt accent provider", () => {
+    const src = readFileSync(resolve(process.cwd(), "components/basalt-providers.tsx"), "utf8");
+    expect(src).toContain('primary: { light: "262 83% 58%", dark: "262 83% 63%" }');
+    expect(src).toContain("paletteOverrides={ZHE_ACCENT}");
   });
 
-  it("keeps CSS as the runtime source of truth for Zhe primary", () => {
-    const src = readFileSync(resolve(process.cwd(), "components/basalt-providers.tsx"), "utf8");
-    expect(src).toContain("applyToDocument={false}");
+  it("does not redeclare Basalt primary or ring tokens in app CSS", () => {
+    expect(css).not.toContain("--basalt-primary:");
+    expect(css).not.toContain("--basalt-primary-foreground:");
+    expect(css).not.toContain("--basalt-ring:");
   });
 });

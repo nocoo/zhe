@@ -74,7 +74,7 @@ export const TodoTagChip = memo(function TodoTagChip({
         style={style}
         className={cn(
           wrapperClass,
-          "cursor-pointer hover:opacity-90 focus:outline-hidden focus:ring-2 focus:ring-ring",
+          "cursor-pointer hover:opacity-90 focus:outline-hidden focus:ring-2 focus:ring-basalt-ring",
         )}
         data-todo-tag={displayName}
       >
@@ -93,7 +93,7 @@ export const TodoTagChip = memo(function TodoTagChip({
         <button
           type="button"
           onClick={onClick}
-          className="max-w-[10rem] truncate cursor-pointer hover:opacity-90 focus:outline-hidden focus:ring-1 focus:ring-ring rounded-sm bg-transparent border-0 p-0 text-inherit font-inherit"
+          className="max-w-[10rem] truncate cursor-pointer hover:opacity-90 focus:outline-hidden focus:ring-1 focus:ring-basalt-ring rounded-sm bg-transparent border-0 p-0 text-inherit font-inherit"
           style={{ color: "inherit" }}
         >
           {displayName}
@@ -110,7 +110,7 @@ export const TodoTagChip = memo(function TodoTagChip({
             onRemove();
           }}
           aria-label={`Remove tag ${displayName}`}
-          className="-mr-1 rounded-full p-0.5 hover:bg-black/10 focus:outline-hidden focus:ring-1 focus:ring-ring"
+          className="-mr-1 rounded-full p-0.5 hover:bg-black/10 focus:outline-hidden focus:ring-1 focus:ring-basalt-ring"
         >
           <X className="h-3 w-3" aria-hidden />
         </button>

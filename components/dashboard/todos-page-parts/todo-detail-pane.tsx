@@ -72,7 +72,7 @@ function dateInputValueToMs(value: string): number | null {
 export function TodoDetailPane({ detail, detailLoading, onUpdate }: TodoDetailPaneProps) {
   if (!detail) {
     return (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+      <div className="flex h-full items-center justify-center text-sm text-basalt-muted-foreground">
         {detailLoading ? "加载中…" : "选择一条待办查看详情"}
       </div>
     );
@@ -186,12 +186,12 @@ function TodoDetailPaneBody({
           aria-label="Todo title"
           className={cn(
             "h-8 flex-1 border-transparent bg-transparent px-1 text-base font-medium shadow-none",
-            "hover:border-border/60 focus-visible:border-ring focus-visible:bg-secondary focus-visible:shadow-xs",
+            "hover:border-basalt-border/60 focus-visible:border-basalt-ring focus-visible:bg-basalt-secondary focus-visible:shadow-xs",
           )}
         />
       </div>
       <div className="flex flex-wrap items-center gap-2 text-xs" data-detail-due-row>
-        <span className="text-muted-foreground">截止</span>
+        <span className="text-basalt-muted-foreground">截止</span>
         <Input
           type="date"
           size="sm"
@@ -234,7 +234,7 @@ function TodoDetailPaneBody({
       </div>
 
       <div className="flex-1 min-h-[10rem]" data-detail-content-region>
-        <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="mb-1 flex items-center justify-between text-xs text-basalt-muted-foreground">
           <span>备注</span>
           <Button
             type="button"
@@ -261,14 +261,14 @@ function TodoDetailPaneBody({
           // biome-ignore lint/a11y/noStaticElementInteractions: double-click affordance only; header 编辑 is the accessible control
           <div
             onDoubleClick={() => setContentMode("edit")}
-            className="min-h-[10rem] w-full cursor-text rounded-widget border border-transparent p-2 text-left hover:border-border/60"
+            className="min-h-[10rem] w-full cursor-text rounded-widget border border-transparent p-2 text-left hover:border-basalt-border/60"
           >
             <MarkdownPreview content={contentDraft} placeholder="暂无备注，双击进入编辑。" />
           </div>
         )}
       </div>
 
-      <p className="text-xs text-muted-foreground">{meta}</p>
+      <p className="text-xs text-basalt-muted-foreground">{meta}</p>
     </div>
   );
 }

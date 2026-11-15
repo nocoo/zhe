@@ -40,29 +40,29 @@ const KIND_STYLES: Record<
   }
 > = {
   overdue: {
-    className: "bg-destructive/15 text-destructive border-destructive/25",
+    className: "bg-basalt-destructive/15 text-basalt-destructive border-basalt-destructive/25",
     Icon: AlertCircle,
   },
   today: {
-    className: "bg-warning/15 text-warning border-warning/25",
+    className: "bg-basalt-warning/15 text-basalt-warning border-basalt-warning/25",
     Icon: Clock,
   },
   tomorrow: {
-    className: "bg-warning/10 text-warning border-warning/20",
+    className: "bg-basalt-warning/10 text-basalt-warning border-basalt-warning/20",
     Icon: Clock,
   },
   soon: {
-    className: "bg-secondary text-secondary-foreground border-border",
+    className: "bg-basalt-secondary text-basalt-secondary-foreground border-basalt-border",
     Icon: CalendarDays,
   },
   later: {
-    className: "bg-muted text-muted-foreground border-border",
+    className: "bg-basalt-muted text-basalt-muted-foreground border-basalt-border",
     Icon: CalendarDays,
   },
   "done-with-due": {
     // Low-emphasis: completed todos should not visually shout regardless
     // of when they were originally due — matches the design's rule.
-    className: "bg-muted text-muted-foreground/70 border-border/60",
+    className: "bg-basalt-muted text-basalt-muted-foreground/70 border-basalt-border/60",
     Icon: Check,
   },
 };

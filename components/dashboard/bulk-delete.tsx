@@ -118,13 +118,16 @@ function SelectionControls({
       className={cn(
         "flex min-w-0 flex-wrap items-center justify-end gap-2",
         floating &&
-          "fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-40 w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 justify-center rounded-card border border-border bg-popover p-2 text-popover-foreground shadow-lg",
+          "fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-40 w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 justify-center rounded-card border border-basalt-border bg-basalt-popover p-2 text-basalt-popover-foreground shadow-lg",
       )}
       disabled={pending}
       aria-busy={pending}
       aria-label={floating ? "浮动多选操作" : "多选操作"}
     >
-      <span className="whitespace-nowrap text-xs tabular-nums text-muted-foreground" role="status">
+      <span
+        className="whitespace-nowrap text-xs tabular-nums text-basalt-muted-foreground"
+        role="status"
+      >
         已选 {selection.count} 项
       </span>
       <IconAction
@@ -142,7 +145,7 @@ function SelectionControls({
         label="删除所选"
         disabled={!selection.count || pending}
         onClick={selection.requestDelete}
-        className="text-destructive hover:text-destructive"
+        className="text-basalt-destructive hover:text-basalt-destructive"
       >
         <Trash2 aria-hidden />
       </IconAction>
@@ -173,7 +176,9 @@ export function SelectableCard({
       {...props}
       className={cn(
         "relative rounded-card",
-        selection.active && checked && "ring-2 ring-primary ring-offset-2 ring-offset-card",
+        selection.active &&
+          checked &&
+          "ring-2 ring-basalt-primary ring-offset-2 ring-offset-basalt-card",
         className,
       )}
       data-selected={selection.active ? checked : undefined}
@@ -196,9 +201,9 @@ export function SelectableCard({
             checkbox.current?.focus({ preventScroll: true });
             selection.toggle(itemId);
           }}
-          className="absolute inset-0 z-10 cursor-pointer rounded-card has-focus-visible:ring-2 has-focus-visible:ring-ring"
+          className="absolute inset-0 z-10 cursor-pointer rounded-card has-focus-visible:ring-2 has-focus-visible:ring-basalt-ring"
         >
-          <span className="absolute -left-1.5 -top-1.5 flex rounded-widget bg-card p-1.5 shadow-sm ring-1 ring-border">
+          <span className="absolute -left-1.5 -top-1.5 flex rounded-widget bg-basalt-card p-1.5 shadow-sm ring-1 ring-basalt-border">
             <Checkbox
               ref={checkbox}
               id={id}
@@ -267,7 +272,7 @@ function BulkDeleteDialog({
               aria-label="删除进度"
               max={batch.items.length}
               value={batch.processed}
-              className="block h-2 w-full appearance-none overflow-hidden rounded-full bg-primary/10 [&::-webkit-progress-bar]:bg-primary/10 [&::-webkit-progress-value]:bg-primary [&::-moz-progress-bar]:bg-primary"
+              className="block h-2 w-full appearance-none overflow-hidden rounded-full bg-basalt-primary/10 [&::-webkit-progress-bar]:bg-basalt-primary/10 [&::-webkit-progress-value]:bg-basalt-primary [&::-moz-progress-bar]:bg-basalt-primary"
             />
             <div
               className="flex items-center justify-between gap-3 text-sm"
@@ -279,12 +284,12 @@ function BulkDeleteDialog({
                   ? `已删除 ${batch.processed - batch.failures.length} 项${batch.failures.length ? `，失败 ${batch.failures.length} 项` : ""}`
                   : "处理中"}
               </span>
-              <span className="tabular-nums text-muted-foreground">
+              <span className="tabular-nums text-basalt-muted-foreground">
                 {batch.processed} / {batch.items.length}
               </span>
             </div>
             {running && (
-              <p className="truncate text-xs text-muted-foreground">
+              <p className="truncate text-xs text-basalt-muted-foreground">
                 {batch.items[batch.processed]?.label}
               </p>
             )}
@@ -296,7 +301,7 @@ function BulkDeleteDialog({
                 {batch.failures.map((item) => (
                   <li key={item.id}>
                     <p className="truncate font-medium">{item.label}</p>
-                    <p className="text-xs text-destructive">{item.error}</p>
+                    <p className="text-xs text-basalt-destructive">{item.error}</p>
                   </li>
                 ))}
               </ul>

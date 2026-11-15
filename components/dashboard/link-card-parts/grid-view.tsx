@@ -17,16 +17,16 @@ export function GridView(props: LinkPreviewProps) {
       unoptimized
     />
   ) : props.onOpenDetails ? (
-    <XIcon className="size-10 text-muted-foreground" />
+    <XIcon className="size-10 text-basalt-muted-foreground" />
   ) : (
-    <ImageIcon className="size-8 text-muted-foreground" />
+    <ImageIcon className="size-8 text-basalt-muted-foreground" />
   );
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {props.onOpenDetails ? (
         <Button
           variant="ghost"
-          className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-none border-b border-border/60 bg-accent p-0"
+          className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-none border-b border-basalt-border/60 bg-basalt-accent p-0"
           onClick={props.onOpenDetails}
           aria-label="查看帖子详情"
         >
@@ -38,7 +38,7 @@ export function GridView(props: LinkPreviewProps) {
           target="_blank"
           rel="noopener noreferrer"
           aria-label="打开原链接"
-          className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden border-b border-border/60 bg-accent"
+          className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden border-b border-basalt-border/60 bg-basalt-accent"
         >
           {preview}
         </a>

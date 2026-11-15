@@ -93,17 +93,17 @@ export function UploadZone({ isDragOver, onDragOver, onFiles, disabled }: Upload
         className={cn(
           "relative flex w-full flex-col items-center justify-center rounded-card border-2 border-dashed p-8 transition-all cursor-pointer",
           isDragOver
-            ? "border-primary bg-primary/5"
-            : "border-muted-foreground/20 bg-secondary hover:border-muted-foreground/40",
+            ? "border-basalt-primary bg-basalt-primary/5"
+            : "border-basalt-muted-foreground/20 bg-basalt-secondary hover:border-basalt-muted-foreground/40",
         )}
       >
         <span className="mb-3 flex items-center gap-2">
-          <FileUp className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
+          <FileUp className="h-5 w-5 text-basalt-muted-foreground" strokeWidth={1.5} />
         </span>
-        <span className="mb-1 text-sm font-medium text-foreground">
+        <span className="mb-1 text-sm font-medium text-basalt-foreground">
           {isDragOver ? "释放文件以上传" : "拖拽文件到此处，或点击选择"}
         </span>
-        <span className="text-xs text-muted-foreground">支持所有文件类型，最大 10MB</span>
+        <span className="text-xs text-basalt-muted-foreground">支持所有文件类型，最大 10MB</span>
       </button>
     </div>
   );

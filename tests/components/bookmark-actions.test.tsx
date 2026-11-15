@@ -339,7 +339,7 @@ describe("unified bookmark action contract", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Future" }));
     expect(run).toHaveBeenCalledOnce();
-    expect(screen.getByRole("button", { name: "Future" })).toHaveClass("text-destructive");
+    expect(screen.getByRole("button", { name: "Future" })).toHaveClass("text-basalt-destructive");
     await userEvent.click(screen.getByRole("button", { name: "更多收藏操作" }));
     expect(screen.getByRole("menuitem", { name: /Pending/ })).toHaveAttribute(
       "aria-disabled",

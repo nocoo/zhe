@@ -61,11 +61,11 @@ export function ConnectorPanel() {
         </div>
       </LayerCard.Header>
       <LayerCard.Body className="space-y-4">
-        <p className="text-sm leading-6 text-muted-foreground">
+        <p className="text-sm leading-6 text-basalt-muted-foreground">
           照常通过网页、Webhook 或 CLI 保存链接。Connector 补全 X 文本和媒体、GitHub 仓库资料，
           并为缺少预览图的普通网页生成清晰的 4:3 截图；书签会自动更新。所有补全任务逐个处理。
         </p>
-        <p className="text-sm leading-6 text-muted-foreground">
+        <p className="text-sm leading-6 text-basalt-muted-foreground">
           与 Zhe CLI 共用安装和登录。为 CLI 密钥选择 <code>links:read</code> 和{" "}
           <code>connector:write</code>。API Key 默认永久有效，也可选择 30、7、3、1
           天，可在此页面随时撤销。
@@ -75,7 +75,7 @@ export function ConnectorPanel() {
             <code>{"npm install -g @nocoo/zhe\nzhe login\nzhe connector start"}</code>
           </pre>
         </LayerCard.Well>
-        <p className="text-xs leading-6 text-muted-foreground">
+        <p className="text-xs leading-6 text-basalt-muted-foreground">
           网页截图需要 OpenCLI 浏览器扩展；X 采集还需要 X 登录和 FFmpeg。OpenCLI 随包安装。GitHub
           公开仓库无需登录，也可复用本机 <code>gh auth login</code>，提高限额或读取有权限的仓库。
           macOS 可后台运行；其他系统使用 <code>zhe connector watch</code>。使用{" "}
@@ -83,10 +83,10 @@ export function ConnectorPanel() {
         </p>
         <div className="flex flex-wrap items-center gap-2" role="status">
           {error ? (
-            <span className="text-sm text-muted-foreground">状态暂时无法读取</span>
+            <span className="text-sm text-basalt-muted-foreground">状态暂时无法读取</span>
           ) : (
             <>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-basalt-muted-foreground">
                 {summary?.lastSeenAt
                   ? `最近连接：${new Date(summary.lastSeenAt).toLocaleString("zh-CN")}`
                   : "尚未连接"}

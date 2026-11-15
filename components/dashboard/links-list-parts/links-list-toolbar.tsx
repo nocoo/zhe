@@ -122,7 +122,7 @@ export function LinksListToolbar(props: ToolbarProps) {
           <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
           <span>筛选</span>
           {activeFilterCount > 0 && (
-            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground leading-none">
+            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-basalt-primary px-1 text-[10px] font-medium text-basalt-primary-foreground leading-none">
               {activeFilterCount}
             </span>
           )}

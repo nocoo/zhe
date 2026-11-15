@@ -15,7 +15,10 @@ export function HighlightText({
       {segments.map((seg, i) => {
         const key = `${seg.highlight ? "h" : "t"}-${i}-${seg.text}`;
         return seg.highlight ? (
-          <mark key={key} className="bg-highlight/60 text-foreground rounded-sm px-0.5">
+          <mark
+            key={key}
+            className="bg-basalt-warning-tint text-basalt-foreground rounded-sm px-0.5"
+          >
             {seg.text}
           </mark>
         ) : (

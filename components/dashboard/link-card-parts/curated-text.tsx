@@ -10,7 +10,7 @@ export function CardTitleText({ title, original }: { title: string; original?: s
     >
       <span className="min-w-0 truncate">{title}</span>
       {original && (
-        <span className="min-w-0 max-w-[40%] shrink-[2] truncate text-xs font-normal text-muted-foreground">
+        <span className="min-w-0 max-w-[40%] shrink-[2] truncate text-xs font-normal text-basalt-muted-foreground">
           {original}
         </span>
       )}
@@ -35,7 +35,7 @@ export function CardText({
     <details
       className={cn(
         "group/text min-w-0",
-        code && "rounded-widget border border-primary/15 bg-primary/5 px-2.5 py-2",
+        code && "rounded-widget border border-basalt-primary/15 bg-basalt-primary/5 px-2.5 py-2",
       )}
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => event.stopPropagation()}
@@ -45,7 +45,7 @@ export function CardText({
         className={cn(
           "cursor-pointer list-none break-words leading-5 [&::-webkit-details-marker]:hidden group-open/text:line-clamp-none",
           singleLine || auxiliary ? "line-clamp-1" : "line-clamp-2",
-          auxiliary ? "text-xs text-muted-foreground" : "text-sm text-foreground",
+          auxiliary ? "text-xs text-basalt-muted-foreground" : "text-sm text-basalt-foreground",
           code && "font-mono",
         )}
       >

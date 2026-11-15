@@ -14,13 +14,13 @@ async function handleCopy(text: string) {
 /** One-time banner shown immediately after a key is created. */
 export function NewKeyBanner({ newKey, onDismiss }: { newKey: string; onDismiss: () => void }) {
   return (
-    <div className="mb-4 rounded-card bg-warning/10 p-4" data-testid="new-key-banner">
+    <div className="mb-4 rounded-card bg-basalt-warning/10 p-4" data-testid="new-key-banner">
       <p className="mb-2 text-sm font-medium text-amber-700 dark:text-amber-300">
         请立即复制此密钥。关闭后将无法再次查看。
       </p>
       <div className="flex items-center gap-2">
         <code
-          className="flex-1 rounded bg-accent px-2 py-1 text-xs break-all"
+          className="flex-1 rounded bg-basalt-accent px-2 py-1 text-xs break-all"
           data-testid="new-key-value"
         >
           {newKey}

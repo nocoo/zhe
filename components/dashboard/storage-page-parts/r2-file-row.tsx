@@ -12,15 +12,19 @@ function FileIcon({ fileKey }: { fileKey: string }) {
   const category = getFileCategory(fileKey);
   if (category === "video")
     return (
-      <Video aria-label="视频文件" className="h-3.5 w-3.5 text-info shrink-0" strokeWidth={1.5} />
+      <Video
+        aria-label="视频文件"
+        className="h-3.5 w-3.5 text-basalt-info shrink-0"
+        strokeWidth={1.5}
+      />
     );
   if (category === "image") {
-    return <ImageIcon className="h-3.5 w-3.5 text-info shrink-0" strokeWidth={1.5} />;
+    return <ImageIcon className="h-3.5 w-3.5 text-basalt-info shrink-0" strokeWidth={1.5} />;
   }
   if (category === "document") {
-    return <FileText className="h-3.5 w-3.5 text-warning shrink-0" strokeWidth={1.5} />;
+    return <FileText className="h-3.5 w-3.5 text-basalt-warning shrink-0" strokeWidth={1.5} />;
   }
-  return <File className="h-3.5 w-3.5 text-muted-foreground shrink-0" strokeWidth={1.5} />;
+  return <File className="h-3.5 w-3.5 text-basalt-muted-foreground shrink-0" strokeWidth={1.5} />;
 }
 
 interface R2FileRowProps {
@@ -36,8 +40,8 @@ export function R2FileRow({ file, selected, onToggle }: R2FileRowProps) {
   return (
     <div
       className={cn(
-        "flex items-center gap-3 px-4 py-2 border-b border-border last:border-b-0 hover:bg-background/50 transition-colors",
-        isOrphan && "bg-warning/5",
+        "flex items-center gap-3 px-4 py-2 border-b border-basalt-border last:border-b-0 hover:bg-basalt-background/50 transition-colors",
+        isOrphan && "bg-basalt-warning/5",
       )}
     >
       {isOrphan ? (
@@ -58,17 +62,17 @@ export function R2FileRow({ file, selected, onToggle }: R2FileRowProps) {
           loading="lazy"
         />
       ) : (
-        <div className="h-8 w-8 rounded bg-secondary flex items-center justify-center shrink-0">
+        <div className="h-8 w-8 rounded bg-basalt-secondary flex items-center justify-center shrink-0">
           <FileIcon fileKey={file.key} />
         </div>
       )}
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-mono text-foreground truncate">{getFileName(file.key)}</p>
-        <p className="text-xs text-muted-foreground truncate">{file.key}</p>
+        <p className="text-sm font-mono text-basalt-foreground truncate">{getFileName(file.key)}</p>
+        <p className="text-xs text-basalt-muted-foreground truncate">{file.key}</p>
       </div>
 
-      <span className="text-xs font-mono text-muted-foreground shrink-0">
+      <span className="text-xs font-mono text-basalt-muted-foreground shrink-0">
         {formatBytes(file.size)}
       </span>
 

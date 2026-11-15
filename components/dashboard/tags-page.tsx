@@ -42,7 +42,7 @@ export function TagsPage() {
       {vm.creating && (
         <div
           data-basalt-surface=""
-          className="mb-4 flex flex-col gap-3 rounded-card bg-secondary p-3 md:flex-row md:items-center"
+          className="mb-4 flex flex-col gap-3 rounded-card bg-basalt-secondary p-3 md:flex-row md:items-center"
           data-testid="tag-create-form"
         >
           <Input
@@ -92,8 +92,8 @@ export function TagsPage() {
 
       {vm.rows.length === 0 && !vm.creating ? (
         <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-          <Tags className="h-8 w-8 text-muted-foreground" strokeWidth={1.5} />
-          <p className="text-sm text-muted-foreground" data-testid="tags-empty">
+          <Tags className="h-8 w-8 text-basalt-muted-foreground" strokeWidth={1.5} />
+          <p className="text-sm text-basalt-muted-foreground" data-testid="tags-empty">
             还没有标签。创建一个来组织链接和想法。
           </p>
         </div>

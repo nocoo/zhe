@@ -61,7 +61,7 @@ function DeleteConfirmDialog({
           <AlertDialogCancel>取消</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            className="bg-destructive text-white hover:bg-destructive/90"
+            className="bg-basalt-destructive text-white hover:bg-basalt-destructive/90"
           >
             删除 {selectedKeys.size} 个文件
           </AlertDialogAction>

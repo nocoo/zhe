@@ -36,8 +36,8 @@ export function IdeaResultItem({ idea, trimmedQuery, tags, onNavigate }: IdeaRes
       onSelect={() => onNavigate(idea.id)}
     >
       <div className="mt-0.5 shrink-0">
-        <div className="w-3.5 h-3.5 rounded-[3px] bg-accent flex items-center justify-center">
-          <Lightbulb className="w-2 h-2 text-muted-foreground/60" strokeWidth={2} />
+        <div className="w-3.5 h-3.5 rounded-[3px] bg-basalt-accent flex items-center justify-center">
+          <Lightbulb className="w-2 h-2 text-basalt-muted-foreground/60" strokeWidth={2} />
         </div>
       </div>
       <div className="min-w-0 flex-1">
@@ -45,12 +45,12 @@ export function IdeaResultItem({ idea, trimmedQuery, tags, onNavigate }: IdeaRes
           <HighlightText segments={highlightMatches(displayTitle, trimmedQuery)} />
         </p>
         {idea.excerpt && (
-          <p className="truncate text-xs text-muted-foreground/70 mt-0.5 leading-tight">
+          <p className="truncate text-xs text-basalt-muted-foreground/70 mt-0.5 leading-tight">
             <HighlightText segments={highlightMatches(idea.excerpt, trimmedQuery)} />
           </p>
         )}
         {tags && tags.length > 0 && (
-          <div className="flex items-center gap-1.5 mt-1 text-[11px] text-muted-foreground leading-none flex-wrap">
+          <div className="flex items-center gap-1.5 mt-1 text-[11px] text-basalt-muted-foreground leading-none flex-wrap">
             <TagBadges tags={tags} />
           </div>
         )}

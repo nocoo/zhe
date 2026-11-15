@@ -44,7 +44,7 @@ function RevokeButton({
         <Button
           variant="ghost"
           size="default"
-          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+          className="text-basalt-destructive hover:text-basalt-destructive hover:bg-basalt-destructive/10"
           data-testid={`revoke-key-${id}`}
         >
           <Trash2 className="h-3.5 w-3.5 mr-1" />
@@ -62,7 +62,7 @@ function RevokeButton({
           <AlertDialogCancel>取消</AlertDialogCancel>
           <AlertDialogAction
             onClick={() => onRevoke(id)}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="bg-basalt-destructive text-basalt-destructive-foreground hover:bg-basalt-destructive/90"
             data-testid={`confirm-revoke-${id}`}
           >
             撤销
@@ -78,13 +78,13 @@ export function ApiKeyRow({ apiKey, onRevoke }: ApiKeyRowProps) {
   return (
     <div
       key={apiKey.id}
-      className="flex items-center justify-between rounded-card bg-background p-3"
+      className="flex items-center justify-between rounded-card bg-basalt-background p-3"
       data-testid={`key-item-${apiKey.id}`}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="font-medium text-sm">{apiKey.name}</span>
-          <code className="text-xs text-muted-foreground bg-accent px-1.5 py-0.5 rounded">
+          <code className="text-xs text-basalt-muted-foreground bg-basalt-accent px-1.5 py-0.5 rounded">
             {apiKey.prefix}...
           </code>
         </div>
@@ -95,11 +95,14 @@ export function ApiKeyRow({ apiKey, onRevoke }: ApiKeyRowProps) {
             </Badge>
           ))}
         </div>
-        <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+        <div className="flex gap-4 mt-2 text-xs text-basalt-muted-foreground">
           <span>创建于 {formatDate(apiKey.createdAt)}</span>
           <span>最后使用 {apiKey.lastUsedAt ? formatDate(apiKey.lastUsedAt) : "从未使用"}</span>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground" data-testid={`key-expiry-${apiKey.id}`}>
+        <p
+          className="mt-1 text-xs text-basalt-muted-foreground"
+          data-testid={`key-expiry-${apiKey.id}`}
+        >
           {expiresAt
             ? `${expiresAt.getTime() <= Date.now() ? "已过期" : "有效至"} ${expiresAt.toLocaleString("zh-CN")}`
             : "永久有效"}

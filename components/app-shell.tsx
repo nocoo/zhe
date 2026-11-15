@@ -1,30 +1,37 @@
 "use client";
 
-import { Button, ContentIsland, Sheet, SheetContent, SheetTitle } from "@nocoo/basalt";
-import { AppHeader } from "@nocoo/basalt/components/app-header";
+import {
+  SidebarProvider as BasaltSidebarProvider,
+  Button,
+  ContentIsland,
+  SidebarDrawer,
+  ThemeToggle,
+} from "@nocoo/basalt";
+import { AppHeader, AppHeaderMenuButton, ProjectLinks } from "@nocoo/basalt/components/app-header";
 import {
   AppMain,
   AppSkipLink,
   AppShell as BasaltAppShell,
 } from "@nocoo/basalt/components/app-shell";
-import { LinkButton } from "@nocoo/basalt/components/button";
-import { Menu, Search } from "lucide-react";
+
+import { Search } from "lucide-react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useId, useRef } from "react";
 import { getAppHeaderTrail } from "@/components/breadcrumbs";
 import { EnvironmentControl } from "@/components/environment-control";
-import { GithubIcon } from "@/components/github-icon";
+
 import { GlobalCreateAction } from "@/components/global-create-action";
 import { SearchProvider, useOpenSearch } from "@/components/search-provider";
 import { Sidebar } from "@/components/sidebar";
-import { SidebarProvider, useSidebar } from "@/components/sidebar-context";
+import {
+  SidebarProvider as DashboardSidebarProvider,
+  useSidebar,
+} from "@/components/sidebar-context";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CreateActionProvider } from "@/contexts/create-action";
 import { DashboardServiceProvider } from "@/contexts/dashboard-service";
 import { EnrichmentProvider } from "@/contexts/enrichment";
 import type { Folder } from "@/models/types";
-import { HeaderTooltip, HexlyLink } from "./header-links";
-import { ThemeToggle } from "./theme-toggle";
 
 export interface AppShellProps {
   children: React.ReactNode;
@@ -41,7 +48,7 @@ export function AppShell({ children, user, signOutAction, initialFolders = [] }:
   return (
     <DashboardServiceProvider initialFolders={initialFolders}>
       <TooltipProvider>
-        <SidebarProvider>
+        <DashboardSidebarProvider>
           <SearchProvider>
             <EnrichmentProvider>
               <CreateActionProvider>
@@ -51,7 +58,7 @@ export function AppShell({ children, user, signOutAction, initialFolders = [] }:
               </CreateActionProvider>
             </EnrichmentProvider>
           </SearchProvider>
-        </SidebarProvider>
+        </DashboardSidebarProvider>
       </TooltipProvider>
     </DashboardServiceProvider>
   );
@@ -67,7 +74,10 @@ function AppShellInner({
   signOutAction: () => Promise<void>;
 }) {
   const openSearch = useOpenSearch();
-  const { isMobile, mobileOpen, setMobileOpen, toggle, closeMobileSidebar } = useSidebar();
+  const { collapsed, setCollapsed, isMobile, mobileOpen, setMobileOpen, closeMobileSidebar } =
+    useSidebar();
+  const mobileTriggerRef = useRef<HTMLButtonElement>(null);
+  const mobileSheetId = useId();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const locationKey = `${pathname}?${searchParams.toString()}`;
@@ -77,29 +87,27 @@ function AppShellInner({
     if (locationKey) closeMobileSidebar();
   }, [locationKey, closeMobileSidebar]);
 
-  useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mobileOpen]);
-
   const sidebar = <Sidebar {...(user ? { user } : {})} signOutAction={signOutAction} />;
 
   return (
     <BasaltAppShell>
       <AppSkipLink>Skip to main content</AppSkipLink>
-      {!isMobile ? sidebar : null}
+      {!isMobile ? (
+        <BasaltSidebarProvider collapsed={collapsed} onCollapsedChange={setCollapsed}>
+          {sidebar}
+        </BasaltSidebarProvider>
+      ) : null}
       {isMobile ? (
-        <Sheet open={mobileOpen} onOpenChange={(open) => !open && setMobileOpen(false)}>
-          <SheetContent
-            side="left"
-            className="w-[260px] max-w-[260px] border-0 bg-basalt-background p-0 sm:p-0"
-          >
-            <SheetTitle className="sr-only">Navigation</SheetTitle>
-            {sidebar}
-          </SheetContent>
-        </Sheet>
+        <SidebarDrawer
+          id={mobileSheetId}
+          open={mobileOpen}
+          onOpenChange={setMobileOpen}
+          returnFocusRef={mobileTriggerRef}
+          title="导航"
+          description="Zhe 导航链接与账户操作"
+        >
+          {sidebar}
+        </SidebarDrawer>
       ) : null}
       <AppMain>
         {isMobile && (
@@ -108,17 +116,12 @@ function AppShellInner({
         <AppHeader
           leading={
             isMobile ? (
-              <HeaderTooltip label="Open navigation menu">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggle}
-                  aria-label="Open menu"
-                >
-                  <Menu aria-hidden="true" />
-                </Button>
-              </HeaderTooltip>
+              <AppHeaderMenuButton
+                ref={mobileTriggerRef}
+                label="打开导航"
+                aria-controls={mobileSheetId}
+                onClick={() => setMobileOpen(true)}
+              />
             ) : null
           }
           breadcrumbs={breadcrumbs}
@@ -131,25 +134,29 @@ function AppShellInner({
                 </Button>
               )}
               {!isMobile && <EnvironmentControl />}
-              <HeaderTooltip label="GitHub repository">
-                <LinkButton
-                  variant="ghost"
-                  size="icon"
-                  href="https://github.com/nocoo/zhe"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="GitHub"
-                >
-                  <GithubIcon aria-hidden strokeWidth={1.5} />
-                </LinkButton>
-              </HeaderTooltip>
-              <HexlyLink />
-              <ThemeToggle aria-label="切换主题" />
+              <ProjectLinks
+                github="nocoo/zhe"
+                hexly="zhe"
+                name="Zhe"
+                githubLabel="GitHub"
+                hexlyLabel="Zhe on hexly.ai"
+                newTabLabel=""
+              />
+              <ThemeToggle
+                aria-label="切换主题"
+                labels={{
+                  light: "切换为浅色主题",
+                  dark: "切换为深色主题",
+                  system: "跟随系统主题",
+                }}
+              />
             </>
           }
         />
-        <div className="flex min-h-0 flex-1 flex-col px-2 pb-2 md:px-3 md:pb-3">
-          <ContentIsland className="rounded-island pb-24 md:pb-24">{children}</ContentIsland>
+        <div className="flex min-h-0 flex-1 flex-col px-basalt-space-lg pb-basalt-space-lg md:px-basalt-layout-sm md:pb-basalt-layout-sm">
+          <ContentIsland className="pb-basalt-layout-xl md:pb-basalt-layout-xl">
+            {children}
+          </ContentIsland>
         </div>
         <GlobalCreateAction />
       </AppMain>

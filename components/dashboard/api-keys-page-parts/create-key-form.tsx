@@ -84,7 +84,7 @@ export function CreateKeyForm({
               />
               <label
                 htmlFor={`scope-${scope}`}
-                className="text-sm text-muted-foreground cursor-pointer"
+                className="text-sm text-basalt-muted-foreground cursor-pointer"
               >
                 {scope}
               </label>

@@ -84,7 +84,7 @@ export function EditorToolbar({
 
       <div className="flex items-center gap-2 flex-wrap justify-end min-w-0">
         <TagBadges tags={tags} selectedTagIds={selectedTagIds} onToggle={toggleTag} />
-        {dirty && <span className="text-xs text-muted-foreground">未保存</span>}
+        {dirty && <span className="text-xs text-basalt-muted-foreground">未保存</span>}
         <Button size="icon" onClick={onSave} disabled={!dirty || isSaving} aria-label="保存">
           {isSaving ? (
             <Loader2 className="h-4 w-4 animate-spin" />

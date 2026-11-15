@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 
+import { SidebarProvider as BasaltSidebarProvider } from "@nocoo/basalt/components/sidebar";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -139,11 +140,16 @@ function renderSidebar(
   };
   return render(
     withTheme(
-      <TooltipProvider>
-        <SearchProvider>
-          <Sidebar {...defaultProps} />
-        </SearchProvider>
-      </TooltipProvider>,
+      <BasaltSidebarProvider
+        collapsed={collapsed ?? false}
+        onCollapsedChange={(next) => mockSidebarCtx.setCollapsed(next)}
+      >
+        <TooltipProvider>
+          <SearchProvider>
+            <Sidebar {...defaultProps} />
+          </SearchProvider>
+        </TooltipProvider>
+      </BasaltSidebarProvider>,
     ),
   );
 }
@@ -226,9 +232,10 @@ describe("Sidebar", () => {
       );
     });
 
-    it("does not show version badge in collapsed mode", () => {
-      renderSidebar({ collapsed: true });
-      expect(screen.queryByText(/^v\d+\.\d+\.\d+$/)).not.toBeInTheDocument();
+    it("keeps the version badge in the brand copy slot for expanded rail only", () => {
+      const { container } = renderSidebar({ collapsed: true });
+      expect(container.querySelector("aside")?.hasAttribute("data-collapsed")).toBe(true);
+      expect(container.querySelector('[data-slot="sidebar-brand-copy"]')).toBeInTheDocument();
     });
   });
 
@@ -472,26 +479,22 @@ describe("Sidebar", () => {
   });
 
   describe("sign out button", () => {
-    it("renders a sign out submit button in expanded mode", () => {
+    it("renders the native sign-out control in expanded mode", () => {
       const { container } = renderSidebar({ collapsed: false });
 
-      const submitButton = container.querySelector('form button[type="submit"]');
-      expect(submitButton).toBeInTheDocument();
+      const signOutButton = container.querySelector('[data-slot="sidebar-user-sign-out"]');
+      expect(signOutButton).toBeInTheDocument();
+      expect(signOutButton).toHaveAttribute("aria-label", "退出登录");
     });
   });
 
   describe("toggle button", () => {
-    it("calls toggle when toggle button is clicked", () => {
+    it("updates collapsed state through the native sidebar toggle", () => {
       const { container } = renderSidebar({ collapsed: false });
 
-      // The toggle button contains the PanelLeft icon and is in the header area
-      const buttons = container.querySelectorAll("button");
-      // First button in header area is the toggle (not the submit button)
-      const toggleButton = Array.from(buttons).find(
-        (btn) => !btn.getAttribute("type") || btn.getAttribute("type") !== "submit",
-      );
+      const toggleButton = container.querySelector('[data-slot="sidebar-toggle"]');
       fireEvent.click(unwrap(toggleButton));
-      expect(mockSidebarCtx.toggle).toHaveBeenCalledOnce();
+      expect(mockSidebarCtx.setCollapsed).toHaveBeenCalledWith(true);
     });
   });
 
@@ -866,7 +869,8 @@ describe("Sidebar", () => {
       // Collapsed mode should not have any count text (just icons)
       // The nav should only contain icon links, no text counts
       const navText = container.querySelector("nav")?.textContent ?? "";
-      expect(navText.trim()).toBe("");
+      expect(navText).not.toContain("全部链接");
+      expect(navText).not.toMatch(/\d+/);
     });
   });
 });

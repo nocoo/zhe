@@ -130,8 +130,8 @@ function FolderFilter({
           className={cn(
             "gap-1.5",
             selectedFolderId
-              ? "border-primary/30 bg-primary/5 text-foreground"
-              : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
+              ? "border-basalt-primary/30 bg-basalt-primary/5 text-basalt-foreground"
+              : "border-basalt-border text-basalt-muted-foreground hover:text-basalt-foreground hover:border-basalt-foreground/30",
           )}
         >
           <FolderOpen className="h-3.5 w-3.5" strokeWidth={1.5} />
@@ -210,8 +210,8 @@ export function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
           className={cn(
             "gap-1.5",
             selectedTagIds.size > 0
-              ? "border-primary/30 bg-primary/5 text-foreground"
-              : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30",
+              ? "border-basalt-primary/30 bg-basalt-primary/5 text-basalt-foreground"
+              : "border-basalt-border text-basalt-muted-foreground hover:text-basalt-foreground hover:border-basalt-foreground/30",
           )}
           data-testid="tag-filter-trigger"
         >
@@ -224,7 +224,7 @@ export function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
         <Command shouldFilter={false}>
           <CommandInput placeholder="搜索标签..." value={search} onValueChange={setSearch} />
           <CommandList>
-            <CommandEmpty className="py-3 text-center text-sm text-muted-foreground">
+            <CommandEmpty className="py-3 text-center text-sm text-basalt-muted-foreground">
               未找到标签
             </CommandEmpty>
             <CommandGroup>

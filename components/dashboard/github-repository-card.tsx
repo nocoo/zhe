@@ -80,22 +80,22 @@ export function GitHubReadme({ link }: { link: Link }) {
   }, [link.id, link.originalUrl]);
   if (loading)
     return (
-      <p role="status" className="py-6 text-sm text-muted-foreground">
+      <p role="status" className="py-6 text-sm text-basalt-muted-foreground">
         正在加载 README…
       </p>
     );
   if (error || !repository)
     return (
-      <p role="alert" className="py-6 text-sm text-muted-foreground">
+      <p role="alert" className="py-6 text-sm text-basalt-muted-foreground">
         README 暂时无法读取，请关闭后重试。
       </p>
     );
   if (repository.readme === null)
-    return <p className="py-6 text-sm text-muted-foreground">这个仓库没有 README。</p>;
+    return <p className="py-6 text-sm text-basalt-muted-foreground">这个仓库没有 README。</p>;
   return (
     <div className="min-w-0 space-y-4" data-testid="github-readme">
-      <div className="flex flex-wrap items-center gap-2 border-b border-border/60 pb-3">
-        <span className="mr-auto break-all text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center gap-2 border-b border-basalt-border/60 pb-3">
+        <span className="mr-auto break-all text-xs text-basalt-muted-foreground">
           {repository.readmePath} · {repository.defaultBranch}
         </span>
         <Button
@@ -118,7 +118,7 @@ export function GitHubReadme({ link }: { link: Link }) {
         </Button>
       </div>
       {source ? (
-        <pre className="whitespace-pre-wrap break-words rounded-card bg-secondary p-4 text-xs leading-6">
+        <pre className="whitespace-pre-wrap break-words rounded-card bg-basalt-secondary p-4 text-xs leading-6">
           <code>{repository.readme}</code>
         </pre>
       ) : (
@@ -168,7 +168,7 @@ function RepositoryInfo({
   return (
     <>
       <dl
-        className="grid h-8 grid-cols-3 items-end gap-2 border-t border-border/60 pt-2"
+        className="grid h-8 grid-cols-3 items-end gap-2 border-t border-basalt-border/60 pt-2"
         aria-label="仓库统计"
         data-testid="github-card-metrics"
       >
@@ -178,7 +178,7 @@ function RepositoryInfo({
             className="flex h-5 min-w-0 items-center gap-1.5 whitespace-nowrap leading-5"
             title={`${title} · ${count?.toLocaleString() ?? "等待补全"}`}
           >
-            <dt className="text-muted-foreground">
+            <dt className="text-basalt-muted-foreground">
               <Icon className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
               <span className="sr-only">{label}</span>
             </dt>
@@ -186,7 +186,7 @@ function RepositoryInfo({
               <span aria-hidden>{count === undefined ? "—" : formatNumber(count)}</span>
               <span className="sr-only">{count?.toLocaleString() ?? "未采集"}</span>
               <span
-                className="hidden text-[11px] font-normal text-muted-foreground @[22rem]/repository:inline"
+                className="hidden text-[11px] font-normal text-basalt-muted-foreground @[22rem]/repository:inline"
                 aria-hidden
               >
                 {label}
@@ -199,7 +199,7 @@ function RepositoryInfo({
         <RepositoryStatus state={state} errorText={errorText} />
       ) : (
         <div
-          className="grid h-5 min-w-0 grid-cols-3 items-center gap-2 overflow-hidden whitespace-nowrap text-xs text-muted-foreground"
+          className="grid h-5 min-w-0 grid-cols-3 items-center gap-2 overflow-hidden whitespace-nowrap text-xs text-basalt-muted-foreground"
           data-testid="github-card-metadata"
         >
           <span
@@ -241,8 +241,8 @@ function RepositoryStatus({
       title={errorText || GITHUB_STATE_LABELS[state]}
       data-testid="github-card-metadata"
       className={cn(
-        "flex h-5 min-w-0 items-center gap-1.5 text-xs leading-5 text-muted-foreground",
-        (state === "failed" || state === "unavailable") && "[&>svg]:text-warning",
+        "flex h-5 min-w-0 items-center gap-1.5 text-xs leading-5 text-basalt-muted-foreground",
+        (state === "failed" || state === "unavailable") && "[&>svg]:text-basalt-warning",
       )}
     >
       {state === "running" ? (
@@ -324,7 +324,7 @@ export function GitHubRepositoryCard({
                 href={link.originalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-primary"
+                className="hover:text-basalt-primary"
               >
                 <CardTitleText title={display.title} original={display.originalTitle} />
               </a>
@@ -336,7 +336,7 @@ export function GitHubRepositoryCard({
             )}
             <span
               title="来源：GitHub"
-              className="inline-flex shrink-0 items-center rounded-widget bg-foreground p-1.5 text-background"
+              className="inline-flex shrink-0 items-center rounded-widget bg-basalt-foreground p-1.5 text-basalt-background"
             >
               <GithubIcon className="size-3.5" strokeWidth={1.5} aria-hidden />
               <span className="sr-only">GitHub</span>
@@ -352,14 +352,16 @@ export function GitHubRepositoryCard({
                 <span
                   key={topic}
                   title={`GitHub topic: ${topic}`}
-                  className="min-w-0 truncate text-xs text-muted-foreground"
+                  className="min-w-0 truncate text-xs text-basalt-muted-foreground"
                   data-testid="github-repository-label"
                 >
                   {topic}
                 </span>
               ))}
               {topics.length > 3 && (
-                <span className="shrink-0 text-xs text-muted-foreground">+{topics.length - 3}</span>
+                <span className="shrink-0 text-xs text-basalt-muted-foreground">
+                  +{topics.length - 3}
+                </span>
               )}
             </div>
           )}
@@ -419,7 +421,7 @@ export function GitHubRepositoryCard({
             </DialogClose>
           </div>
           <div className="min-h-0 overflow-y-auto">
-            <div className="mb-5 space-y-3 border-b border-border/60 pb-4 text-sm leading-6">
+            <div className="mb-5 space-y-3 border-b border-basalt-border/60 pb-4 text-sm leading-6">
               <p className="break-words">{repository?.description || link.metaDescription}</p>
               {repository && (
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
@@ -433,7 +435,7 @@ export function GitHubRepositoryCard({
                     ["采集时间", capturedAt || "未知"],
                   ].map(([label, value]) => (
                     <div key={label} className="min-w-0">
-                      <dt className="text-muted-foreground">{label}</dt>
+                      <dt className="text-basalt-muted-foreground">{label}</dt>
                       <dd className="break-words">{value}</dd>
                     </div>
                   ))}
@@ -443,7 +445,7 @@ export function GitHubRepositoryCard({
                 {topics.map((topic) => (
                   <span
                     key={topic}
-                    className="inline-flex max-w-full items-center gap-1.5 break-all text-xs text-muted-foreground"
+                    className="inline-flex max-w-full items-center gap-1.5 break-all text-xs text-basalt-muted-foreground"
                     title={`GitHub 仓库标签：${topic}`}
                   >
                     <span
@@ -456,12 +458,12 @@ export function GitHubRepositoryCard({
                 ))}
               </div>
               {link.note && (
-                <p className="whitespace-pre-wrap break-words border-l-2 border-border pl-3">
+                <p className="whitespace-pre-wrap break-words border-l-2 border-basalt-border pl-3">
                   {link.note}
                 </p>
               )}
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="mr-2 text-xs text-muted-foreground">{folder}</span>
+                <span className="mr-2 text-xs text-basalt-muted-foreground">{folder}</span>
                 {assignedTags.map((tag) => (
                   <TagBadge key={tag.id} tag={tag} size="sm" />
                 ))}

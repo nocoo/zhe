@@ -179,7 +179,7 @@ export function TodosPage() {
                   <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
                   <span>筛选</span>
                   {activeFilterCount > 0 && (
-                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground leading-none">
+                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-basalt-primary px-1 text-[10px] font-medium text-basalt-primary-foreground leading-none">
                       {activeFilterCount}
                     </span>
                   )}
@@ -200,7 +200,7 @@ export function TodosPage() {
       {vm.error || createError ? (
         <div
           role="alert"
-          className="mb-3 rounded-card border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+          className="mb-3 rounded-card border border-basalt-destructive/40 bg-basalt-destructive/10 px-3 py-2 text-xs text-basalt-destructive"
         >
           {vm.error ?? createError}
           <Button
@@ -226,7 +226,7 @@ export function TodosPage() {
           {vm.loading ? (
             <div className="space-y-2 p-3" data-testid="todos-tree-skeleton">
               {Array.from({ length: 8 }, (_, i) => `todo-sk-${i}`).map((id) => (
-                <div key={id} className="h-8 rounded-widget bg-secondary animate-pulse" />
+                <div key={id} className="h-8 rounded-widget bg-basalt-secondary animate-pulse" />
               ))}
             </div>
           ) : vm.todos.length === 0 ? (
@@ -319,7 +319,7 @@ export function TodosPage() {
 
 function EmptyState({ onCreateRoot }: { onCreateRoot: () => void }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground">
+    <div className="flex flex-1 flex-col items-center justify-center gap-2 p-6 text-center text-sm text-basalt-muted-foreground">
       <p>暂无待办，从一个根任务开始吧。</p>
       <Button size="sm" variant="secondary" onClick={onCreateRoot}>
         <Plus className="mr-1 h-3.5 w-3.5" /> 新建根任务

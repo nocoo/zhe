@@ -64,7 +64,7 @@ export function ApiKeysPage() {
           )}
 
           {vm.isLoading ? (
-            <p className="text-sm text-muted-foreground">加载中...</p>
+            <p className="text-sm text-basalt-muted-foreground">加载中...</p>
           ) : (
             <div className="space-y-4" data-testid="api-keys-section">
               {showCreateForm && (
@@ -83,7 +83,7 @@ export function ApiKeysPage() {
               )}
 
               {vm.keys.length === 0 && !showCreateForm ? (
-                <p className="text-sm text-muted-foreground" data-testid="no-keys-message">
+                <p className="text-sm text-basalt-muted-foreground" data-testid="no-keys-message">
                   还没有 API Key。创建一个来开始使用 API。
                 </p>
               ) : (

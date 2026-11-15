@@ -209,8 +209,8 @@ export function TodoEmojiPicker({
       className={cn(
         // h-8 matches the compact control row (title Input size="sm") so
         // emoji + title share one baseline in the detail pane header.
-        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-widget border border-border bg-secondary text-base leading-none shadow-xs transition-colors hover:bg-accent hover:border-foreground/20",
-        value === null && "text-muted-foreground",
+        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-widget border border-basalt-border bg-basalt-secondary text-base leading-none shadow-xs transition-colors hover:bg-basalt-accent hover:border-basalt-foreground/20",
+        value === null && "text-basalt-muted-foreground",
         className,
       )}
     >
@@ -258,7 +258,7 @@ export function TodoEmojiPicker({
           ) : (
             EMOJI_GROUPS.map((group) => (
               <div key={group.label} className="mb-2 last:mb-0">
-                <div className="mb-1 px-1 text-[11px] font-medium text-muted-foreground">
+                <div className="mb-1 px-1 text-[11px] font-medium text-basalt-muted-foreground">
                   {group.label}
                 </div>
                 <EmojiGrid entries={group.entries} onPick={commit} />
@@ -282,7 +282,7 @@ function EmojiGrid({
 }) {
   if (entries.length === 0) {
     return emptyLabel ? (
-      <p className="px-2 py-3 text-center text-xs text-muted-foreground">{emptyLabel}</p>
+      <p className="px-2 py-3 text-center text-xs text-basalt-muted-foreground">{emptyLabel}</p>
     ) : null;
   }
   return (
@@ -293,7 +293,7 @@ function EmojiGrid({
           type="button"
           onClick={() => onPick(e.char)}
           aria-label={e.keywords[0] ?? e.char}
-          className="flex h-8 w-8 items-center justify-center rounded-widget text-lg transition-colors hover:bg-accent"
+          className="flex h-8 w-8 items-center justify-center rounded-widget text-lg transition-colors hover:bg-basalt-accent"
         >
           {e.char}
         </button>

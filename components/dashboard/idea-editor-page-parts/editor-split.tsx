@@ -19,14 +19,14 @@ export function EditorSplit({
         aria-label="编辑"
       >
         <div className="px-4 py-2">
-          <span className="text-xs font-medium text-muted-foreground">编辑</span>
+          <span className="text-xs font-medium text-basalt-muted-foreground">编辑</span>
         </div>
         <div className="min-h-0 flex-1 overflow-auto">
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="在这里写下您的想法... (支持 Markdown)"
-            className="h-full min-h-[20rem] w-full resize-none border-0 bg-transparent px-4 py-3 font-mono text-sm leading-relaxed focus:outline-hidden placeholder:text-muted-foreground/50"
+            className="h-full min-h-[20rem] w-full resize-none border-0 bg-transparent px-4 py-3 font-mono text-sm leading-relaxed focus:outline-hidden placeholder:text-basalt-muted-foreground/50"
             spellCheck
           />
         </div>
@@ -38,7 +38,7 @@ export function EditorSplit({
         aria-label="预览"
       >
         <div className="px-4 py-2">
-          <span className="text-xs font-medium text-muted-foreground">预览</span>
+          <span className="text-xs font-medium text-basalt-muted-foreground">预览</span>
         </div>
         <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
           <MarkdownPreview content={content} />
@@ -50,7 +50,7 @@ export function EditorSplit({
 
 export function ErrorToast({ error, onClear }: { error: string; onClear: () => void }) {
   return (
-    <div className="fixed bottom-4 right-4 bg-destructive text-destructive-foreground px-4 py-2 rounded-md shadow-lg flex items-center gap-2 z-50">
+    <div className="fixed bottom-4 right-4 bg-basalt-destructive text-basalt-destructive-foreground px-4 py-2 rounded-md shadow-lg flex items-center gap-2 z-50">
       <span className="text-sm">{error}</span>
       <button type="button" onClick={onClear}>
         <X className="h-4 w-4" />

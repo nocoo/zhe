@@ -73,7 +73,7 @@ function DeleteUploadDialog({
           <AlertDialogTitle>确认删除</AlertDialogTitle>
           <AlertDialogDescription>此操作不可撤销，确定要删除这个文件吗？</AlertDialogDescription>
           {archived && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-basalt-muted-foreground">
               书签中的此附件也会移除；删除视频时会一起清理海报。
             </p>
           )}
@@ -84,7 +84,7 @@ function DeleteUploadDialog({
             data-testid="upload-delete-confirm"
             onClick={onDelete}
             disabled={isDeleting}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="bg-basalt-destructive text-basalt-destructive-foreground hover:bg-basalt-destructive/90"
           >
             {isDeleting ? "删除中..." : "删除"}
           </AlertDialogAction>
@@ -108,18 +108,18 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
       data-testid="upload-item"
       data-card-actions-container
       padding="none"
-      className="rounded-card px-4 py-3 ring-1 ring-border/50"
+      className="rounded-card px-4 py-3 ring-1 ring-basalt-border/50"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           {/* File type icon */}
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-widget bg-accent">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-widget bg-basalt-accent">
             {isVideo ? (
-              <Video className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
+              <Video className="h-5 w-5 text-basalt-muted-foreground" strokeWidth={1.5} />
             ) : isImage ? (
-              <ImageIcon className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
+              <ImageIcon className="h-5 w-5 text-basalt-muted-foreground" strokeWidth={1.5} />
             ) : (
-              <FileText className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
+              <FileText className="h-5 w-5 text-basalt-muted-foreground" strokeWidth={1.5} />
             )}
           </div>
 
@@ -127,7 +127,7 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
             {/* File name */}
             <p
               data-testid="upload-file-name"
-              className="text-sm font-medium text-foreground truncate"
+              className="text-sm font-medium text-basalt-foreground truncate"
             >
               {upload.fileName}
             </p>
@@ -137,13 +137,13 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
               href={upload.publicUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-muted-foreground hover:text-foreground truncate block"
+              className="text-xs text-basalt-muted-foreground hover:text-basalt-foreground truncate block"
             >
               {upload.publicUrl}
             </a>
 
             {/* Meta row */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 break-all text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 break-all text-xs text-basalt-muted-foreground">
               <span>{formatFileSize(upload.fileSize)}</span>
               <span>{upload.fileType}</span>
               <span>{formatDate(upload.createdAt)}</span>
@@ -169,7 +169,7 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
               {isVideo ? (
                 <Video aria-hidden />
               ) : copied ? (
-                <Check className="text-success" aria-hidden />
+                <Check className="text-basalt-success" aria-hidden />
               ) : (
                 <Copy aria-hidden />
               )}
@@ -242,35 +242,40 @@ export function UploadingItem({ file, onDismiss }: UploadingItemProps) {
     <LayerCard
       data-testid="uploading-item"
       padding="none"
-      className="rounded-card px-4 py-3 ring-1 ring-border/50"
+      className="rounded-card px-4 py-3 ring-1 ring-basalt-border/50"
     >
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {/* Status icon */}
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-widget bg-accent">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-widget bg-basalt-accent">
             {file.status === "uploading" || file.status === "pending" ? (
-              <Loader2 className="h-5 w-5 text-muted-foreground animate-spin" strokeWidth={1.5} />
+              <Loader2
+                className="h-5 w-5 text-basalt-muted-foreground animate-spin"
+                strokeWidth={1.5}
+              />
             ) : file.status === "success" ? (
-              <Check className="h-5 w-5 text-success" strokeWidth={1.5} />
+              <Check className="h-5 w-5 text-basalt-success" strokeWidth={1.5} />
             ) : (
-              <X className="h-5 w-5 text-destructive" strokeWidth={1.5} />
+              <X className="h-5 w-5 text-basalt-destructive" strokeWidth={1.5} />
             )}
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">{file.fileName}</p>
+            <p className="text-sm font-medium text-basalt-foreground truncate">{file.fileName}</p>
             {file.status === "error" && file.error && (
-              <p className="text-xs text-destructive mt-0.5">{file.error}</p>
+              <p className="text-xs text-basalt-destructive mt-0.5">{file.error}</p>
             )}
             {(file.status === "uploading" || file.status === "pending") && (
-              <div className="mt-2 h-1 w-full rounded-full bg-accent overflow-hidden">
+              <div className="mt-2 h-1 w-full rounded-full bg-basalt-accent overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-primary transition-all duration-[var(--motion-base)]"
+                  className="h-full rounded-full bg-basalt-primary transition-all duration-[var(--motion-base)]"
                   style={{ width: `${file.progress}%` }}
                 />
               </div>
             )}
-            {file.status === "success" && <p className="text-xs text-success mt-0.5">上传成功</p>}
+            {file.status === "success" && (
+              <p className="text-xs text-basalt-success mt-0.5">上传成功</p>
+            )}
           </div>
         </div>
 

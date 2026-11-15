@@ -21,7 +21,9 @@ export function BookmarkActionButton({ action }: { action: BookmarkAction }) {
       loading={action.pending ?? false}
       aria-description={action.description}
       title={action.description ?? action.label}
-      className={action.destructive ? "text-destructive hover:text-destructive" : undefined}
+      className={
+        action.destructive ? "text-basalt-destructive hover:text-basalt-destructive" : undefined
+      }
       onClick={(event) => {
         event.currentTarget.focus();
         void action.run();
@@ -64,13 +66,17 @@ function ActionMenu({
       >
         {actions.map((action) => (
           <span key={action.id} className="contents">
-            {action.destructive && <hr className="my-1 border-border" />}
+            {action.destructive && <hr className="my-1 border-basalt-border" />}
             <DropdownMenuItem
               disabled={action.disabled}
               onSelect={() => {
                 selected.current = action;
               }}
-              className={action.destructive ? "text-destructive focus:text-destructive" : undefined}
+              className={
+                action.destructive
+                  ? "text-basalt-destructive focus:text-basalt-destructive"
+                  : undefined
+              }
             >
               {action.pending ? (
                 <Loader2 className="animate-spin" aria-hidden />
@@ -80,7 +86,9 @@ function ActionMenu({
               <span>
                 {action.label}
                 {action.description && (
-                  <span className="block text-xs text-muted-foreground">{action.description}</span>
+                  <span className="block text-xs text-basalt-muted-foreground">
+                    {action.description}
+                  </span>
                 )}
               </span>
             </DropdownMenuItem>
@@ -102,7 +110,7 @@ export function BookmarkActions({
   return (
     <div
       data-bookmark-actions
-      className="flex shrink-0 items-center gap-1 text-muted-foreground [&_svg]:stroke-[1.5] [@media(pointer:coarse)]:gap-0 [@media(pointer:coarse)]:[&_button]:min-h-11 [@media(pointer:coarse)]:[&_button]:min-w-11"
+      className="flex shrink-0 items-center gap-1 text-basalt-muted-foreground [&_svg]:stroke-[1.5] [@media(pointer:coarse)]:gap-0 [@media(pointer:coarse)]:[&_button]:min-h-11 [@media(pointer:coarse)]:[&_button]:min-w-11"
     >
       {actions
         .filter((action) => action.placement === "toolbar")

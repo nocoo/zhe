@@ -42,7 +42,7 @@ export function BookmarkCardFooter({
     <div
       className={cn(
         "mt-auto shrink-0",
-        compact && "sm:flex sm:items-center sm:border-t sm:border-border/60",
+        compact && "sm:flex sm:items-center sm:border-t sm:border-basalt-border/60",
       )}
       data-bookmark-footer
     >
@@ -52,7 +52,7 @@ export function BookmarkCardFooter({
           data-bookmark-classification
         >
           <span
-            className="inline-flex min-w-0 max-w-[45%] shrink-0 items-center gap-1.5 text-xs text-muted-foreground"
+            className="inline-flex min-w-0 max-w-[45%] shrink-0 items-center gap-1.5 text-xs text-basalt-muted-foreground"
             title={folder}
           >
             <FolderOpen className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
@@ -68,7 +68,7 @@ export function BookmarkCardFooter({
                 event.preventDefault();
                 event.currentTarget.scrollLeft += event.key === "ArrowRight" ? 40 : -40;
               }}
-              className="flex h-full min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain whitespace-nowrap rounded-widget [scrollbar-width:thin] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-full min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain whitespace-nowrap rounded-widget [scrollbar-width:thin] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring"
             >
               {tags.map((tag) => (
                 <li
@@ -85,7 +85,7 @@ export function BookmarkCardFooter({
       )}
       <div
         className={cn(
-          "flex min-h-10 shrink-0 items-center justify-between gap-2 border-t border-border/60 px-3 py-1",
+          "flex min-h-10 shrink-0 items-center justify-between gap-2 border-t border-basalt-border/60 px-3 py-1",
           compact && "sm:border-t-0",
         )}
         data-bookmark-action-row
@@ -96,7 +96,7 @@ export function BookmarkCardFooter({
               <Button
                 variant="ghost"
                 size="sm"
-                className="-ml-2 min-w-0 px-2 font-normal tabular-nums text-muted-foreground [@media(pointer:coarse)]:min-h-11"
+                className="-ml-2 min-w-0 px-2 font-normal tabular-nums text-basalt-muted-foreground [@media(pointer:coarse)]:min-h-11"
                 aria-label="复制收藏时间"
                 onClick={async () => {
                   if (await copyToClipboard(timestamp)) toast.success("已复制收藏时间");
