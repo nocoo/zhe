@@ -68,7 +68,7 @@ export function SearchResult({ hit, query }: { hit: SearchHit; query: string }) 
   return (
     <div className="flex w-full min-w-0 items-start gap-3">
       <div
-        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-widget border border-basalt-border/60 text-basalt-muted-foreground"
+        className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-basalt-widget border border-basalt-border/60 text-basalt-muted-foreground"
         aria-hidden="true"
       >
         <Icon className="size-4" strokeWidth={1.5} />

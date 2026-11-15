@@ -99,7 +99,7 @@ export function EnrichmentDetails({
             尚无执行记录，Connector 发现任务后会自动排队。
           </p>
         )}
-        <ol className="divide-y divide-border rounded-widget border border-basalt-border text-xs">
+        <ol className="divide-y divide-border rounded-basalt-widget border border-basalt-border text-xs">
           {events.map((event) => (
             <li key={event.id} className="space-y-1 px-3 py-2">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -166,7 +166,7 @@ export function EnrichmentDetails({
           <img
             src={previewUrl}
             alt="已保存的网站截图"
-            className="w-full rounded-widget border border-basalt-border"
+            className="w-full rounded-basalt-widget border border-basalt-border"
           />
         ) : (
           <p className="text-sm text-basalt-muted-foreground">尚未获得采集内容。</p>

@@ -108,12 +108,12 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
       data-testid="upload-item"
       data-card-actions-container
       padding="none"
-      className="rounded-card px-4 py-3 ring-1 ring-basalt-border/50"
+      className="rounded-basalt-card px-4 py-3 ring-1 ring-basalt-border/50"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3 flex-1 min-w-0">
           {/* File type icon */}
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-widget bg-basalt-accent">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-basalt-widget bg-basalt-accent">
             {isVideo ? (
               <Video className="h-5 w-5 text-basalt-muted-foreground" strokeWidth={1.5} />
             ) : isImage ? (
@@ -216,7 +216,7 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
                 playsInline
                 preload="metadata"
                 aria-label="文件视频预览"
-                className="max-h-[70dvh] w-full rounded-widget bg-black"
+                className="max-h-[70dvh] w-full rounded-basalt-widget bg-black"
               >
                 <track kind="captions" />
               </video>
@@ -242,12 +242,12 @@ export function UploadingItem({ file, onDismiss }: UploadingItemProps) {
     <LayerCard
       data-testid="uploading-item"
       padding="none"
-      className="rounded-card px-4 py-3 ring-1 ring-basalt-border/50"
+      className="rounded-basalt-card px-4 py-3 ring-1 ring-basalt-border/50"
     >
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {/* Status icon */}
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-widget bg-basalt-accent">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-basalt-widget bg-basalt-accent">
             {file.status === "uploading" || file.status === "pending" ? (
               <Loader2
                 className="h-5 w-5 text-basalt-muted-foreground animate-spin"

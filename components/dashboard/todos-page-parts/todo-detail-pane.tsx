@@ -251,7 +251,7 @@ function TodoDetailPaneBody({
             onChange={(e) => setContentDraft(e.target.value)}
             onBlur={commitContent}
             placeholder="支持 Markdown 备注…"
-            className="min-h-[10rem] rounded-widget text-sm"
+            className="min-h-[10rem] rounded-basalt-widget text-sm"
             aria-label="Todo notes"
           />
         ) : (
@@ -261,7 +261,7 @@ function TodoDetailPaneBody({
           // biome-ignore lint/a11y/noStaticElementInteractions: double-click affordance only; header 编辑 is the accessible control
           <div
             onDoubleClick={() => setContentMode("edit")}
-            className="min-h-[10rem] w-full cursor-text rounded-widget border border-transparent p-2 text-left hover:border-basalt-border/60"
+            className="min-h-[10rem] w-full cursor-text rounded-basalt-widget border border-transparent p-2 text-left hover:border-basalt-border/60"
           >
             <MarkdownPreview content={contentDraft} placeholder="暂无备注，双击进入编辑。" />
           </div>

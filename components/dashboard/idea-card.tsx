@@ -82,13 +82,13 @@ export const IdeaCard = memo(function IdeaCard({
     <div
       data-card-actions-container
       className={cn(
-        "group relative flex flex-col rounded-card border-0 bg-basalt-secondary ring-1 ring-basalt-border/50 p-4 transition-shadow hover:ring-basalt-border text-left w-full",
+        "group relative flex flex-col rounded-basalt-card border-0 bg-basalt-secondary ring-1 ring-basalt-border/50 p-4 transition-shadow hover:ring-basalt-border text-left w-full",
         className,
       )}
     >
       <button
         type="button"
-        className="absolute inset-0 z-0 rounded-card cursor-pointer"
+        className="absolute inset-0 z-0 rounded-basalt-card cursor-pointer"
         onClick={handleOpen}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -191,13 +191,13 @@ export const IdeaRow = memo(function IdeaRow({
     <div
       data-card-actions-container
       className={cn(
-        "group relative flex items-center gap-4 rounded-card border-0 bg-basalt-secondary ring-1 ring-basalt-border/50 px-4 py-3 transition-shadow hover:ring-basalt-border text-left w-full",
+        "group relative flex items-center gap-4 rounded-basalt-card border-0 bg-basalt-secondary ring-1 ring-basalt-border/50 px-4 py-3 transition-shadow hover:ring-basalt-border text-left w-full",
         className,
       )}
     >
       <button
         type="button"
-        className="absolute inset-0 z-0 rounded-card cursor-pointer"
+        className="absolute inset-0 z-0 rounded-basalt-card cursor-pointer"
         onClick={handleOpen}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {

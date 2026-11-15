@@ -202,7 +202,7 @@ function HistoryPanel({ vm }: { vm: BackyViewModel }) {
             {vm.history.recent_backups.map((entry) => (
               <div
                 key={entry.id}
-                className="space-y-1 rounded-widget bg-basalt-background p-3 text-xs"
+                className="space-y-1 rounded-basalt-widget bg-basalt-background p-3 text-xs"
               >
                 <div className="flex items-center justify-between">
                   <Badge variant={entry.environment === "prod" ? "success" : "warning"}>

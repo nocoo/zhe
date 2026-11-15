@@ -66,7 +66,7 @@ export function Sparkline({ data }: { data: number[] }) {
 export function StatCard({ label, value, icon: Icon, sparkline, index = 0 }: StatCardProps) {
   return (
     <Card
-      className="animate-fade-up"
+      className=""
       style={{ animationDelay: `calc(var(--motion-stagger) * ${index})` }}
       data-testid="stat-card"
       data-stat-label={label}
@@ -144,8 +144,8 @@ export function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
               <stop offset="100%" stopColor={CHART_COLORS[4]} stopOpacity={0} />
             </linearGradient>
             <linearGradient id="clickGradientOrigin" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={CHART_COLORS[8]} stopOpacity={0.2} />
-              <stop offset="100%" stopColor={CHART_COLORS[8]} stopOpacity={0} />
+              <stop offset="0%" stopColor={CHART_COLORS[2]} stopOpacity={0.2} />
+              <stop offset="100%" stopColor={CHART_COLORS[2]} stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid
@@ -202,7 +202,7 @@ export function ClickTrendChart({ data }: { data: ClickTrendPoint[] }) {
           <Area
             type="monotone"
             dataKey="origin"
-            stroke={CHART_COLORS[8] ?? ""}
+            stroke={CHART_COLORS[2] ?? ""}
             fill="url(#clickGradientOrigin)"
             strokeWidth={1.5}
             name="origin"

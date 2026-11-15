@@ -56,7 +56,7 @@ export function XSourceBadge({
     <span
       title="来源：X"
       className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-widget bg-basalt-foreground text-basalt-background",
+        "inline-flex shrink-0 items-center gap-1.5 rounded-basalt-widget bg-basalt-foreground text-basalt-background",
         compact ? "p-1.5" : "px-2 py-1.5",
       )}
     >
@@ -163,7 +163,7 @@ function PostMedia({
   );
   if (failed)
     return (
-      <div className="flex min-h-32 flex-col items-center justify-center gap-3 rounded-widget border border-dashed border-basalt-border bg-basalt-background/60 p-3 text-basalt-muted-foreground">
+      <div className="flex min-h-32 flex-col items-center justify-center gap-3 rounded-basalt-widget border border-dashed border-basalt-border bg-basalt-background/60 p-3 text-basalt-muted-foreground">
         <ImageOff className="size-6" strokeWidth={1.5} aria-hidden />
         <span role="status" className="text-xs">
           {media.type === "PHOTO" ? "图片暂时无法加载" : "媒体暂时无法播放"}
@@ -177,7 +177,7 @@ function PostMedia({
     return (
       <Button
         variant="ghost"
-        className="group/media relative block h-auto w-full overflow-hidden rounded-widget border border-basalt-border/60 bg-basalt-accent p-0 hover:bg-basalt-accent"
+        className="group/media relative block h-auto w-full overflow-hidden rounded-basalt-widget border border-basalt-border/60 bg-basalt-accent p-0 hover:bg-basalt-accent"
         aria-label={`播放视频 ${index + 1}`}
         aria-haspopup={onPlay ? "dialog" : undefined}
         onClick={onPlay ?? (() => setPlaying(true))}
@@ -207,7 +207,7 @@ function PostMedia({
           className="pointer-events-none absolute inset-0 flex items-center justify-center"
           aria-hidden
         >
-          <span className="flex size-10 items-center justify-center rounded-widget border border-white/30 bg-black/45 text-white shadow-sm backdrop-blur-sm transition-colors group-hover/media:bg-black/65">
+          <span className="flex size-10 items-center justify-center rounded-basalt-widget border border-white/30 bg-black/45 text-white shadow-sm backdrop-blur-sm transition-colors group-hover/media:bg-black/65">
             <Play className="size-4 fill-current" />
           </span>
         </span>
@@ -216,7 +216,7 @@ function PostMedia({
     );
   if (media.type !== "PHOTO")
     return (
-      <div className="relative overflow-hidden rounded-widget border border-basalt-border/60 bg-black">
+      <div className="relative overflow-hidden rounded-basalt-widget border border-basalt-border/60 bg-black">
         <video
           ref={videoRef}
           src={media.type === "GIF" ? undefined : media.url}
@@ -245,7 +245,7 @@ function PostMedia({
       <DialogTrigger asChild>
         <Button
           variant="ghost"
-          className="block h-auto w-full overflow-hidden rounded-widget border border-basalt-border/60 bg-basalt-background/60 p-0"
+          className="block h-auto w-full overflow-hidden rounded-basalt-widget border border-basalt-border/60 bg-basalt-background/60 p-0"
           aria-label={`查看图片 ${index + 1}`}
         >
           <img
@@ -344,7 +344,7 @@ function PostLinks({
           rel="noopener noreferrer"
           title={url}
           className={cn(
-            "group/article relative block overflow-hidden rounded-widget border border-basalt-border/70 bg-basalt-background/60 text-basalt-foreground transition-colors hover:border-basalt-primary/30 hover:bg-basalt-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring",
+            "group/article relative block overflow-hidden rounded-basalt-widget border border-basalt-border/70 bg-basalt-background/60 text-basalt-foreground transition-colors hover:border-basalt-primary/30 hover:bg-basalt-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring",
             compact ? "p-3" : "p-4",
           )}
           data-testid="x-link-preview"
@@ -395,7 +395,7 @@ function Quote({ tweet, compact = false }: { tweet: XPost; compact?: boolean }) 
     <blockquote
       aria-label="引用的 X 帖子"
       className={cn(
-        "min-w-0 space-y-2 rounded-widget border border-basalt-border/70 bg-basalt-background/40",
+        "min-w-0 space-y-2 rounded-basalt-widget border border-basalt-border/70 bg-basalt-background/40",
         compact ? "p-3" : "p-4",
       )}
     >
@@ -614,7 +614,7 @@ export function XBookmarkPending({ link, compact = false }: { link: Link; compac
           "text-sm text-basalt-muted-foreground",
           compact
             ? "line-clamp-3 leading-5"
-            : "rounded-widget border border-dashed border-basalt-border bg-basalt-background/40 p-4 leading-6",
+            : "rounded-basalt-widget border border-dashed border-basalt-border bg-basalt-background/40 p-4 leading-6",
         )}
       >
         {link.metaDescription || "帖子内容尚未补全，可以先打开原帖查看。"}

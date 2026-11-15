@@ -52,7 +52,7 @@ export function IdeasContent({
             itemId={idea.id}
             label={idea.title || idea.excerpt || "未命名想法"}
             key={idea.id}
-            className="animate-fade-up motion-reduce:animate-none"
+            className=""
             style={staggerStyle(i)}
           >
             <IdeaCard
@@ -76,7 +76,7 @@ export function IdeasContent({
           itemId={idea.id}
           label={idea.title || idea.excerpt || "未命名想法"}
           key={idea.id}
-          className="animate-fade-up motion-reduce:animate-none"
+          className=""
           style={staggerStyle(i)}
         >
           <IdeaRow

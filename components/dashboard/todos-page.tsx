@@ -200,7 +200,7 @@ export function TodosPage() {
       {vm.error || createError ? (
         <div
           role="alert"
-          className="mb-3 rounded-card border border-basalt-destructive/40 bg-basalt-destructive/10 px-3 py-2 text-xs text-basalt-destructive"
+          className="mb-3 rounded-basalt-card border border-basalt-destructive/40 bg-basalt-destructive/10 px-3 py-2 text-xs text-basalt-destructive"
         >
           {vm.error ?? createError}
           <Button
@@ -226,7 +226,10 @@ export function TodosPage() {
           {vm.loading ? (
             <div className="space-y-2 p-3" data-testid="todos-tree-skeleton">
               {Array.from({ length: 8 }, (_, i) => `todo-sk-${i}`).map((id) => (
-                <div key={id} className="h-8 rounded-widget bg-basalt-secondary animate-pulse" />
+                <div
+                  key={id}
+                  className="h-8 rounded-basalt-widget bg-basalt-secondary animate-pulse"
+                />
               ))}
             </div>
           ) : vm.todos.length === 0 ? (

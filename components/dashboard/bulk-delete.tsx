@@ -118,7 +118,7 @@ function SelectionControls({
       className={cn(
         "flex min-w-0 flex-wrap items-center justify-end gap-2",
         floating &&
-          "fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-40 w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 justify-center rounded-card border border-basalt-border bg-basalt-popover p-2 text-basalt-popover-foreground shadow-lg",
+          "fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-40 w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 justify-center rounded-basalt-card border border-basalt-border bg-basalt-popover p-2 text-basalt-popover-foreground shadow-lg",
       )}
       disabled={pending}
       aria-busy={pending}
@@ -175,7 +175,7 @@ export function SelectableCard({
     <div
       {...props}
       className={cn(
-        "relative rounded-card",
+        "relative rounded-basalt-card",
         selection.active &&
           checked &&
           "ring-2 ring-basalt-primary ring-offset-2 ring-offset-basalt-card",
@@ -201,9 +201,9 @@ export function SelectableCard({
             checkbox.current?.focus({ preventScroll: true });
             selection.toggle(itemId);
           }}
-          className="absolute inset-0 z-10 cursor-pointer rounded-card has-focus-visible:ring-2 has-focus-visible:ring-basalt-ring"
+          className="absolute inset-0 z-10 cursor-pointer rounded-basalt-card has-focus-visible:ring-2 has-focus-visible:ring-basalt-ring"
         >
-          <span className="absolute -left-1.5 -top-1.5 flex rounded-widget bg-basalt-card p-1.5 shadow-sm ring-1 ring-basalt-border">
+          <span className="absolute -left-1.5 -top-1.5 flex rounded-basalt-widget bg-basalt-card p-1.5 shadow-sm ring-1 ring-basalt-border">
             <Checkbox
               ref={checkbox}
               id={id}

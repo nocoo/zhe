@@ -3,7 +3,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@nocoo/basalt/components/avatar";
 import {
   SidebarFooter,
-  SidebarGroup,
   SidebarItem,
   SidebarNav,
   SidebarSearch,
@@ -51,13 +50,19 @@ function StaticNavGroupBlock({
   group,
   pathname,
   groupOpen,
+  toggleGroup,
 }: {
   group: NavGroup;
   pathname: string;
   groupOpen: Record<string, boolean>;
+  toggleGroup: (label: string) => void;
 }) {
   return (
-    <SidebarGroup label={group.label} defaultOpen={groupOpen[group.label] ?? true}>
+    <CollapsibleNavGroup
+      label={group.label}
+      open={groupOpen[group.label] ?? true}
+      onOpenChange={() => toggleGroup(group.label)}
+    >
       {group.items.map((item) => (
         <SidebarItem
           key={item.href}
@@ -76,7 +81,7 @@ function StaticNavGroupBlock({
           )}
         </SidebarItem>
       ))}
-    </SidebarGroup>
+    </CollapsibleNavGroup>
   );
 }
 
@@ -177,6 +182,7 @@ export function SidebarExpanded({
             group={group}
             pathname={pathname}
             groupOpen={groupOpen}
+            toggleGroup={toggleGroup}
           />
         ))}
 
@@ -195,6 +201,7 @@ export function SidebarExpanded({
             group={group}
             pathname={pathname}
             groupOpen={groupOpen}
+            toggleGroup={toggleGroup}
           />
         ))}
       </SidebarNav>

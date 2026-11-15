@@ -11,13 +11,13 @@ export function EditorSkeleton() {
       <PageHeader title="编辑想法" description="编写内容、标题与标签" />
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3 animate-pulse">
-          <div className="h-8 w-8 rounded-widget bg-basalt-secondary" />
-          <div className="h-8 w-48 rounded-widget bg-basalt-secondary" />
+          <div className="h-8 w-8 rounded-basalt-widget bg-basalt-secondary" />
+          <div className="h-8 w-48 rounded-basalt-widget bg-basalt-secondary" />
         </div>
         <div className="flex items-center gap-2 animate-pulse">
           <div className="hidden h-5 w-12 rounded bg-basalt-secondary sm:block" />
           <div className="hidden h-5 w-12 rounded bg-basalt-secondary sm:block" />
-          <div className="h-8 w-8 rounded-widget bg-basalt-secondary" />
+          <div className="h-8 w-8 rounded-basalt-widget bg-basalt-secondary" />
         </div>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3 md:flex-row">

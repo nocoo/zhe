@@ -118,7 +118,7 @@ export function GitHubReadme({ link }: { link: Link }) {
         </Button>
       </div>
       {source ? (
-        <pre className="whitespace-pre-wrap break-words rounded-card bg-basalt-secondary p-4 text-xs leading-6">
+        <pre className="whitespace-pre-wrap break-words rounded-basalt-card bg-basalt-secondary p-4 text-xs leading-6">
           <code>{repository.readme}</code>
         </pre>
       ) : (
@@ -336,7 +336,7 @@ export function GitHubRepositoryCard({
             )}
             <span
               title="来源：GitHub"
-              className="inline-flex shrink-0 items-center rounded-widget bg-basalt-foreground p-1.5 text-basalt-background"
+              className="inline-flex shrink-0 items-center rounded-basalt-widget bg-basalt-foreground p-1.5 text-basalt-background"
             >
               <GithubIcon className="size-3.5" strokeWidth={1.5} aria-hidden />
               <span className="sr-only">GitHub</span>

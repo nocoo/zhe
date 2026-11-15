@@ -16,8 +16,8 @@ test.describe("Responsive sheets", () => {
   test("tablet navigation sheet opens and closes", async ({ page }) => {
     await page.setViewportSize({ width: 700, height: 1024 });
     await page.goto("/dashboard");
-    await page.getByRole("button", { name: "Open menu", exact: true }).click();
-    const sheet = page.getByRole("dialog", { name: "Navigation", exact: true });
+    await page.getByRole("button", { name: "打开导航", exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: "导航", exact: true });
     await expect(sheet).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();

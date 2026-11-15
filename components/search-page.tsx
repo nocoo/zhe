@@ -132,7 +132,7 @@ export function SearchPage() {
         </div>
       )}
       {result.error && (
-        <div role="alert" className="rounded-widget border p-6 text-center">
+        <div role="alert" className="rounded-basalt-widget border p-6 text-center">
           <p className="mb-3 text-sm">{result.error}</p>
           <Button size="sm" onClick={result.retry}>
             重试搜索
@@ -142,7 +142,10 @@ export function SearchPage() {
       {result.loading && (
         <div aria-hidden="true" className="space-y-3 py-3">
           {[1, 2, 3, 4].map((key) => (
-            <div key={key} className="h-20 animate-pulse rounded-widget bg-basalt-muted/60" />
+            <div
+              key={key}
+              className="h-20 animate-pulse rounded-basalt-widget bg-basalt-muted/60"
+            />
           ))}
         </div>
       )}
@@ -167,7 +170,7 @@ export function SearchPage() {
               href={hit.url}
               target={hit.kind === "link" ? "_blank" : undefined}
               rel={hit.kind === "link" ? "noopener noreferrer" : undefined}
-              className="block rounded-widget px-3 py-3 transition-colors hover:bg-basalt-muted/50 focus-visible:bg-basalt-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring"
+              className="block rounded-basalt-widget px-3 py-3 transition-colors hover:bg-basalt-muted/50 focus-visible:bg-basalt-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring"
             >
               <SearchResult hit={hit} query={query} />
             </Link>

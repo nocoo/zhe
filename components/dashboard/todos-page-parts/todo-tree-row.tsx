@@ -138,7 +138,7 @@ export const TodoTreeRow = memo(function TodoTreeRow({
       aria-selected={isSelected}
       aria-expanded={node.isInternal ? node.isOpen : undefined}
       className={cn(
-        "group flex h-full items-center gap-1.5 mx-1 pr-2 text-sm select-none cursor-pointer rounded-widget transition-colors",
+        "group flex h-full items-center gap-1.5 mx-1 pr-2 text-sm select-none cursor-pointer rounded-basalt-widget transition-colors",
         isSelected ? "bg-basalt-accent/80 text-basalt-foreground" : "hover:bg-basalt-accent/40",
         todo.done && "opacity-60",
       )}
@@ -153,7 +153,7 @@ export const TodoTreeRow = memo(function TodoTreeRow({
             node.toggle();
           }}
           aria-label={node.isOpen ? "Collapse" : "Expand"}
-          className="p-1 rounded-widget hover:bg-basalt-accent/60 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-basalt-ring"
+          className="p-1 rounded-basalt-widget hover:bg-basalt-accent/60 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-basalt-ring"
         >
           {node.isOpen ? (
             <ChevronDown className="h-4 w-4" aria-hidden />

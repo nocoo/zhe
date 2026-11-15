@@ -35,7 +35,8 @@ export function CardText({
     <details
       className={cn(
         "group/text min-w-0",
-        code && "rounded-widget border border-basalt-primary/15 bg-basalt-primary/5 px-2.5 py-2",
+        code &&
+          "rounded-basalt-widget border border-basalt-primary/15 bg-basalt-primary/5 px-2.5 py-2",
       )}
       onClick={(event) => event.stopPropagation()}
       onKeyDown={(event) => event.stopPropagation()}

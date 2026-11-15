@@ -91,7 +91,7 @@ export function UploadZone({ isDragOver, onDragOver, onFiles, disabled }: Upload
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
-          "relative flex w-full flex-col items-center justify-center rounded-card border-2 border-dashed p-8 transition-all cursor-pointer",
+          "relative flex w-full flex-col items-center justify-center rounded-basalt-card border-2 border-dashed p-8 transition-all cursor-pointer",
           isDragOver
             ? "border-basalt-primary bg-basalt-primary/5"
             : "border-basalt-muted-foreground/20 bg-basalt-secondary hover:border-basalt-muted-foreground/40",

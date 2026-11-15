@@ -35,7 +35,7 @@ function Transcript({ title, text }: { title: string; text: string }) {
       <summary className="cursor-pointer py-1 text-xs leading-5 text-basalt-muted-foreground">
         {title}
       </summary>
-      <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-widget border border-basalt-border p-3 font-mono text-xs leading-5">
+      <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-basalt-widget border border-basalt-border p-3 font-mono text-xs leading-5">
         {text || "暂无"}
       </pre>
     </details>
@@ -210,7 +210,7 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
           <fieldset disabled={busy || !vm.ready} className="min-w-0 space-y-4 disabled:opacity-60">
             <section
               aria-label="1 标题"
-              className="space-y-2 rounded-card border border-basalt-border p-4"
+              className="space-y-2 rounded-basalt-card border border-basalt-border p-4"
             >
               <Label htmlFor="suggest-title" className="block text-xs font-medium leading-4">
                 <span aria-hidden className="mr-2 text-basalt-primary">
@@ -238,7 +238,7 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
             </section>
             <section
               aria-label="2 备注"
-              className="space-y-2 rounded-card border border-basalt-border p-4"
+              className="space-y-2 rounded-basalt-card border border-basalt-border p-4"
             >
               <Label htmlFor="suggest-note" className="block text-xs font-medium leading-4">
                 <span aria-hidden className="mr-2 text-basalt-primary">
@@ -261,7 +261,7 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
             </section>
             <section
               aria-label="3 分类"
-              className="min-w-0 space-y-2 rounded-card border border-basalt-border p-4"
+              className="min-w-0 space-y-2 rounded-basalt-card border border-basalt-border p-4"
             >
               <Label htmlFor="suggest-folder" className="block text-xs font-medium leading-4">
                 <span aria-hidden className="mr-2 text-basalt-primary">
@@ -317,7 +317,7 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
             </section>
             <section
               aria-label="4 标签"
-              className="min-w-0 space-y-3 rounded-card border border-basalt-border p-4"
+              className="min-w-0 space-y-3 rounded-basalt-card border border-basalt-border p-4"
             >
               <h3 className="text-xs font-medium leading-4">
                 <span aria-hidden className="mr-2 text-basalt-primary">

@@ -186,7 +186,7 @@ export function SearchCommandDialog({ open, onOpenChange }: SearchCommandDialogP
                             {hit.folderId && (
                               <button
                                 type="button"
-                                className="flex size-8 items-center justify-center rounded-widget text-basalt-muted-foreground hover:text-basalt-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring"
+                                className="flex size-8 items-center justify-center rounded-basalt-widget text-basalt-muted-foreground hover:text-basalt-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring"
                                 aria-label={`打开分类 ${hit.folderName}`}
                                 onKeyDown={(e) => e.stopPropagation()}
                                 onClick={(e) => {
@@ -202,7 +202,7 @@ export function SearchCommandDialog({ open, onOpenChange }: SearchCommandDialogP
                             {hit.slug && (
                               <button
                                 type="button"
-                                className="flex size-8 items-center justify-center rounded-widget text-basalt-muted-foreground hover:text-basalt-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring"
+                                className="flex size-8 items-center justify-center rounded-basalt-widget text-basalt-muted-foreground hover:text-basalt-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring"
                                 aria-label={`复制短链接 ${hit.slug}`}
                                 onKeyDown={(e) => e.stopPropagation()}
                                 onClick={async (e) => {

@@ -10,7 +10,7 @@
  * non-default so the toolbar stays quiet at rest.
  *
  * Density: all controls use the compact (`sm`) tier — h-8 / text-xs /
- * rounded-widget — matching the dashboard toolbar contract in globals.css.
+ * rounded-basalt-widget — matching the dashboard toolbar contract in globals.css.
  *
  * aria-labels remain in English to keep the existing test contracts.
  */

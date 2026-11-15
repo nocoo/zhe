@@ -209,7 +209,7 @@ export function TodoEmojiPicker({
       className={cn(
         // h-8 matches the compact control row (title Input size="sm") so
         // emoji + title share one baseline in the detail pane header.
-        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-widget border border-basalt-border bg-basalt-secondary text-base leading-none shadow-xs transition-colors hover:bg-basalt-accent hover:border-basalt-foreground/20",
+        "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-basalt-widget border border-basalt-border bg-basalt-secondary text-base leading-none shadow-xs transition-colors hover:bg-basalt-accent hover:border-basalt-foreground/20",
         value === null && "text-basalt-muted-foreground",
         className,
       )}
@@ -293,7 +293,7 @@ function EmojiGrid({
           type="button"
           onClick={() => onPick(e.char)}
           aria-label={e.keywords[0] ?? e.char}
-          className="flex h-8 w-8 items-center justify-center rounded-widget text-lg transition-colors hover:bg-basalt-accent"
+          className="flex h-8 w-8 items-center justify-center rounded-basalt-widget text-lg transition-colors hover:bg-basalt-accent"
         >
           {e.char}
         </button>

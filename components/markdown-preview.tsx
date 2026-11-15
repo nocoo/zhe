@@ -44,7 +44,7 @@ export function MarkdownPreview({
         // Links
         "prose-a:text-basalt-primary prose-a:no-underline hover:prose-a:underline",
         // Code blocks
-        "prose-pre:bg-basalt-background prose-pre:rounded-widget",
+        "prose-pre:bg-basalt-background prose-pre:rounded-basalt-widget",
         "prose-code:text-basalt-foreground prose-code:bg-basalt-background prose-code:rounded prose-code:px-1 prose-code:py-0.5 prose-code:text-xs prose-code:before:content-none prose-code:after:content-none",
         // Keep transparent logos and diagrams readable in both themes.
         "prose-img:rounded-md prose-img:bg-white prose-img:scheme-light",

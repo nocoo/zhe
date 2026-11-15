@@ -228,7 +228,7 @@ function MediaGrid({ media }: { media: XrayTweetMedia[] }) {
 
 export function TweetCard({ tweet, action }: { tweet: XrayTweetData; action?: React.ReactNode }) {
   return (
-    <div className="rounded-card bg-basalt-secondary p-4 space-y-3">
+    <div className="rounded-basalt-card bg-basalt-secondary p-4 space-y-3">
       <AuthorRow tweet={tweet} />
 
       <p className="text-sm whitespace-pre-wrap leading-relaxed">{tweet.text}</p>

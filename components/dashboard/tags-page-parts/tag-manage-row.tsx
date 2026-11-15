@@ -55,7 +55,7 @@ export function TagManageRow({ row, disabled, onRename, onRecolor, onDelete }: T
   return (
     <div
       data-basalt-surface=""
-      className="flex flex-col gap-3 rounded-card bg-basalt-secondary p-3 md:flex-row md:items-center"
+      className="flex flex-col gap-3 rounded-basalt-card bg-basalt-secondary p-3 md:flex-row md:items-center"
       data-testid="tag-manage-row"
       data-tag-id={row.id}
     >

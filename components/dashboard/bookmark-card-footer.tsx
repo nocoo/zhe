@@ -68,7 +68,7 @@ export function BookmarkCardFooter({
                 event.preventDefault();
                 event.currentTarget.scrollLeft += event.key === "ArrowRight" ? 40 : -40;
               }}
-              className="flex h-full min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain whitespace-nowrap rounded-widget [scrollbar-width:thin] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring"
+              className="flex h-full min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain whitespace-nowrap rounded-basalt-widget [scrollbar-width:thin] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring"
             >
               {tags.map((tag) => (
                 <li

@@ -19,10 +19,10 @@ function UploadListSkeleton() {
     <div>
       <PageHeader title="文件上传" description="加载中…" />
       <div className="mb-6 flex items-center gap-4">
-        <div className="h-6 w-36 rounded-widget bg-basalt-secondary animate-pulse motion-reduce:animate-none" />
+        <div className="h-6 w-36 rounded-basalt-widget bg-basalt-secondary animate-pulse motion-reduce:animate-none" />
       </div>
       <div className="mb-6">
-        <div className="h-32 rounded-card border-2 border-dashed border-basalt-muted bg-basalt-secondary animate-pulse motion-reduce:animate-none" />
+        <div className="h-32 rounded-basalt-card border-2 border-dashed border-basalt-muted bg-basalt-secondary animate-pulse motion-reduce:animate-none" />
       </div>
       <CardListSkeleton rows={4} variant="upload" />
     </div>
@@ -134,11 +134,7 @@ export function UploadList({
       {uploadingFiles.length > 0 && (
         <div className="space-y-2 mb-4">
           {uploadingFiles.map((file, i) => (
-            <div
-              key={file.id}
-              className="animate-fade-up motion-reduce:animate-none"
-              style={staggerStyle(i)}
-            >
+            <div key={file.id} className="" style={staggerStyle(i)}>
               <UploadingItem file={file} onDismiss={dismissUploadingFile} />
             </div>
           ))}
@@ -161,7 +157,7 @@ export function UploadList({
               itemId={upload.id}
               label={upload.fileName}
               key={upload.id}
-              className="animate-fade-up motion-reduce:animate-none"
+              className=""
               style={staggerStyle(i)}
             >
               <UploadItem upload={upload} onDelete={handleDelete} />

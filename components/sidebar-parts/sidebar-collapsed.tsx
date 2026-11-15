@@ -8,6 +8,7 @@ import {
   SidebarSearch,
   SidebarUser,
 } from "@nocoo/basalt/components/sidebar";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@nocoo/basalt/components/tooltip";
 import { FolderIcon } from "@/components/folder-icon";
 import type { Folder } from "@/models/types";
 import {
@@ -41,9 +42,14 @@ function CollapsedRow({
   children: React.ReactNode;
 }) {
   return (
-    <SidebarIconItem href={href} active={active} aria-label={label}>
-      {children}
-    </SidebarIconItem>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <SidebarIconItem href={href} active={active} aria-label={label}>
+          {children}
+        </SidebarIconItem>
+      </TooltipTrigger>
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
   );
 }
 

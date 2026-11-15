@@ -42,7 +42,7 @@ export function TagsPage() {
       {vm.creating && (
         <div
           data-basalt-surface=""
-          className="mb-4 flex flex-col gap-3 rounded-card bg-basalt-secondary p-3 md:flex-row md:items-center"
+          className="mb-4 flex flex-col gap-3 rounded-basalt-card bg-basalt-secondary p-3 md:flex-row md:items-center"
           data-testid="tag-create-form"
         >
           <Input
@@ -100,7 +100,7 @@ export function TagsPage() {
       ) : (
         <div className="space-y-2" data-testid="tags-list">
           {vm.rows.map((row, i) => (
-            <div key={row.id} className="animate-fade-up" style={staggerStyle(i)}>
+            <div key={row.id} className="" style={staggerStyle(i)}>
               <TagManageRow
                 row={row}
                 disabled={vm.savingId === row.id}

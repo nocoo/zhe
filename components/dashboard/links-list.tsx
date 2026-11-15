@@ -93,7 +93,7 @@ function LinksContent(props: LinksContentProps) {
           itemId={link.id}
           label={link.title || link.metaTitle || link.originalUrl}
           key={link.id}
-          className="animate-fade-up motion-reduce:animate-none"
+          className=""
           style={staggerStyle(i)}
         >
           <LinkCard
