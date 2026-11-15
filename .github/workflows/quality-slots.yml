@@ -119,13 +119,14 @@ jobs:
           install-policy: project
           extra-install-dirs: "cli,worker"
       - name: Load optional test env JSON
-        if: ${{ secrets.test-env-json != '' }}
         env:
           TEST_ENV_JSON: ${{ secrets.test-env-json }}
         run: |
           node -e '
             const fs = require("fs");
-            const obj = JSON.parse(process.env.TEST_ENV_JSON || "{}");
+            const raw = (process.env.TEST_ENV_JSON || "").trim();
+            if (!raw) process.exit(0);
+            const obj = JSON.parse(raw);
             for (const [k, v] of Object.entries(obj)) {
               fs.appendFileSync(process.env.GITHUB_ENV, `${k}<<__EOF__\n${v}\n__EOF__\n`);
             }
@@ -150,13 +151,14 @@ jobs:
           install-policy: project
           extra-install-dirs: "cli,worker"
       - name: Load optional test env JSON
-        if: ${{ secrets.test-env-json != '' }}
         env:
           TEST_ENV_JSON: ${{ secrets.test-env-json }}
         run: |
           node -e '
             const fs = require("fs");
-            const obj = JSON.parse(process.env.TEST_ENV_JSON || "{}");
+            const raw = (process.env.TEST_ENV_JSON || "").trim();
+            if (!raw) process.exit(0);
+            const obj = JSON.parse(raw);
             for (const [k, v] of Object.entries(obj)) {
               fs.appendFileSync(process.env.GITHUB_ENV, `${k}<<__EOF__\n${v}\n__EOF__\n`);
             }
@@ -198,13 +200,14 @@ jobs:
           install-policy: project
           extra-install-dirs: "cli,worker"
       - name: Load optional test env JSON
-        if: ${{ secrets.test-env-json != '' }}
         env:
           TEST_ENV_JSON: ${{ secrets.test-env-json }}
         run: |
           node -e '
             const fs = require("fs");
-            const obj = JSON.parse(process.env.TEST_ENV_JSON || "{}");
+            const raw = (process.env.TEST_ENV_JSON || "").trim();
+            if (!raw) process.exit(0);
+            const obj = JSON.parse(raw);
             for (const [k, v] of Object.entries(obj)) {
               fs.appendFileSync(process.env.GITHUB_ENV, `${k}<<__EOF__\n${v}\n__EOF__\n`);
             }
