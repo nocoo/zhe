@@ -1,0 +1,285 @@
+name: Quality Slots
+
+on:
+  workflow_call:
+    secrets:
+      test-env-json:
+        required: false
+    outputs:
+      tested-sha:
+        description: Commit SHA verified by quality gate
+        value: ${{ jobs.z1-gate.outputs.tested-sha }}
+
+env:
+  BUN_VERSION: "1.3.11"
+  NODE_VERSION: "26.13.1"
+  CI: "true"
+  WRANGLER_SEND_METRICS: "false"
+  HUSKY: "0"
+
+jobs:
+  s1-types:
+    name: "S1: Types"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: nocoo/base-ci/.github/actions/setup-js@777bbe4f9bacab8a91d8c01974480a6ee23d28e0 # v2026.15
+        with:
+          package-manager: bun
+          runtime-version: ${{ env.BUN_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          install-policy: project
+          extra-install-dirs: "cli,worker"
+      - run: bash scripts/typecheck.sh
+
+  s2-lint:
+    name: "S2: Lint"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: nocoo/base-ci/.github/actions/setup-js@777bbe4f9bacab8a91d8c01974480a6ee23d28e0 # v2026.15
+        with:
+          package-manager: bun
+          runtime-version: ${{ env.BUN_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          install-policy: project
+          extra-install-dirs: "cli,worker"
+      - run: bun run lint
+
+  s3-workflow:
+    name: "S3: Workflow"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Verify all external actions are pinned to full SHA
+        run: |
+          node -e '
+            const fs = require("fs");
+            const path = require("path");
+            const dir = ".github/workflows";
+            let failed = false;
+            for (const f of fs.readdirSync(dir)) {
+              if (!f.endsWith(".yml") && !f.endsWith(".yaml")) continue;
+              const content = fs.readFileSync(path.join(dir, f), "utf8");
+              for (const m of content.matchAll(/^\s*-?\s*uses:\s*([^\s#]+)/gm)) {
+                const ref = m[1];
+                if (ref.startsWith("./")) continue;
+                const [, sha] = ref.split("@");
+                if (!sha || !/^[a-f0-9]{40}$/.test(sha)) {
+                  console.error(`Unpinned action in ${f}: ${ref}`);
+                  failed = true;
+                }
+              }
+            }
+            if (failed) process.exit(1);
+          '
+
+  g1-secrets:
+    name: "G1: Secrets"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: nocoo/base-ci/.github/actions/setup-security-scanners@777bbe4f9bacab8a91d8c01974480a6ee23d28e0 # v2026.15
+      - run: gitleaks detect --no-banner --verbose --redact --no-git --config=.gitleaks.toml --source="${GITHUB_WORKSPACE}"
+
+  g2-dependencies:
+    name: "G2: Dependencies"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: nocoo/base-ci/.github/actions/setup-security-scanners@777bbe4f9bacab8a91d8c01974480a6ee23d28e0 # v2026.15
+      - run: osv-scanner scan --config=osv-scanner.toml --lockfile=bun.lock
+
+  b1-build:
+    name: "B1: Build"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: nocoo/base-ci/.github/actions/setup-js@777bbe4f9bacab8a91d8c01974480a6ee23d28e0 # v2026.15
+        with:
+          package-manager: bun
+          runtime-version: ${{ env.BUN_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          install-policy: project
+          extra-install-dirs: "cli,worker"
+      - run: bun run build
+
+  l1-unit:
+    name: "L1: Unit"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: nocoo/base-ci/.github/actions/setup-js@777bbe4f9bacab8a91d8c01974480a6ee23d28e0 # v2026.15
+        with:
+          package-manager: bun
+          runtime-version: ${{ env.BUN_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          install-policy: project
+          extra-install-dirs: "cli,worker"
+      - name: Load optional test env JSON
+        if: ${{ secrets.test-env-json != '' }}
+        env:
+          TEST_ENV_JSON: ${{ secrets.test-env-json }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const obj = JSON.parse(process.env.TEST_ENV_JSON || "{}");
+            for (const [k, v] of Object.entries(obj)) {
+              fs.appendFileSync(process.env.GITHUB_ENV, `${k}<<__EOF__\n${v}\n__EOF__\n`);
+            }
+          '
+      - run: |
+          bun run build &&
+          bun run test:unit:coverage &&
+          bun run test:integration &&
+          (cd cli && bun run build && bun run lint && bun run test:coverage) &&
+          (cd worker && bun run lint && bun x tsc --noEmit && bun run test:coverage)
+
+  l2-runtime:
+    name: "L2: Runtime"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: nocoo/base-ci/.github/actions/setup-js@777bbe4f9bacab8a91d8c01974480a6ee23d28e0 # v2026.15
+        with:
+          package-manager: bun
+          runtime-version: ${{ env.BUN_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          install-policy: project
+          extra-install-dirs: "cli,worker"
+      - name: Load optional test env JSON
+        if: ${{ secrets.test-env-json != '' }}
+        env:
+          TEST_ENV_JSON: ${{ secrets.test-env-json }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const obj = JSON.parse(process.env.TEST_ENV_JSON || "{}");
+            for (const [k, v] of Object.entries(obj)) {
+              fs.appendFileSync(process.env.GITHUB_ENV, `${k}<<__EOF__\n${v}\n__EOF__\n`);
+            }
+          '
+      - run: |
+          (cd worker && bun install --frozen-lockfile --ignore-scripts)
+          export PATH="$GITHUB_WORKSPACE/worker/node_modules/.bin:$PATH"
+          mkdir -p artifacts
+          wrangler --version | tee artifacts/wrangler-version.txt
+          bun run test:api
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
+        if: always()
+        with:
+          name: zhe-l2-evidence
+          path: |
+            .artifacts/e2e/*/wrangler.log
+            .artifacts/e2e/*/wrangler-internal-logs/
+            artifacts/wrangler-version.txt
+          retention-days: 7
+          if-no-files-found: ignore
+
+  l3-integration:
+    name: "L3: Integration"
+    if: ${{ vars.ENABLE_L3_INTEGRATION == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "N/A - Covered by L1 and L2"
+
+  l4-e2e:
+    name: "L4: E2E"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: nocoo/base-ci/.github/actions/setup-js@777bbe4f9bacab8a91d8c01974480a6ee23d28e0 # v2026.15
+        with:
+          package-manager: bun
+          runtime-version: ${{ env.BUN_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          install-policy: project
+          extra-install-dirs: "cli,worker"
+      - name: Load optional test env JSON
+        if: ${{ secrets.test-env-json != '' }}
+        env:
+          TEST_ENV_JSON: ${{ secrets.test-env-json }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const obj = JSON.parse(process.env.TEST_ENV_JSON || "{}");
+            for (const [k, v] of Object.entries(obj)) {
+              fs.appendFileSync(process.env.GITHUB_ENV, `${k}<<__EOF__\n${v}\n__EOF__\n`);
+            }
+          '
+      - name: Install Playwright browsers and ffmpeg
+        run: |
+          bunx playwright install chromium webkit --with-deps
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      - run: |
+          (cd worker && bun install --frozen-lockfile --ignore-scripts)
+          mkdir -p artifacts
+          "$GITHUB_WORKSPACE/worker/node_modules/.bin/wrangler" --version | tee artifacts/wrangler-version.txt
+          export PATH="$GITHUB_WORKSPACE/worker/node_modules/.bin:$PATH"
+          bun run test:e2e:pw
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
+        if: always()
+        with:
+          name: zhe-l3-evidence
+          path: |
+            .artifacts/e2e/*/wrangler.log
+            .artifacts/e2e/*/wrangler-internal-logs/
+            .artifacts/e2e/*/report/
+            artifacts/wrangler-version.txt
+          retention-days: 7
+          if-no-files-found: ignore
+
+  p1-package:
+    name: "P1: Package"
+    if: ${{ vars.ENABLE_P1_PACKAGE == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "N/A - Private package"
+
+  z1-gate:
+    name: "Z1: Gate"
+    if: always()
+    needs:
+      - s1-types
+      - s2-lint
+      - s3-workflow
+      - g1-secrets
+      - g2-dependencies
+      - b1-build
+      - l1-unit
+      - l2-runtime
+      - l3-integration
+      - l4-e2e
+      - p1-package
+    runs-on: ubuntu-latest
+    outputs:
+      tested-sha: ${{ github.sha }}
+    steps:
+      - name: Verify required slots passed
+        run: |
+          for r in \
+            "${{ needs.s1-types.result }}" \
+            "${{ needs.s2-lint.result }}" \
+            "${{ needs.s3-workflow.result }}" \
+            "${{ needs.g1-secrets.result }}" \
+            "${{ needs.g2-dependencies.result }}" \
+            "${{ needs.b1-build.result }}" \
+            "${{ needs.l1-unit.result }}" \
+            "${{ needs.l2-runtime.result }}" \
+            "${{ needs.l4-e2e.result }}"; do
+            if [ "$r" != "success" ]; then
+              echo "Required slot failed or was skipped: $r"
+              exit 1
+            fi
+          done
+          for r in \
+            "${{ needs.l3-integration.result }}" \
+            "${{ needs.p1-package.result }}"; do
+            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
+              echo "Optional slot failed: $r"
+              exit 1
+            fi
+          done

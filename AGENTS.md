@@ -61,7 +61,7 @@ The test runners own local env overrides, migrations, readiness and cleanup; no 
 
 ## Verification
 
-6DQ = L1/L2/L3 + G2 + D1 isolation; the former G1 dimension was merged into L1 on 2026-09-21, per lane. Status: `enforced`, `planned`, `manual`, `N/A`; no skipped/focused tests.
+Quality contract follows System1 slots (L1/L2/L3 + G2 + D1 isolation, per lane). Status: `enforced`, `planned`, `manual`, `N/A`; no skipped/focused tests.
 
 | Piece                                               | Required proof and current reality                                                                                                    | Status   | Evidence / gap                                                                                                                                                                                       |
 | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

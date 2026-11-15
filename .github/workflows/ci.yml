@@ -1,5 +1,3 @@
-# CI slot standard v1 (nocoo/base-ci docs/slots.md): strict slot-status via quality.yml;
-# nocoo/base-ci v2026.12: top-level slot jobs, L2/L3 evidence artifacts.
 name: CI
 
 on:
@@ -12,10 +10,11 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  # ─────────────────────────────────────────────────────
-  # Outside slot v1 — Linux standalone container smoke (Docker build + no-network run)
-  # ─────────────────────────────────────────────────────
   container-smoke:
     name: "Linux standalone container"
     runs-on: ubuntu-latest
@@ -34,76 +33,8 @@ jobs:
           docker logs zhe-container-smoke || true
           docker rm -f zhe-container-smoke || true
 
-  # ─────────────────────────────────────────────────────
-  # S1–Z1 — Single quality gate (nocoo/base-ci v2026.12, strict slot-status)
-  # ─────────────────────────────────────────────────────
   quality:
-    uses: nocoo/base-ci/.github/workflows/quality.yml@1ea10ecab22b72512399485391603fe03a161016 # v2026.12
+    name: quality
+    uses: ./.github/workflows/quality-slots.yml
     secrets:
       test-env-json: ${{ secrets.CI_TEST_ENV_JSON }}
-    with:
-      runtime-version: "1.3.11"
-      node-version: "26.13.1"
-      install-policy: project
-      extra-install-dirs: "cli,worker"
-      coverage-path: coverage
-      typecheck-command: bash scripts/typecheck.sh
-      test-command: >-
-        bun run build &&
-        bun run test:unit:coverage &&
-        bun run test:integration &&
-        (cd cli && bun run build && bun run lint && bun run test:coverage) &&
-        (cd worker && bun run lint && bun x tsc --noEmit && bun run test:coverage)
-      osv-config: osv-scanner.toml
-      gitleaks-config: .gitleaks.toml
-      build: true
-      build-command: bun run build
-      workflow-lint: true
-      workflow-lint-required-workflow: nocoo/base-ci/.github/workflows/deploy-docker.yml
-      workflow-lint-yamllint: true
-      l2: true
-      l2-command: |
-        (cd worker && bun install --frozen-lockfile --ignore-scripts)
-        export PATH="$GITHUB_WORKSPACE/worker/node_modules/.bin:$PATH"
-        mkdir -p artifacts
-        wrangler --version | tee artifacts/wrangler-version.txt
-        bun run test:api
-      l2-artifact-name: zhe-l2-evidence
-      l2-artifact-path: |
-        .artifacts/e2e/*/wrangler.log
-        .artifacts/e2e/*/wrangler-internal-logs/
-        artifacts/wrangler-version.txt
-      l2-artifact-retention-days: 7
-      l3: true
-      l3-browsers: "chromium webkit"
-      l3-prepare-command: |
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg
-        (cd worker && bun install --frozen-lockfile --ignore-scripts)
-        echo "$GITHUB_WORKSPACE/worker/node_modules/.bin" >> "$GITHUB_PATH"
-        mkdir -p artifacts
-        "$GITHUB_WORKSPACE/worker/node_modules/.bin/wrangler" --version | tee artifacts/wrangler-version.txt
-      l3-command: >-
-        export PATH="$GITHUB_WORKSPACE/worker/node_modules/.bin:$PATH" &&
-        bun run test:e2e:pw
-      l3-artifact-name: zhe-l3-evidence
-      l3-artifact-path: |
-        .artifacts/e2e/*/wrangler.log
-        .artifacts/e2e/*/wrangler-internal-logs/
-        .artifacts/e2e/*/report/
-        artifacts/wrangler-version.txt
-      l3-artifact-retention-days: 7
-      env-json: '{"WRANGLER_SEND_METRICS": "false", "CI": "true", "HUSKY": "0"}'
-      slot-status: >-
-        {"S1": {"status": "impl"},
-        "S2": {"status": "impl"},
-        "S3": {"status": "impl"},
-        "G1": {"status": "impl"},
-        "G2": {"status": "impl"},
-        "B1": {"status": "impl"},
-        "L1": {"status": "impl"},
-        "L1.5": {"status": "na", "reason": "Worker 单测在 Node/Vitest 环境运行，未使用 vitest-pool-workers / miniflare 运行时套件"},
-        "L2": {"status": "impl"},
-        "L3": {"status": "impl"},
-        "P1": {"status": "todo", "reason": "发布 @nocoo/zhe CLI 但 CI 尚未接入 npm pack / publint 检查"},
-        "Z1": {"status": "impl"}}
