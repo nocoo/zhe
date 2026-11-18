@@ -97,7 +97,7 @@ test("enriched search keyboard and source contexts", async ({ page, context, bas
     await opened.close();
     await input.focus();
     await page.keyboard.press("Control+k");
-    const global = page.getByRole("combobox", { name: "全局搜索" });
+    const global = page.getByRole("combobox", { name: "Command Palette" });
     await expect(global).toBeFocused();
     await global.fill("rare-stack");
     await expect(
@@ -145,7 +145,7 @@ test("enriched search keyboard and source contexts", async ({ page, context, bas
       fullPage: true,
     });
     await page.keyboard.press("Control+k");
-    await page.getByRole("combobox", { name: "全局搜索" }).fill("theme dark");
+    await page.getByRole("combobox", { name: "Command Palette" }).fill("theme dark");
     await page.getByText("切换到深色主题", { exact: true }).click();
     await expect(page.getByRole("dialog")).toBeHidden();
     await page.setViewportSize({ width: 390, height: 900 });
