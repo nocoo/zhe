@@ -2,10 +2,10 @@ import { AnimatedCardList } from "@/components/animated-card-list";
 import { cn } from "@/lib/utils";
 
 export const CARD_GRID_CLASS =
-  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,14rem),1fr))] gap-3";
+  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,14rem),1fr))] gap-basalt-layout-sm";
 
 export const BOOKMARK_GRID_CLASS =
-  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-3";
+  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-basalt-layout-sm";
 export const BOOKMARK_CARD_CLASS =
   "group flex min-w-0 flex-col overflow-hidden rounded-basalt-card ring-1 ring-basalt-border/80 shadow-basalt-card transition-shadow hover:ring-basalt-border";
 
@@ -30,14 +30,14 @@ function BookmarkFooterBones({
       )}
     >
       {showClassification && (
-        <div className="flex h-9 flex-1 items-center gap-2 px-3">
+        <div className="flex h-9 flex-1 items-center gap-basalt-space-lg px-basalt-space-card-sm">
           <Bone className="h-3 w-16" />
           <Bone className="h-4 w-16" />
         </div>
       )}
       <div
         className={cn(
-          "flex min-h-10 items-center gap-1 border-t border-basalt-border/60 px-3 py-1",
+          "flex min-h-10 items-center gap-basalt-space-sm border-t border-basalt-border/60 px-basalt-space-card-sm py-basalt-space-sm",
           compact && "sm:border-t-0",
         )}
       >
@@ -65,7 +65,7 @@ export function CardListSkeleton({
   if (variant === "list")
     return (
       <div
-        className={cn("space-y-3", className)}
+        className={cn("space-y-basalt-layout-sm", className)}
         data-testid="card-list"
         role="status"
         aria-busy="true"
@@ -81,7 +81,7 @@ export function CardListSkeleton({
               rowHeightClass,
             )}
           >
-            <div className="flex min-h-24 items-center gap-3 px-3 py-2">
+            <div className="flex min-h-24 items-center gap-basalt-layout-sm px-basalt-space-card-sm py-basalt-space-lg">
               <Bone className="hidden h-20 w-28 sm:block" />
               <div className="flex-1 space-y-2">
                 <Bone className="h-4 w-2/3" />

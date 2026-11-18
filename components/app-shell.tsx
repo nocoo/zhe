@@ -151,9 +151,7 @@ function AppShellInner({
           }
         />
         <div className="flex min-h-0 flex-1 flex-col px-basalt-space-lg pb-basalt-space-lg md:px-basalt-layout-sm md:pb-basalt-layout-sm">
-          <ContentIsland className="pb-basalt-layout-xl md:pb-basalt-layout-xl">
-            {children}
-          </ContentIsland>
+          <ContentIsland>{children}</ContentIsland>
         </div>
         <GlobalCreateAction />
       </AppMain>

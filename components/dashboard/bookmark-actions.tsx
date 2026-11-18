@@ -79,9 +79,9 @@ function ActionMenu({
               }
             >
               {action.pending ? (
-                <Loader2 className="animate-spin" aria-hidden />
+                <Loader2 className="size-4 shrink-0 animate-spin" aria-hidden />
               ) : (
-                <action.icon aria-hidden />
+                <action.icon className="size-4 shrink-0" aria-hidden />
               )}
               <span>
                 {action.label}

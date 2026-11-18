@@ -53,11 +53,11 @@ export function BookmarkCardFooter({
     >
       {showClassification && (
         <div
-          className="flex h-9 min-w-0 flex-1 items-center gap-2 px-3"
+          className="flex h-9 min-w-0 flex-1 items-center gap-basalt-space-lg px-basalt-space-card-sm"
           data-bookmark-classification
         >
           <span
-            className="inline-flex min-w-0 max-w-[45%] shrink-0 items-center gap-1.5 text-xs text-basalt-muted-foreground"
+            className="inline-flex min-w-0 max-w-[45%] shrink-0 items-center gap-basalt-space-md text-basalt-xs text-basalt-muted-foreground"
             title={folder}
           >
             <FolderOpen className="size-3.5 shrink-0" strokeWidth={1.5} aria-hidden />
@@ -73,12 +73,12 @@ export function BookmarkCardFooter({
                 event.preventDefault();
                 event.currentTarget.scrollLeft += event.key === "ArrowRight" ? 40 : -40;
               }}
-              className="flex h-full min-w-0 flex-1 items-center gap-1.5 overflow-x-auto overscroll-x-contain whitespace-nowrap rounded-basalt-widget [scrollbar-width:thin] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring"
+              className="flex h-full min-w-0 flex-1 items-center gap-basalt-space-md overflow-x-auto overscroll-x-contain whitespace-nowrap rounded-basalt-widget [scrollbar-width:thin] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-basalt-ring"
             >
               {tags.map((tag) => (
                 <li
                   key={tag.id}
-                  className="shrink-0 rounded-full px-2 py-0.5 text-xs"
+                  className="shrink-0 rounded-full px-basalt-space-lg py-basalt-space-xs text-basalt-xs"
                   style={getTagStyles(tag.name, tag.color).badge}
                 >
                   {tag.name}
@@ -90,7 +90,7 @@ export function BookmarkCardFooter({
       )}
       <div
         className={cn(
-          "flex min-h-10 shrink-0 items-center justify-between gap-2 border-t border-basalt-border/60 px-3 py-1",
+          "flex min-h-10 shrink-0 items-center justify-between gap-basalt-space-lg border-t border-basalt-border/60 px-basalt-space-card-sm py-basalt-space-sm",
           compact && "sm:border-t-0",
         )}
         data-bookmark-action-row
@@ -101,7 +101,7 @@ export function BookmarkCardFooter({
               <Button
                 variant="ghost"
                 size="sm"
-                className="-ml-2 min-w-0 px-2 font-normal tabular-nums text-basalt-muted-foreground [@media(pointer:coarse)]:min-h-11"
+                className="-ml-basalt-space-lg min-w-0 px-basalt-space-lg text-basalt-xs font-normal tabular-nums text-basalt-muted-foreground [@media(pointer:coarse)]:min-h-11"
                 aria-label="复制收藏时间"
                 onClick={async () => {
                   if (await copyToClipboard(timestamp)) toast.success("已复制收藏时间");

@@ -58,7 +58,12 @@ export function Sidebar({ user, signOutAction }: SidebarProps) {
           currentFolder={currentFolder}
           user={user}
           folders={foldersVm.folders}
+          linkCounts={linkCounts}
           openSearch={openSearch}
+          onCreateFolder={() => {
+            foldersVm.setIsCreating(true);
+            toggle();
+          }}
         />
       ) : (
         <SidebarExpanded

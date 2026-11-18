@@ -377,15 +377,16 @@ describe("AppShell", () => {
       expect(screen.getByText("工作")).toBeInTheDocument();
     });
 
-    it("passes folders to Sidebar in collapsed desktop mode", async () => {
+    it("keeps folder navigation and creation available in collapsed desktop mode", async () => {
       mockSidebarCtx.isMobile = false;
       mockSidebarCtx.collapsed = true;
       mockFoldersVm.folders = mockFolders;
       const { container } = await renderShell();
 
-      // Includes the X library alongside the existing navigation and one folder.
-      const navLinks = container.querySelectorAll("nav a");
-      expect(navLinks.length).toBe(16);
+      expect(container.querySelectorAll("nav a")).toHaveLength(16);
+      fireEvent.click(screen.getByRole("button", { name: "新建文件夹" }));
+      expect(mockFoldersVm.setIsCreating).toHaveBeenCalledWith(true);
+      expect(mockSidebarCtx.toggle).toHaveBeenCalledOnce();
     });
 
     it("passes folders to mobile sidebar when open", async () => {
@@ -404,6 +405,7 @@ describe("AppShell", () => {
 
       const contentPanel = container.querySelector("[data-basalt-island]");
       expect(contentPanel).toBeInTheDocument();
+      expect(contentPanel).not.toHaveClass("pb-basalt-layout-xl");
     });
   });
 });

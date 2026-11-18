@@ -63,7 +63,7 @@ export function LinkFilterBar({
         return (
           <span
             key={tag.id}
-            className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-medium"
+            className="inline-flex h-7 items-center gap-basalt-space-sm rounded-full px-basalt-space-lg text-basalt-xs font-medium"
             style={styles.badge}
             data-testid="active-tag-filter"
             data-tag-name={tag.name}
@@ -73,7 +73,7 @@ export function LinkFilterBar({
             <button
               type="button"
               onClick={() => onToggleTag(tag.id)}
-              className="ml-0.5 rounded-full p-0.5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+              className="ml-basalt-space-xs rounded-full p-basalt-space-xs transition-colors hover:bg-black/10 dark:hover:bg-white/10"
               aria-label={`Remove filter ${tag.name}`}
             >
               <X className="h-2.5 w-2.5" />
@@ -121,7 +121,7 @@ function FolderFilter({
           variant="outline"
           size="sm"
           className={cn(
-            "gap-1.5",
+            "gap-basalt-space-md",
             selectedFolderId
               ? "border-basalt-primary/30 bg-basalt-primary/5 text-basalt-foreground"
               : "border-basalt-border text-basalt-muted-foreground hover:text-basalt-foreground hover:border-basalt-foreground/30",
@@ -132,12 +132,12 @@ function FolderFilter({
           <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-48 p-1" align="start">
-        <div className="flex flex-col gap-0.5" role="listbox" aria-label="文件夹">
+      <PopoverContent className="w-48 p-basalt-space-sm" align="start">
+        <div className="flex flex-col gap-basalt-space-xs" role="listbox" aria-label="文件夹">
           <Button
             variant="ghost"
             size="sm"
-            className="justify-start gap-2"
+            className="justify-start gap-basalt-space-lg"
             role="option"
             aria-selected={selectedFolderId === null}
             onClick={() => handleSelect(null)}
@@ -150,7 +150,7 @@ function FolderFilter({
           <Button
             variant="ghost"
             size="sm"
-            className="justify-start gap-2"
+            className="justify-start gap-basalt-space-lg"
             role="option"
             aria-selected={selectedFolderId === "uncategorized"}
             onClick={() => handleSelect("uncategorized")}
@@ -168,7 +168,7 @@ function FolderFilter({
               key={folder.id}
               variant="ghost"
               size="sm"
-              className="justify-start gap-2"
+              className="justify-start gap-basalt-space-lg"
               role="option"
               aria-selected={selectedFolderId === folder.id}
               onClick={() => handleSelect(folder.id)}
@@ -209,7 +209,7 @@ export function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
           variant="outline"
           size="sm"
           className={cn(
-            "gap-1.5",
+            "gap-basalt-space-md",
             selectedTagIds.size > 0
               ? "border-basalt-primary/30 bg-basalt-primary/5 text-basalt-foreground"
               : "border-basalt-border text-basalt-muted-foreground hover:text-basalt-foreground hover:border-basalt-foreground/30",
@@ -221,19 +221,21 @@ export function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
           <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-2" align="start">
+      <PopoverContent className="w-56 p-basalt-space-lg" align="start">
         <Input
           placeholder="搜索标签..."
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
         <div
-          className="mt-1 flex max-h-64 flex-col overflow-y-auto"
+          className="mt-basalt-space-sm flex max-h-64 flex-col overflow-y-auto"
           role="listbox"
           aria-label="标签"
         >
           {filteredTags.length === 0 ? (
-            <p className="py-3 text-center text-sm text-basalt-muted-foreground">未找到标签</p>
+            <p className="py-basalt-space-card-sm text-center text-basalt-sm text-basalt-muted-foreground">
+              未找到标签
+            </p>
           ) : (
             filteredTags.map((tag) => {
               const styles = getTagStyles(tag.name, tag.color);
@@ -244,7 +246,7 @@ export function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="justify-start gap-2"
+                  className="justify-start gap-basalt-space-lg"
                   onClick={() => onToggle(tag.id)}
                   role="option"
                   aria-selected={isSelected}

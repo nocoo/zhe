@@ -190,7 +190,7 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
           menuItems={
             <DropdownMenuItem asChild>
               <a href={upload.publicUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink aria-hidden />
+                <ExternalLink className="size-4 shrink-0" aria-hidden />
                 在新标签页打开
               </a>
             </DropdownMenuItem>

@@ -9,7 +9,9 @@ import {
   SidebarUser,
 } from "@nocoo/basalt/components/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@nocoo/basalt/components/tooltip";
+import { Plus } from "@nocoo/basalt/icons";
 import { FolderIcon } from "@/components/folder-icon";
+import type { buildLinkCounts } from "@/models/links";
 import type { Folder } from "@/models/types";
 import {
   FOLDER_NAV_ITEMS,
@@ -23,30 +25,56 @@ interface SidebarCollapsedProps {
   currentFolder: string | null | "__other__";
   user?: { name?: string | null; image?: string | null } | undefined;
   folders: Folder[];
+  linkCounts: ReturnType<typeof buildLinkCounts>;
   openSearch: () => void;
+  onCreateFolder: () => void;
 }
 
 function isFolderNavActive(currentFolder: string | null | "__other__", folderParam: string | null) {
   return currentFolder === folderParam;
 }
 
-function CollapsedRow({
-  href,
-  active,
+function CollapsedAction({
   label,
+  onClick,
   children,
 }: {
-  href: string;
-  active: boolean;
   label: string;
+  onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <SidebarIconItem href={href} active={active} aria-label={label}>
+        <SidebarIconItem onClick={onClick} aria-label={label}>
           {children}
           <span className="sr-only">{label}</span>
+        </SidebarIconItem>
+      </TooltipTrigger>
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function CollapsedRow({
+  href,
+  active,
+  label,
+  ariaLabel = label,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  label: string;
+  ariaLabel?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <SidebarIconItem href={href} active={active} aria-label={ariaLabel}>
+          {children}
+          <span className="sr-only">{ariaLabel}</span>
         </SidebarIconItem>
       </TooltipTrigger>
       <TooltipContent side="right">{label}</TooltipContent>
@@ -59,7 +87,9 @@ export function SidebarCollapsed({
   currentFolder,
   user,
   folders,
+  linkCounts,
   openSearch,
+  onCreateFolder,
 }: SidebarCollapsedProps) {
   return (
     <>
@@ -73,7 +103,8 @@ export function SidebarCollapsed({
             key={item.href}
             href={item.href}
             active={isStaticNavActive(pathname, item.href)}
-            label={item.title}
+            label={item.badge ? `${item.title} · ${item.badge}` : item.title}
+            ariaLabel={item.title}
           >
             <item.icon className="size-4" strokeWidth={1.5} aria-hidden />
           </CollapsedRow>
@@ -84,18 +115,26 @@ export function SidebarCollapsed({
             key={item.title}
             href={item.href}
             active={isFolderNavActive(currentFolder, item.folderParam)}
-            label={item.title}
+            label={`${item.title} · ${
+              item.folderParam === null ? linkCounts.total : linkCounts.uncategorized
+            }`}
+            ariaLabel={item.title}
           >
             <item.icon className="size-4" strokeWidth={1.5} aria-hidden />
           </CollapsedRow>
         ))}
+
+        <CollapsedAction label="新建文件夹" onClick={onCreateFolder}>
+          <Plus className="size-4" strokeWidth={1.5} aria-hidden />
+        </CollapsedAction>
 
         {folders.map((folder) => (
           <CollapsedRow
             key={folder.id}
             href={`/dashboard?folder=${folder.id}`}
             active={currentFolder === folder.id}
-            label={folder.name}
+            label={`${folder.name} · ${linkCounts.byFolder.get(folder.id) ?? 0}`}
+            ariaLabel={folder.name}
           >
             <FolderIcon name={folder.icon} className="size-4" strokeWidth={1.5} aria-hidden />
           </CollapsedRow>

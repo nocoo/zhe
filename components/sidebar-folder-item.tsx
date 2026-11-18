@@ -135,7 +135,7 @@ export function SidebarFolderItem({
       <NavRowLink href={`/dashboard?folder=${folder.id}`} active={isSelected}>
         <FolderIcon name={folder.icon} className="size-4" strokeWidth={1.5} aria-hidden />
         <span className="min-w-0 flex-1 truncate text-left">{folder.name}</span>
-        <span className="group-hover:opacity-0">
+        <span className="flex size-6 shrink-0 items-center justify-end group-hover:invisible group-focus-within:invisible">
           <NavRowCount>{linkCount}</NavRowCount>
         </span>
       </NavRowLink>
@@ -153,14 +153,14 @@ export function SidebarFolderItem({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" side="bottom" className="w-32">
           <DropdownMenuItem onClick={() => onStartEditing(folder.id)}>
-            <Pencil aria-hidden />
+            <Pencil className="size-4 shrink-0" aria-hidden />
             编辑
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => onDelete(folder.id)}
             className="text-basalt-destructive focus:text-basalt-destructive"
           >
-            <Trash2 aria-hidden />
+            <Trash2 className="size-4 shrink-0" aria-hidden />
             删除
           </DropdownMenuItem>
         </DropdownMenuContent>
