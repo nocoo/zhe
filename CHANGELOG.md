@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.3.8] - 2026-11-18
+
+### Fixed
+- Replace non-existent `*-basalt-space-card-sm` utility classes with `*-basalt-card-sm` across link cards, footers, skeletons, and filter/toolbar popovers, and align idea-editor skeleton card padding to `p-basalt-card`.
+
 ## [v2.3.7] - 2026-11-18
 
 ### Fixed
