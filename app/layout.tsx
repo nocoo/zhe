@@ -51,7 +51,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${dmSans.variable} antialiased`}>
         <BasaltProviders>
           {children}
-          <Toaster />
+          <Toaster mobileOffset={{ bottom: "calc(env(safe-area-inset-bottom) + 6rem)" }} />
         </BasaltProviders>
       </body>
     </html>
