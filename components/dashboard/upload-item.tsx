@@ -68,7 +68,7 @@ function DeleteUploadDialog({
   const focusReturn = useDialogReturnFocus();
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent {...focusReturn}>
+      <AlertDialogContent className="flex flex-col gap-4" {...focusReturn}>
         <AlertDialogHeader>
           <AlertDialogTitle>确认删除</AlertDialogTitle>
           <AlertDialogDescription>此操作不可撤销，确定要删除这个文件吗？</AlertDialogDescription>
@@ -205,7 +205,7 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
         />
         {isVideo && (
           <Dialog open={preview} onOpenChange={setPreview}>
-            <DialogContent size="xl" {...previewFocusReturn}>
+            <DialogContent size="xl" className="flex flex-col gap-4" {...previewFocusReturn}>
               <DialogHeader>
                 <DialogTitle>{upload.fileName}</DialogTitle>
                 <DialogDescription>已保存在您的 Zhe 存储</DialogDescription>

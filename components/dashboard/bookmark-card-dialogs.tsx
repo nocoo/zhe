@@ -64,7 +64,7 @@ export function BookmarkCardDialogs({
       >
         <DialogContent
           size="lg"
-          className="max-h-[90dvh] overflow-y-auto"
+          className="flex max-h-[90dvh] flex-col gap-4 overflow-y-auto"
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             restoreFocus();
@@ -89,6 +89,7 @@ export function BookmarkCardDialogs({
         }}
       >
         <AlertDialogContent
+          className="flex flex-col gap-4"
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             restoreFocus();

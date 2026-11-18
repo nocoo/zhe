@@ -147,7 +147,7 @@ export function EnrichmentDialog({
     >
       <DialogContent
         size="xl"
-        className="max-h-[90dvh] gap-0 overflow-hidden p-0 sm:p-0"
+        className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:p-0"
         data-testid="enrichment-dialog"
       >
         <DialogHeader className="border-b border-basalt-border px-5 py-4 pr-12">

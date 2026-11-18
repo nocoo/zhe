@@ -259,7 +259,7 @@ function PostMedia({
           />
         </Button>
       </DialogTrigger>
-      <DialogContent size="xl">
+      <DialogContent size="xl" className="flex flex-col gap-4">
         <DialogHeader>
           <DialogTitle>图片预览</DialogTitle>
           <DialogDescription>已保存到您的 Zhe 存储</DialogDescription>

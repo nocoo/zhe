@@ -48,7 +48,7 @@ function DeleteConfirmDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="flex flex-col gap-4">
         <AlertDialogHeader>
           <AlertDialogTitle>删除孤儿文件？</AlertDialogTitle>
           <AlertDialogDescription>

@@ -114,7 +114,7 @@ export function TagManageRow({ row, disabled, onRename, onRecolor, onDelete }: T
             <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
           </Button>
         </AlertDialogTrigger>
-        <AlertDialogContent>
+        <AlertDialogContent className="flex flex-col gap-4">
           <AlertDialogHeader>
             <AlertDialogTitle>删除标签「{row.name}」？</AlertDialogTitle>
             <AlertDialogDescription>

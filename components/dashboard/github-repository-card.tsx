@@ -406,7 +406,7 @@ export function GitHubRepositoryCard({
         editCallbacks={editCallbacks}
       />
       <Dialog open={reading} onOpenChange={setReading}>
-        <DialogContent size="xl" className="max-h-[90dvh] overflow-hidden">
+        <DialogContent size="xl" className="flex max-h-[90dvh] flex-col gap-4 overflow-hidden">
           <div className="flex items-start gap-3">
             <DialogHeader className="min-w-0 flex-1">
               <DialogTitle className="break-all">{name}</DialogTitle>

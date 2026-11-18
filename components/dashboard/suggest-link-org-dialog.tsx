@@ -114,7 +114,7 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
     <Dialog open={vm.open} onOpenChange={(open) => !open && vm.close()}>
       <DialogContent
         size="xl"
-        className="max-h-[90dvh] overflow-hidden sm:w-[40rem]"
+        className="flex max-h-[90dvh] flex-col gap-4 overflow-hidden sm:w-[40rem]"
         data-testid="suggest-link-org-dialog"
       >
         <div className="flex shrink-0 items-start justify-between gap-4">

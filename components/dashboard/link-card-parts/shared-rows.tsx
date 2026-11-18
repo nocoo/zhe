@@ -165,7 +165,7 @@ export function Description({
           </span>
         </Button>
       </DialogTrigger>
-      <DialogContent size="lg" className="max-h-[90dvh] overflow-y-auto">
+      <DialogContent size="lg" className="flex max-h-[90dvh] flex-col gap-4 overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{display.title}</DialogTitle>
           <DialogDescription>收藏内容</DialogDescription>

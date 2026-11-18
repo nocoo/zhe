@@ -104,7 +104,7 @@ export const LinkCard = memo(function LinkCard({
     <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
       <DialogContent
         size="xl"
-        className="max-h-[90dvh] overflow-y-auto p-0 sm:p-0"
+        className="flex max-h-[90dvh] flex-col gap-4 overflow-y-auto p-0 sm:p-0"
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           detailsTrigger.current?.focus();

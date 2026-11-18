@@ -42,7 +42,7 @@ export function CreateIdeaModal({
   const focusReturn = useDialogReturnFocus();
   return (
     <Dialog open={vm.isCreateModalOpen} onOpenChange={vm.setIsCreateModalOpen}>
-      <DialogContent size="xl" className="create-dialog" {...focusReturn}>
+      <DialogContent size="xl" className="create-dialog flex flex-col gap-4" {...focusReturn}>
         <DialogHeader>
           <DialogTitle>新想法</DialogTitle>
           <DialogDescription>记录新的想法，支持 Markdown 格式。</DialogDescription>
@@ -111,7 +111,7 @@ export function DeleteIdeaConfirm({ vm }: { vm: IdeasViewModel }) {
   const focusReturn = useDialogReturnFocus();
   return (
     <Dialog open={vm.isDeleteConfirmOpen} onOpenChange={vm.cancelDelete}>
-      <DialogContent {...focusReturn}>
+      <DialogContent className="flex flex-col gap-4" {...focusReturn}>
         <DialogHeader>
           <DialogTitle>删除想法</DialogTitle>
           <DialogDescription>确定要删除这个想法吗？此操作无法撤销。</DialogDescription>

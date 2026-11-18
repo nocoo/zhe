@@ -109,7 +109,7 @@ export function CreateLinkModal({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent
         size="lg"
-        className="create-dialog max-h-[90dvh] overflow-y-auto rounded-basalt-card border-0"
+        className="create-dialog flex max-h-[90dvh] flex-col gap-4 overflow-y-auto rounded-basalt-card border-0"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           urlInput.current?.focus();

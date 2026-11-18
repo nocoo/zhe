@@ -51,7 +51,7 @@ function RevokeButton({
           撤销
         </Button>
       </AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent className="flex flex-col gap-4">
         <AlertDialogHeader>
           <AlertDialogTitle>撤销 API Key</AlertDialogTitle>
           <AlertDialogDescription>
