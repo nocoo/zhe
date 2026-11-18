@@ -24,7 +24,7 @@ export function SummaryCard({
     <LayerCard
       padding="none"
       className={cn(
-        "p-4",
+        "p-4 animate-fade-up",
         variant === "warning" && "bg-basalt-warning/5",
         variant === "success" && "bg-basalt-success/5",
         variant === "default" && "bg-basalt-secondary",

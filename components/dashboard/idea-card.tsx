@@ -83,7 +83,10 @@ export const IdeaCard = memo(function IdeaCard({
     <LayerCard
       padding="none"
       data-card-actions-container
-      className={cn("group relative flex w-full flex-col p-4 text-left", className)}
+      className={cn(
+        "group relative flex w-full flex-col p-4 text-left transition-shadow hover:ring-basalt-border",
+        className,
+      )}
     >
       <button
         type="button"
@@ -190,7 +193,10 @@ export const IdeaRow = memo(function IdeaRow({
     <LayerCard
       padding="none"
       data-card-actions-container
-      className={cn("group relative flex w-full items-center gap-4 px-4 py-3 text-left", className)}
+      className={cn(
+        "group relative flex w-full items-center gap-4 px-4 py-3 text-left transition-shadow hover:ring-basalt-border",
+        className,
+      )}
     >
       <button
         type="button"

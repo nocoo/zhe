@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.3.9] - 2026-11-18
+
+### Fixed
+- Restore `@utility animate-fade-up` and staggered card entrance animations across links, ideas, GitHub/X libraries, tags, uploads, overview stats, and storage summary cards, restore `transition-shadow hover:ring-basalt-border` on `IdeaCard`/`IdeaRow`, and align list/storage skeleton motion & surfaces.
+
 ## [v2.3.8] - 2026-11-18
 
 ### Fixed

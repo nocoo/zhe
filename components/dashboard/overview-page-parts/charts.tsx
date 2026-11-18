@@ -67,7 +67,7 @@ export function StatCard({ label, value, icon: Icon, sparkline, index = 0 }: Sta
   return (
     <LayerCard
       padding="none"
-      className=""
+      className="animate-fade-up"
       style={{ animationDelay: `calc(var(--motion-stagger) * ${index})` }}
       data-testid="stat-card"
       data-stat-label={label}
