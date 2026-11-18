@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.3.7] - 2026-11-18
+
+### Fixed
+- Interrupt opening card editor (#1111)
+- Align dashboard navigation and spacing (#1110)
+
 ## [v2.3.6] - 2026-11-18
 
 ### Changed
