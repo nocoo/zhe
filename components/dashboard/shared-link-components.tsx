@@ -1,16 +1,10 @@
 "use client";
 
-import { Plus, X } from "lucide-react";
+import { Button } from "@nocoo/basalt/components/button";
+import { Input } from "@nocoo/basalt/components/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@nocoo/basalt/components/popover";
+import { Plus, X } from "@nocoo/basalt/icons";
 import { useState } from "react";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { getTagStyles } from "@/models/tags";
 import type { Tag } from "@/models/types";
 
@@ -120,46 +114,56 @@ export function TagPicker({
           {triggerLabel}
         </button>
       </PopoverTrigger>
-      <PopoverContent className={`${popoverWidth} p-0`} align="start">
-        <Command shouldFilter={false}>
-          <CommandInput placeholder="搜索或创建标签..." value={search} onValueChange={setSearch} />
-          <CommandList>
-            <CommandEmpty className="py-3 text-center text-sm text-basalt-muted-foreground">
-              未找到标签
-            </CommandEmpty>
-            <CommandGroup>
-              {unassignedTags
-                .filter((t) => t.name.toLowerCase().includes(search.toLowerCase()))
-                .map((tag) => {
-                  const styles = getTagStyles(tag.name, tag.color);
-                  return (
-                    <CommandItem
-                      key={tag.id}
-                      value={tag.id}
-                      onSelect={() => handleSelect(tag.id)}
-                      className="flex items-center gap-2"
-                    >
-                      <span className="h-2 w-2 rounded-full" style={styles.dot} />
-                      <span>{tag.name}</span>
-                    </CommandItem>
-                  );
-                })}
-            </CommandGroup>
-            {search.trim() &&
-              !allTags.some((t) => t.name.toLowerCase() === search.trim().toLowerCase()) && (
-                <CommandGroup>
-                  <CommandItem
-                    onSelect={handleCreate}
-                    className="flex items-center gap-2"
-                    data-testid="tag-create-option"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    <span>创建 &ldquo;{search.trim()}&rdquo;</span>
-                  </CommandItem>
-                </CommandGroup>
-              )}
-          </CommandList>
-        </Command>
+      <PopoverContent className={`${popoverWidth} p-2`} align="start">
+        <Input
+          placeholder="搜索或创建标签..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <div
+          className="mt-1 flex max-h-64 flex-col overflow-y-auto"
+          role="listbox"
+          aria-label="标签"
+        >
+          {unassignedTags
+            .filter((t) => t.name.toLowerCase().includes(search.toLowerCase()))
+            .map((tag) => {
+              const styles = getTagStyles(tag.name, tag.color);
+              return (
+                <Button
+                  key={tag.id}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start gap-2"
+                  onClick={() => handleSelect(tag.id)}
+                  role="option"
+                  aria-selected={false}
+                >
+                  <span className="size-2 rounded-full" style={styles.dot} />
+                  <span className="truncate">{tag.name}</span>
+                </Button>
+              );
+            })}
+          {unassignedTags.filter((tag) => tag.name.toLowerCase().includes(search.toLowerCase()))
+            .length === 0 && !search.trim() ? (
+            <p className="py-3 text-center text-sm text-basalt-muted-foreground">未找到标签</p>
+          ) : null}
+          {search.trim() &&
+            !allTags.some((t) => t.name.toLowerCase() === search.trim().toLowerCase()) && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="justify-start gap-2"
+                onClick={handleCreate}
+                data-testid="tag-create-option"
+              >
+                <Plus className="size-3.5" />
+                <span className="truncate">创建 &ldquo;{search.trim()}&rdquo;</span>
+              </Button>
+            )}
+        </div>
       </PopoverContent>
     </Popover>
   );

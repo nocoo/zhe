@@ -1,19 +1,19 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
-import { type ReactNode, type Ref, useCallback, useRef } from "react";
-import { createTag } from "@/actions/tags";
-import { Button } from "@/components/ui/button";
+import { Button } from "@nocoo/basalt/components/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "@nocoo/basalt/components/dialog";
+import { Input } from "@nocoo/basalt/components/input";
+import { InputArea as Textarea } from "@nocoo/basalt/components/input-area";
+import { Label } from "@nocoo/basalt/components/label";
+import { Loader2 } from "@nocoo/basalt/icons";
+import { type ReactNode, type Ref, useCallback, useRef } from "react";
+import { createTag } from "@/actions/tags";
 import type { Folder, Link, Tag } from "@/models/types";
 import { useCreateLinkViewModel } from "@/viewmodels/useLinksViewModel";
 import { FolderSelect, ModeTabs, SlugInput, TagsField } from "./create-link-modal-parts/fields";

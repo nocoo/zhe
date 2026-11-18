@@ -1,10 +1,10 @@
 "use client";
 
-import { Check, X } from "lucide-react";
+import { Button } from "@nocoo/basalt/components/button";
+import { Input } from "@nocoo/basalt/components/input";
+import { Check, X } from "@nocoo/basalt/icons";
 import { useState } from "react";
 import { FolderIcon } from "@/components/folder-icon";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { DEFAULT_FOLDER_ICON, FOLDER_ICONS } from "@/models/folders";
 

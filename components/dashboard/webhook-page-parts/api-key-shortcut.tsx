@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, LayerCard } from "@nocoo/basalt";
-import { ArrowRight, Check, Copy, KeyRound } from "lucide-react";
+import { ArrowRight, Check, Copy, KeyRound } from "@nocoo/basalt/icons";
 
 interface ApiKeyShortcutProps {
   isMigrating: boolean;

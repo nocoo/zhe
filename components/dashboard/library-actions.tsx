@@ -1,7 +1,7 @@
 "use client";
 
 import { toast } from "@nocoo/basalt/components/toast";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw } from "@nocoo/basalt/icons";
 import { useState } from "react";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import type { EnrichmentSource } from "@/models/connector-activity";

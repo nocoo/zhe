@@ -1,9 +1,9 @@
 "use client";
 
+import { Button } from "@nocoo/basalt/components/button";
 import { useEffect, useRef, useState } from "react";
 import { loadXBookmarks } from "@/actions/connector";
 import { loadEnrichmentEventsAction } from "@/actions/enrichment";
-import { Button } from "@/components/ui/button";
 import type { XBookmark } from "@/lib/connector/jobs";
 import {
   ENRICHMENT_STATES,

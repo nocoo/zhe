@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@nocoo/basalt/icons";
 
 export interface BookmarkAction {
   id: string;

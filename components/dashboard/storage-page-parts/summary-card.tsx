@@ -1,5 +1,6 @@
 "use client";
 
+import { LayerCard } from "@nocoo/basalt";
 import { cn } from "@/lib/utils";
 
 interface SummaryCardProps {
@@ -20,9 +21,10 @@ export function SummaryCard({
   index = 0,
 }: SummaryCardProps) {
   return (
-    <div
+    <LayerCard
+      padding="none"
       className={cn(
-        "rounded-basalt-card p-4",
+        "p-4",
         variant === "warning" && "bg-basalt-warning/5",
         variant === "success" && "bg-basalt-success/5",
         variant === "default" && "bg-basalt-secondary",
@@ -35,6 +37,6 @@ export function SummaryCard({
       </div>
       <p className="mt-2 text-xl font-semibold font-display tabular-nums tracking-tight">{value}</p>
       {sub && <p className="text-xs text-basalt-muted-foreground mt-0.5">{sub}</p>}
-    </div>
+    </LayerCard>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge, Button, LayerCard } from "@nocoo/basalt";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw } from "@nocoo/basalt/icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadConnectorSummary } from "@/actions/connector";
 import { EnrichmentButton } from "./enrichment-button";

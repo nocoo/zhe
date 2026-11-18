@@ -1,10 +1,11 @@
 "use client";
 
+import { LayerCard } from "@nocoo/basalt";
+import { Button } from "@nocoo/basalt/components/button";
+import { Input } from "@nocoo/basalt/components/input";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
-import { Tags } from "lucide-react";
+import { Tags } from "@nocoo/basalt/icons";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { usePageCreateAction } from "@/contexts/create-action";
 import { staggerStyle } from "@/lib/motion";
 import { type TagPaletteColor, tagColorFromName } from "@/models/tags";
@@ -40,9 +41,9 @@ export function TagsPage() {
       <PageHeader title="标签" description={`共 ${vm.rows.length} 个`} />
 
       {vm.creating && (
-        <div
-          data-basalt-surface=""
-          className="mb-4 flex flex-col gap-3 rounded-basalt-card bg-basalt-secondary p-3 md:flex-row md:items-center"
+        <LayerCard
+          padding="none"
+          className="mb-4 flex flex-col gap-3 bg-basalt-secondary p-3 md:flex-row md:items-center"
           data-testid="tag-create-form"
         >
           <Input
@@ -87,16 +88,18 @@ export function TagsPage() {
               创建
             </Button>
           </div>
-        </div>
+        </LayerCard>
       )}
 
       {vm.rows.length === 0 && !vm.creating ? (
-        <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-          <Tags className="h-8 w-8 text-basalt-muted-foreground" strokeWidth={1.5} />
-          <p className="text-sm text-basalt-muted-foreground" data-testid="tags-empty">
-            还没有标签。创建一个来组织链接和想法。
-          </p>
-        </div>
+        <LayerCard padding="none">
+          <LayerCard.Empty
+            icon={<Tags className="size-10" strokeWidth={1.5} />}
+            title="还没有标签"
+            description="创建一个来组织链接和想法。"
+            data-testid="tags-empty"
+          />
+        </LayerCard>
       ) : (
         <div className="space-y-2" data-testid="tags-list">
           {vm.rows.map((row, i) => (

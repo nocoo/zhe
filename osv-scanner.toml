@@ -1,8 +1,11 @@
 # osv-scanner configuration
 # See: https://google.github.io/osv-scanner/configuration/
 #
-# Currently empty — no active ignores. Add `[[IgnoredVulns]]` blocks here
-# only after confirming the vuln cannot be fixed by upgrading. Always
-# include `reason = "..."` and grep the lockfile to confirm the entry
-# is still load-bearing on the next release; osv-scanner warns on
-# unused ignores during pre-push.
+# Active ignores must describe a still-load-bearing dependency and expire
+# on a reviewed date; osv-scanner warns on unused ignores during pre-push.
+
+# Dev-only tooling waiver, reviewed 2026-11-18.
+[[IgnoredVulns]]
+id = "GHSA-fc5q-39xc-vjpf"
+ignoreUntil = 2026-12-18
+reason = "picomatch 4.0.7 is required by build/test tooling and has no upstream fix; 30-day waiver"

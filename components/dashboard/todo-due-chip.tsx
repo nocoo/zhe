@@ -11,7 +11,7 @@
  * status table.
  */
 
-import { AlertCircle, CalendarDays, Check, Clock } from "lucide-react";
+import { AlertCircle, CalendarDays, Check, Clock } from "@nocoo/basalt/icons";
 import { type CSSProperties, memo } from "react";
 import { type DueStatus, dueStatus } from "@/lib/todo-due";
 import { cn } from "@/lib/utils";

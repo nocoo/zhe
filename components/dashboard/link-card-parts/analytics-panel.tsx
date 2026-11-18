@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, Loader2 } from "lucide-react";
+import { BarChart3, Loader2 } from "@nocoo/basalt/icons";
 import { cn } from "@/lib/utils";
 import { topBreakdownEntries } from "@/models/links";
 import type { AnalyticsStats } from "@/models/types";

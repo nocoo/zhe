@@ -129,7 +129,7 @@ test.describe("Link CRUD", () => {
 
         // Create a tag via TagPicker
         await page.locator('[data-testid="tag-picker-trigger"]').click();
-        await page.locator("[cmdk-input]").fill(tagName);
+        await page.getByPlaceholder("搜索或创建标签...").fill(tagName);
         await page.locator('[data-testid="tag-create-option"]').click();
 
         // Submit

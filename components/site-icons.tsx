@@ -1,6 +1,6 @@
 "use client";
 
-import { createLucideIcon } from "lucide-react";
+import { createLucideIcon } from "@nocoo/basalt/icons";
 
 // Lucide removed brand exports in v1. Keep its original ISC-licensed icon nodes.
 // https://github.com/lucide-icons/lucide/tree/0.468.0/icons

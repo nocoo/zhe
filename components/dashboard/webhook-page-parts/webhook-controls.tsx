@@ -1,8 +1,8 @@
 "use client";
 
-import { Copy } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
+import { Button } from "@nocoo/basalt/components/button";
+import { Slider } from "@nocoo/basalt/components/slider";
+import { Copy } from "@nocoo/basalt/icons";
 import { RATE_LIMIT_ABSOLUTE_MAX } from "@/models/webhook";
 
 interface CredentialRowProps {

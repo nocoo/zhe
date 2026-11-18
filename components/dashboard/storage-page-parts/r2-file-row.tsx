@@ -1,9 +1,9 @@
 "use client";
 
-import { ExternalLink, File, FileText, ImageIcon, Video } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { Button } from "@nocoo/basalt/components/button";
+import { Checkbox } from "@nocoo/basalt/components/checkbox";
+import { ExternalLink, File, FileText, ImageIcon, Video } from "@nocoo/basalt/icons";
 import { cn } from "@/lib/utils";
 import type { StorageFile } from "@/models/storage";
 import { formatBytes, getFileCategory, getFileName } from "@/models/storage";

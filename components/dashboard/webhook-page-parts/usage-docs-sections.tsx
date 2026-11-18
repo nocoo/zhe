@@ -1,7 +1,7 @@
 "use client";
 
-import { Copy } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@nocoo/basalt/components/button";
+import { Copy } from "@nocoo/basalt/icons";
 import type { OpenApiSpec } from "@/models/webhook";
 
 // ---- Method / param / response tables --------------------------------------

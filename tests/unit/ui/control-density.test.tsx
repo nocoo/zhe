@@ -1,18 +1,23 @@
 // @vitest-environment happy-dom
 
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
 import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectValue } from "@/components/ui/select";
+} from "@nocoo/basalt/components/alert-dialog";
+import { Button } from "@nocoo/basalt/components/button";
+import { Checkbox } from "@nocoo/basalt/components/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "@nocoo/basalt/components/dialog";
+import { Input } from "@nocoo/basalt/components/input";
+import { Select, SelectTrigger, SelectValue } from "@nocoo/basalt/components/select";
+import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 afterEach(() => cleanup());
 
@@ -26,8 +31,14 @@ describe("dialog typography", () => {
         </AlertDialogContent>
       </AlertDialog>,
     );
-    expect(screen.getByRole("heading", { name: "删除收藏？" })).toHaveClass("text-lg", "leading-6");
-    expect(screen.getByText("此操作不可撤销")).toHaveClass("text-sm", "leading-5");
+    expect(screen.getByRole("heading", { name: "删除收藏？" })).toHaveClass(
+      "text-basalt-xl",
+      "leading-basalt-tight",
+    );
+    expect(screen.getByText("此操作不可撤销")).toHaveClass(
+      "text-basalt-base",
+      "leading-[var(--basalt-line-relaxed)]",
+    );
   });
   it("uses a distinct modal heading and consistent body scale", () => {
     render(
@@ -39,11 +50,11 @@ describe("dialog typography", () => {
       </Dialog>,
     );
     const heading = screen.getByRole("heading", { name: "编辑收藏" });
-    expect(heading.className).toMatch(/\btext-lg\b/);
-    expect(heading.className).toMatch(/\bleading-6\b/);
+    expect(heading.className).toMatch(/\btext-basalt-xl\b/);
+    expect(heading.className).toMatch(/\bleading-basalt-tight\b/);
     const description = screen.getByText("修改标题和备注");
-    expect(description.className).toMatch(/\btext-sm\b/);
-    expect(description.className).toMatch(/\bleading-5\b/);
+    expect(description.className).toMatch(/\btext-basalt-base\b/);
+    expect(description.className).toContain("leading-[var(--basalt-line-relaxed)]");
     expect(screen.getByRole("dialog")).toHaveAttribute("data-basalt-surface-root");
   });
 });

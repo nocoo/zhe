@@ -1,16 +1,16 @@
 "use client";
 
+import { Button } from "@nocoo/basalt/components/button";
+import { Input } from "@nocoo/basalt/components/input";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
-import { Filter, LayoutGrid, List, Search, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@nocoo/basalt/components/select";
+import { Filter, LayoutGrid, List, Search, X } from "@nocoo/basalt/icons";
 import { getTagStyles } from "@/models/tags";
 import type { IdeasSortBy, IdeasViewModel } from "@/viewmodels/useIdeasViewModel";
 import { IconAction } from "../icon-action";

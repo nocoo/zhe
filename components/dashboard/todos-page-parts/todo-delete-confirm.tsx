@@ -16,7 +16,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@nocoo/basalt/components/alert-dialog";
 
 export interface TodoDeleteConfirmProps {
   open: boolean;

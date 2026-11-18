@@ -3,7 +3,7 @@
 import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { PageHeaderSkeleton } from "@/components/ui/page-header";
+import { PageHeaderSkeleton } from "@/components/page-header-skeleton";
 
 afterEach(() => cleanup());
 

@@ -51,7 +51,6 @@ export default defineConfig({
         ".next/",
         // Config/schema/type-only files
         "lib/db/schema.ts",
-        "lib/palette.ts",
         // Thin wrappers
         "app/api/auth/**",
         // Shadcn/UI auto-generated primitives

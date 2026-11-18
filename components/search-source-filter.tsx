@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@nocoo/basalt/components/button";
 import {
   SEARCH_SOURCE_LABELS,
   SEARCH_SOURCES,

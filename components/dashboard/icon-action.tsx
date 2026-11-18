@@ -1,8 +1,13 @@
 "use client";
 
+import { Button, type ButtonProps } from "@nocoo/basalt/components/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@nocoo/basalt/components/tooltip";
 import { forwardRef } from "react";
-import { Button, type ButtonProps } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 export type IconActionDensity = "card" | "toolbar";

@@ -1,13 +1,13 @@
 "use client";
 
-import { Loader2, type LucideIcon, MoreHorizontal } from "lucide-react";
-import { type ReactNode, type Ref, useEffect, useRef, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@nocoo/basalt/components/dropdown-menu";
+import { Loader2, type LucideIcon, MoreHorizontal } from "@nocoo/basalt/icons";
+import { type ReactNode, type Ref, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { IconAction } from "./icon-action";
 

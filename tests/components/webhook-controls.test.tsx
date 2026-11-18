@@ -2,7 +2,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@/components/ui/slider", () => ({
+vi.mock("@nocoo/basalt/components/slider", () => ({
   Slider: (props: {
     onValueChange?: (values: number[]) => void;
     onValueCommit?: (values: number[]) => void;

@@ -15,19 +15,19 @@
  * aria-labels remain in English to keep the existing test contracts.
  */
 
-import { Search, X } from "lucide-react";
-import { useMemo } from "react";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@nocoo/basalt/components/button";
+import { Checkbox } from "@nocoo/basalt/components/checkbox";
+import { Input } from "@nocoo/basalt/components/input";
+import { Label } from "@nocoo/basalt/components/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@nocoo/basalt/components/select";
+import { Search, X } from "@nocoo/basalt/icons";
+import { useMemo } from "react";
 import type { TodoDueFilterKind } from "@/viewmodels/todos/useTodosFilters";
 
 export interface TodosFilterBarProps {

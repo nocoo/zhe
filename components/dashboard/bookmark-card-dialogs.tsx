@@ -9,14 +9,14 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@nocoo/basalt/components/alert-dialog";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from "@nocoo/basalt/components/dialog";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";
 import type { BookmarkCardViewModel } from "@/viewmodels/useBookmarkCardViewModel";
 import type { EditLinkCallbacks } from "@/viewmodels/useLinksViewModel";

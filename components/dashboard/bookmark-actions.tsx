@@ -1,13 +1,13 @@
 "use client";
 
-import { Copy, Loader2, MoreHorizontal } from "lucide-react";
-import { type Ref, useRef, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@nocoo/basalt/components/dropdown-menu";
+import { Copy, Loader2, MoreHorizontal } from "@nocoo/basalt/icons";
+import { type Ref, useRef, useState } from "react";
 import type { BookmarkAction } from "@/models/bookmark-actions";
 import { IconAction } from "./icon-action";
 

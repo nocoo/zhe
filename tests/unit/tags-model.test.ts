@@ -14,7 +14,7 @@ import {
 
 describe("models/tags", () => {
   describe("TAG_PALETTE", () => {
-    it("contains 12 colors matching defined --chart-N tokens", () => {
+    it("contains 12 colors matching defined --basalt-chart-N tokens", () => {
       expect(TAG_PALETTE).toHaveLength(12);
     });
 
@@ -142,16 +142,16 @@ describe("models/tags", () => {
   });
 
   describe("tagColorToken", () => {
-    it("returns a chart-N token string", () => {
+    it("returns a basalt-chart-N token string", () => {
       const token = tagColorToken("work");
-      expect(token).toMatch(/^chart-\d+$/);
+      expect(token).toMatch(/^basalt-chart-\d+$/);
     });
 
-    it("returns token in range chart-1 to chart-12", () => {
+    it("returns token in range basalt-chart-1 to basalt-chart-12", () => {
       const names = ["work", "personal", "工作", "🚀", "x", "orchid", "gray", "cobalt"];
       for (const name of names) {
         const token = tagColorToken(name);
-        const num = parseInt(token.replace("chart-", ""), 10);
+        const num = parseInt(token.replace("basalt-chart-", ""), 10);
         expect(num).toBeGreaterThanOrEqual(1);
         expect(num).toBeLessThanOrEqual(12);
       }
@@ -160,7 +160,7 @@ describe("models/tags", () => {
     it("never emits an undefined chart token for any hashed name", () => {
       for (let i = 0; i < 200; i++) {
         const token = tagColorToken(`probe-${i}`);
-        const num = Number.parseInt(token.replace("chart-", ""), 10);
+        const num = Number.parseInt(token.replace("basalt-chart-", ""), 10);
         expect(num).toBeGreaterThanOrEqual(1);
         expect(num).toBeLessThanOrEqual(12);
       }
@@ -169,10 +169,10 @@ describe("models/tags", () => {
     it("uses stored palette color instead of the name hash", () => {
       const hashed = tagColorToken("work");
       const stored = tagColorToken("work", "red");
-      expect(stored).toBe("chart-10");
-      expect(tagColorToken("anything", "red")).toBe("chart-10");
+      expect(stored).toBe("basalt-chart-10");
+      expect(tagColorToken("anything", "red")).toBe("basalt-chart-10");
       // stored color can differ from the name-derived default
-      if (hashed !== "chart-10") {
+      if (hashed !== "basalt-chart-10") {
         expect(stored).not.toBe(hashed);
       }
     });
@@ -225,9 +225,9 @@ describe("models/tags", () => {
 
     it("uses CSS variable references in style values", () => {
       const styles = getTagStyles("work");
-      expect(styles.badge.backgroundColor).toMatch(/^hsl\(var\(--chart-\d+\)/);
-      expect(styles.badge.color).toMatch(/^hsl\(var\(--chart-\d+\)\)$/);
-      expect(styles.dot.backgroundColor).toMatch(/^hsl\(var\(--chart-\d+\)\)$/);
+      expect(styles.badge.backgroundColor).toMatch(/^hsl\(var\(--basalt-chart-\d+\)/);
+      expect(styles.badge.color).toMatch(/^hsl\(var\(--basalt-chart-\d+\)\)$/);
+      expect(styles.dot.backgroundColor).toMatch(/^hsl\(var\(--basalt-chart-\d+\)\)$/);
     });
 
     it("returns consistent styles for same name", () => {
@@ -240,7 +240,7 @@ describe("models/tags", () => {
 
     it("handles Chinese tag names", () => {
       const styles = getTagStyles("工作");
-      expect(styles.badge.backgroundColor).toMatch(/^hsl\(var\(--chart-\d+\)/);
+      expect(styles.badge.backgroundColor).toMatch(/^hsl\(var\(--basalt-chart-\d+\)/);
     });
 
     it("badge background has alpha channel, dot does not", () => {
@@ -253,7 +253,7 @@ describe("models/tags", () => {
 
     it("honours a stored palette color", () => {
       const styles = getTagStyles("work", "red");
-      expect(styles.badge.color).toBe("hsl(var(--chart-10))");
+      expect(styles.badge.color).toBe("hsl(var(--basalt-chart-10))");
     });
 
     it("ignores retired / hex stored colors so badges stay on defined tokens", () => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { SectionRule } from "@nocoo/basalt/components/section-rule";
-import { Clock, Database } from "lucide-react";
+import { Clock, Database } from "@nocoo/basalt/icons";
 import { formatRelativeTime } from "@/lib/utils";
 import type { WorkerHealthStatus } from "@/models/overview";
 import { StatCard, StatSkeleton } from "./charts";

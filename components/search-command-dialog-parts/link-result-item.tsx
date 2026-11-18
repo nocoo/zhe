@@ -1,8 +1,8 @@
 "use client";
 
-import { Copy, FolderOpen, Link2 } from "lucide-react";
+import { CommandItem } from "@nocoo/basalt/components/command-palette";
+import { Copy, FolderOpen, Link2 } from "@nocoo/basalt/icons";
 import Image from "next/image";
-import { CommandItem } from "@/components/ui/command";
 import type { HighlightSegment } from "@/models/links";
 import { buildShortUrl, extractHostname, highlightMatches } from "@/models/links";
 import type { Link, Tag } from "@/models/types";

@@ -1,22 +1,22 @@
 "use client";
 
-import { Pencil } from "lucide-react";
-import { useContext, useState } from "react";
-import { updateXMediaDimensionsAction } from "@/actions/connector";
-import { BookmarkActionButton } from "@/components/dashboard/bookmark-actions";
-import { TagBadge, TagPicker } from "@/components/dashboard/shared-link-components";
-import { Button } from "@/components/ui/button";
-import { DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@nocoo/basalt/components/button";
+import { DialogTitle } from "@nocoo/basalt/components/dialog";
+import { Input } from "@nocoo/basalt/components/input";
+import { InputArea as Textarea } from "@nocoo/basalt/components/input-area";
+import { Label } from "@nocoo/basalt/components/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+} from "@nocoo/basalt/components/select";
+import { Pencil } from "@nocoo/basalt/icons";
+import { useContext, useState } from "react";
+import { updateXMediaDimensionsAction } from "@/actions/connector";
+import { BookmarkActionButton } from "@/components/dashboard/bookmark-actions";
+import { TagBadge, TagPicker } from "@/components/dashboard/shared-link-components";
 import { XBookmarksContext, XBookmarksUpdateContext } from "@/contexts/x-bookmarks";
 import { cn } from "@/lib/utils";
 import type { Folder, Link, LinkTag, Tag } from "@/models/types";

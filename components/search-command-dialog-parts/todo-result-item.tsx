@@ -1,9 +1,9 @@
 "use client";
 
-import { ListTodo } from "lucide-react";
+import { CommandItem } from "@nocoo/basalt/components/command-palette";
+import { ListTodo } from "@nocoo/basalt/icons";
 import { TodoDueChip } from "@/components/dashboard/todo-due-chip";
 import { TodoTagChip } from "@/components/dashboard/todo-tag-chip";
-import { CommandItem } from "@/components/ui/command";
 import type { TodoTreeNode } from "@/lib/db/scoped";
 import { highlightMatches } from "@/models/links";
 import { HighlightText } from "./highlight-text";

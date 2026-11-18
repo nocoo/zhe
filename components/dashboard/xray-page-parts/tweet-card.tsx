@@ -1,5 +1,8 @@
 "use client";
 
+import { LayerCard } from "@nocoo/basalt";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { Separator } from "@nocoo/basalt/components/separator";
 import {
   BadgeCheck,
   Bookmark,
@@ -11,9 +14,7 @@ import {
   Play,
   Quote,
   Repeat2,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+} from "@nocoo/basalt/icons";
 import {
   formatCount,
   formatTweetDate,
@@ -228,7 +229,7 @@ function MediaGrid({ media }: { media: XrayTweetMedia[] }) {
 
 export function TweetCard({ tweet, action }: { tweet: XrayTweetData; action?: React.ReactNode }) {
   return (
-    <div className="rounded-basalt-card bg-basalt-secondary p-4 space-y-3">
+    <LayerCard padding="none" className="bg-basalt-secondary p-4 space-y-3">
       <AuthorRow tweet={tweet} />
 
       <p className="text-sm whitespace-pre-wrap leading-relaxed">{tweet.text}</p>
@@ -260,6 +261,6 @@ export function TweetCard({ tweet, action }: { tweet: XrayTweetData; action?: Re
           <div className="flex justify-end">{action}</div>
         </>
       )}
-    </div>
+    </LayerCard>
   );
 }

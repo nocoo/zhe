@@ -1,4 +1,4 @@
-import { Zap } from "lucide-react";
+import { Zap } from "@nocoo/basalt/icons";
 import { Barcode } from "@/components/barcode";
 
 /** Header strip with punch hole, brand text, visitor label + barcode row. */

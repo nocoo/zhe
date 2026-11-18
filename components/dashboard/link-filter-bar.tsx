@@ -1,17 +1,10 @@
 "use client";
 
-import { Check, ChevronDown, FolderOpen, Tag, X } from "lucide-react";
+import { Button } from "@nocoo/basalt/components/button";
+import { Input } from "@nocoo/basalt/components/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@nocoo/basalt/components/popover";
+import { Check, ChevronDown, FolderOpen, Tag, X } from "@nocoo/basalt/icons";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { getTagStyles } from "@/models/tags";
 import type { Folder, Tag as TagType } from "@/models/types";
@@ -139,49 +132,57 @@ function FolderFilter({
           <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-48 p-0" align="start">
-        <Command shouldFilter={false}>
-          <CommandList>
-            <CommandGroup>
-              <CommandItem onSelect={() => handleSelect(null)} className="flex items-center gap-2">
-                <Check
-                  className={cn(
-                    "h-3.5 w-3.5",
-                    selectedFolderId === null ? "opacity-100" : "opacity-0",
-                  )}
-                />
-                <span>全部文件夹</span>
-              </CommandItem>
-              <CommandItem
-                onSelect={() => handleSelect("uncategorized")}
-                className="flex items-center gap-2"
-              >
-                <Check
-                  className={cn(
-                    "h-3.5 w-3.5",
-                    selectedFolderId === "uncategorized" ? "opacity-100" : "opacity-0",
-                  )}
-                />
-                <span>未分类</span>
-              </CommandItem>
-              {folders.map((folder) => (
-                <CommandItem
-                  key={folder.id}
-                  onSelect={() => handleSelect(folder.id)}
-                  className="flex items-center gap-2"
-                >
-                  <Check
-                    className={cn(
-                      "h-3.5 w-3.5",
-                      selectedFolderId === folder.id ? "opacity-100" : "opacity-0",
-                    )}
-                  />
-                  <span>{folder.name}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
+      <PopoverContent className="w-48 p-1" align="start">
+        <div className="flex flex-col gap-0.5" role="listbox" aria-label="文件夹">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="justify-start gap-2"
+            role="option"
+            aria-selected={selectedFolderId === null}
+            onClick={() => handleSelect(null)}
+          >
+            <Check
+              className={cn("size-3.5", selectedFolderId === null ? "opacity-100" : "opacity-0")}
+            />
+            <span>全部文件夹</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="justify-start gap-2"
+            role="option"
+            aria-selected={selectedFolderId === "uncategorized"}
+            onClick={() => handleSelect("uncategorized")}
+          >
+            <Check
+              className={cn(
+                "size-3.5",
+                selectedFolderId === "uncategorized" ? "opacity-100" : "opacity-0",
+              )}
+            />
+            <span>未分类</span>
+          </Button>
+          {folders.map((folder) => (
+            <Button
+              key={folder.id}
+              variant="ghost"
+              size="sm"
+              className="justify-start gap-2"
+              role="option"
+              aria-selected={selectedFolderId === folder.id}
+              onClick={() => handleSelect(folder.id)}
+            >
+              <Check
+                className={cn(
+                  "size-3.5",
+                  selectedFolderId === folder.id ? "opacity-100" : "opacity-0",
+                )}
+              />
+              <span className="truncate">{folder.name}</span>
+            </Button>
+          ))}
+        </div>
       </PopoverContent>
     </Popover>
   );
@@ -220,37 +221,44 @@ export function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
           <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-56 p-0" align="start">
-        <Command shouldFilter={false}>
-          <CommandInput placeholder="搜索标签..." value={search} onValueChange={setSearch} />
-          <CommandList>
-            <CommandEmpty className="py-3 text-center text-sm text-basalt-muted-foreground">
-              未找到标签
-            </CommandEmpty>
-            <CommandGroup>
-              {filteredTags.map((tag) => {
-                const styles = getTagStyles(tag.name, tag.color);
-                const isSelected = selectedTagIds.has(tag.id);
-                return (
-                  <CommandItem
-                    key={tag.id}
-                    value={tag.id}
-                    onSelect={() => onToggle(tag.id)}
-                    className="flex items-center gap-2"
-                    data-testid="tag-filter-item"
-                    data-tag-name={tag.name}
-                  >
-                    <Check
-                      className={cn("h-3.5 w-3.5", isSelected ? "opacity-100" : "opacity-0")}
-                    />
-                    <span className="h-2 w-2 rounded-full" style={styles.dot} />
-                    <span>{tag.name}</span>
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
-          </CommandList>
-        </Command>
+      <PopoverContent className="w-56 p-2" align="start">
+        <Input
+          placeholder="搜索标签..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+        <div
+          className="mt-1 flex max-h-64 flex-col overflow-y-auto"
+          role="listbox"
+          aria-label="标签"
+        >
+          {filteredTags.length === 0 ? (
+            <p className="py-3 text-center text-sm text-basalt-muted-foreground">未找到标签</p>
+          ) : (
+            filteredTags.map((tag) => {
+              const styles = getTagStyles(tag.name, tag.color);
+              const isSelected = selectedTagIds.has(tag.id);
+              return (
+                <Button
+                  key={tag.id}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="justify-start gap-2"
+                  onClick={() => onToggle(tag.id)}
+                  role="option"
+                  aria-selected={isSelected}
+                  data-testid="tag-filter-item"
+                  data-tag-name={tag.name}
+                >
+                  <Check className={cn("size-3.5", isSelected ? "opacity-100" : "opacity-0")} />
+                  <span className="size-2 rounded-full" style={styles.dot} />
+                  <span className="truncate">{tag.name}</span>
+                </Button>
+              );
+            })
+          )}
+        </div>
       </PopoverContent>
     </Popover>
   );

@@ -14,13 +14,13 @@
  * single h-8 baseline so the emoji trigger and title input share one line.
  */
 
+import { Button } from "@nocoo/basalt/components/button";
+import { Input } from "@nocoo/basalt/components/input";
+import { InputArea as Textarea } from "@nocoo/basalt/components/input-area";
 import { useEffect, useMemo, useState } from "react";
 import { TodoDueChip } from "@/components/dashboard/todo-due-chip";
 import { TodoTagChip } from "@/components/dashboard/todo-tag-chip";
 import { MarkdownPreview } from "@/components/markdown-preview";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import type { TodoDetail } from "@/lib/db/scoped";
 import { cn } from "@/lib/utils";
 import { TodoEmojiPicker } from "./todo-emoji-picker";

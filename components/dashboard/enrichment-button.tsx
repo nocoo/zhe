@@ -1,6 +1,6 @@
 "use client";
 
-import { ListRestart } from "lucide-react";
+import { ListRestart } from "@nocoo/basalt/icons";
 import { type EnrichmentScope, useOpenEnrichment } from "@/contexts/enrichment";
 import { IconAction, type IconActionDensity } from "./icon-action";
 

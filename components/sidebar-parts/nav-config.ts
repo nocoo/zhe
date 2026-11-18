@@ -14,7 +14,7 @@ import {
   Sparkles,
   Tags,
   Webhook,
-} from "lucide-react";
+} from "@nocoo/basalt/icons";
 import { GithubIcon, TwitterIcon } from "@/components/site-icons";
 
 /** Nav items for folder filtering — rendered as <Link>. */

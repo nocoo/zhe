@@ -1,5 +1,10 @@
 "use client";
 
+import { Badge } from "@nocoo/basalt/components/badge";
+import { Button } from "@nocoo/basalt/components/button";
+import { Input } from "@nocoo/basalt/components/input";
+import { Label } from "@nocoo/basalt/components/label";
+import { Separator } from "@nocoo/basalt/components/separator";
 import {
   AlertTriangle,
   CloudUpload,
@@ -10,13 +15,8 @@ import {
   RefreshCw,
   Save,
   Send,
-} from "lucide-react";
+} from "@nocoo/basalt/icons";
 import { FeatureCard } from "@/components/dashboard/feature-card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { formatFileSize, formatTimeAgo } from "@/models/backy";
 import type { BackyViewModel } from "@/viewmodels/useBackyViewModel";
 

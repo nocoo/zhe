@@ -1,8 +1,8 @@
 "use client";
 
+import { LayerCard } from "@nocoo/basalt";
 import { SectionRule } from "@nocoo/basalt/components/section-rule";
-import { Crown, Globe, Link2, Monitor, MousePointerClick, TrendingUp } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Crown, Globe, Link2, Monitor, MousePointerClick, TrendingUp } from "@nocoo/basalt/icons";
 import type { OverviewStats } from "@/models/overview";
 import { formatClickCount } from "@/models/overview";
 import { BreakdownDonut, ClickTrendChart, StatCard, TopLinksList } from "./charts";
@@ -28,57 +28,57 @@ export function LinksSection({ stats }: { stats: OverviewStats }) {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
-          <Card className="lg:col-span-2 flex flex-col">
-            <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+          <LayerCard padding="none" className="lg:col-span-2 flex flex-col">
+            <LayerCard.Header className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
               <TrendingUp className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
-              <CardTitle className="text-sm font-medium">点击趋势</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col flex-1 px-4 pb-4 md:px-5 md:pb-5">
+              <h3 className="text-sm font-medium">点击趋势</h3>
+            </LayerCard.Header>
+            <LayerCard.Body className="flex flex-col flex-1 px-4 pb-4 md:px-5 md:pb-5">
               <ClickTrendChart data={stats.clickTrend} />
-            </CardContent>
-          </Card>
+            </LayerCard.Body>
+          </LayerCard>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+          <LayerCard padding="none">
+            <LayerCard.Header className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
               <Crown className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
-              <CardTitle className="text-sm font-medium">热门链接</CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+              <h3 className="text-sm font-medium">热门链接</h3>
+            </LayerCard.Header>
+            <LayerCard.Body className="px-4 pb-4 md:px-5 md:pb-5">
               <TopLinksList links={stats.topLinks} />
-            </CardContent>
-          </Card>
+            </LayerCard.Body>
+          </LayerCard>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+          <LayerCard padding="none">
+            <LayerCard.Header className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
               <Monitor className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
-              <CardTitle className="text-sm font-medium">设备分布</CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+              <h3 className="text-sm font-medium">设备分布</h3>
+            </LayerCard.Header>
+            <LayerCard.Body className="px-4 pb-4 md:px-5 md:pb-5">
               <BreakdownDonut data={stats.deviceBreakdown} />
-            </CardContent>
-          </Card>
+            </LayerCard.Body>
+          </LayerCard>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+          <LayerCard padding="none">
+            <LayerCard.Header className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
               <Globe className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
-              <CardTitle className="text-sm font-medium">浏览器分布</CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+              <h3 className="text-sm font-medium">浏览器分布</h3>
+            </LayerCard.Header>
+            <LayerCard.Body className="px-4 pb-4 md:px-5 md:pb-5">
               <BreakdownDonut data={stats.browserBreakdown} />
-            </CardContent>
-          </Card>
+            </LayerCard.Body>
+          </LayerCard>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+          <LayerCard padding="none">
+            <LayerCard.Header className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
               <Monitor className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
-              <CardTitle className="text-sm font-medium">操作系统</CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+              <h3 className="text-sm font-medium">操作系统</h3>
+            </LayerCard.Header>
+            <LayerCard.Body className="px-4 pb-4 md:px-5 md:pb-5">
               <BreakdownDonut data={stats.osBreakdown} />
-            </CardContent>
-          </Card>
+            </LayerCard.Body>
+          </LayerCard>
         </div>
       </div>
     </SectionRule>

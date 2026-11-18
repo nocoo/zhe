@@ -1,6 +1,7 @@
 "use client";
 
 import { SidebarBrand, SidebarHeader, SidebarToggle } from "@nocoo/basalt/components/sidebar";
+import Image from "next/image";
 import Link from "next/link";
 import { APP_VERSION } from "@/lib/version";
 
@@ -16,7 +17,7 @@ export function SidebarMarkHeader({
       <SidebarBrand
         logo={
           <Link href="/dashboard/overview" aria-label="Zhe">
-            <img src="/logo-24.png" alt="" width={24} height={24} data-testid="sidebar-logo" />
+            <Image src="/logo-24.png" alt="" width={24} height={24} data-testid="sidebar-logo" />
           </Link>
         }
         name="ZHE.TO"

@@ -1,5 +1,7 @@
 "use client";
 
+import { LayerCard } from "@nocoo/basalt";
+import { CHART_COLORS, chartAxis, withAlpha } from "@nocoo/basalt/components/chart";
 import { useId } from "react";
 import {
   Area,
@@ -13,8 +15,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { CHART_COLORS, chartAxis, withAlpha } from "@/lib/palette";
 import type { ClickTrendPoint, TopLinkEntry, UploadTrendPoint } from "@/models/overview";
 import { formatClickCount } from "@/models/overview";
 
@@ -65,13 +65,14 @@ export function Sparkline({ data }: { data: number[] }) {
 
 export function StatCard({ label, value, icon: Icon, sparkline, index = 0 }: StatCardProps) {
   return (
-    <Card
+    <LayerCard
+      padding="none"
       className=""
       style={{ animationDelay: `calc(var(--motion-stagger) * ${index})` }}
       data-testid="stat-card"
       data-stat-label={label}
     >
-      <CardContent className="p-4 md:p-5">
+      <LayerCard.Body className="p-4 md:p-5">
         <div className="flex items-center justify-between">
           <span className="text-xs text-basalt-muted-foreground">{label}</span>
           <Icon className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
@@ -85,8 +86,8 @@ export function StatCard({ label, value, icon: Icon, sparkline, index = 0 }: Sta
           </p>
           {sparkline && sparkline.length >= 2 && <Sparkline data={sparkline} />}
         </div>
-      </CardContent>
-    </Card>
+      </LayerCard.Body>
+    </LayerCard>
   );
 }
 
@@ -94,28 +95,28 @@ export function StatCard({ label, value, icon: Icon, sparkline, index = 0 }: Sta
 
 export function StatSkeleton() {
   return (
-    <Card className="animate-pulse" data-testid="stat-skeleton">
-      <CardContent className="p-4 md:p-5">
+    <LayerCard padding="none" className="animate-pulse" data-testid="stat-skeleton">
+      <LayerCard.Body className="p-4 md:p-5">
         <div className="flex items-center justify-between">
           <div className="h-3 w-16 rounded bg-basalt-background" />
           <div className="h-4 w-4 rounded bg-basalt-background" />
         </div>
         <div className="mt-3 h-7 w-20 rounded bg-basalt-background" />
-      </CardContent>
-    </Card>
+      </LayerCard.Body>
+    </LayerCard>
   );
 }
 
 export function ChartSkeleton({ className }: { className?: string }) {
   return (
-    <Card className={className} data-testid="stat-skeleton">
-      <CardHeader className="px-4 py-3 md:px-5 md:py-4">
+    <LayerCard padding="none" className={className ?? ""} data-testid="stat-skeleton">
+      <LayerCard.Header className="px-4 py-3 md:px-5 md:py-4">
         <div className="h-4 w-24 rounded bg-basalt-background animate-pulse" />
-      </CardHeader>
-      <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+      </LayerCard.Header>
+      <LayerCard.Body className="px-4 pb-4 md:px-5 md:pb-5">
         <div className="h-[200px] w-full rounded bg-basalt-background animate-pulse" />
-      </CardContent>
-    </Card>
+      </LayerCard.Body>
+    </LayerCard>
   );
 }
 

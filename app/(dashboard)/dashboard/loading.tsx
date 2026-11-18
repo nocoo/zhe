@@ -2,13 +2,13 @@
 
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { useViewMode } from "@/components/dashboard/links-list-parts/useViewMode";
 import {
   BOOKMARK_GRID_CLASS,
   CardGridSkeleton,
   CardListSkeleton,
-} from "@/components/ui/card-skeleton";
-import { PageHeaderSkeleton } from "@/components/ui/page-header";
+} from "@/components/dashboard/card-skeleton";
+import { useViewMode } from "@/components/dashboard/links-list-parts/useViewMode";
+import { PageHeaderSkeleton } from "@/components/page-header-skeleton";
 
 /**
  * Shared loading skeleton for all dashboard sub-pages.

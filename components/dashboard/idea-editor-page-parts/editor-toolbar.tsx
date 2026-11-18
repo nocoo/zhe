@@ -1,9 +1,9 @@
 "use client";
 
-import { ArrowLeft, Loader2, Save } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { Button } from "@nocoo/basalt/components/button";
+import { Input } from "@nocoo/basalt/components/input";
+import { ArrowLeft, Loader2, Save } from "@nocoo/basalt/icons";
 import { getTagStyles } from "@/models/tags";
 import type { Tag } from "@/models/types";
 
