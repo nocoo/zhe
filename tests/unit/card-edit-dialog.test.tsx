@@ -130,6 +130,19 @@ describe("CardEditDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: "收起" }));
   });
 
+  it("closes immediately when Escape interrupts the opening flight", async () => {
+    vi.spyOn(HTMLElement.prototype, "animate").mockReturnValue({
+      finished: new Promise(() => {}),
+      cancel: vi.fn(),
+    } as unknown as Animation);
+    const onClose = vi.fn();
+    renderDialog({ animated: true, onClose });
+    const dialog = screen.getByTestId("card-edit-dialog");
+    await waitFor(() => expect(dialog).toHaveAttribute("data-phase", "opening"));
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+  });
+
   it("defers editor callbacks until it closes, then forwards later updates immediately", async () => {
     const onLinkUpdated = vi.fn();
     const onTagCreated = vi.fn();

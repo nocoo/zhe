@@ -194,13 +194,14 @@ export function CardEditDialog({
       if (closing.current) return;
       if (action === "close" && panel.current?.querySelector('[aria-busy="true"]')) return;
       closing.current = true;
-      await opening.current;
+      const interruptedOpening = action === "close" && panel.current?.dataset.phase === "opening";
+      if (!interruptedOpening) await opening.current;
       const node = panel.current;
       const card = source.current;
       const frame = flight.current;
       if (!node || !card || !frame || !front.current || !back.current) return;
       back.current.inert = true;
-      if (animated) {
+      if (animated && !interruptedOpening) {
         node.dataset.phase = "returning";
         const origin = prepareFront(card, front.current, frame);
         if (backdrop.current) {
