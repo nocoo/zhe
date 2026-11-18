@@ -232,7 +232,10 @@ export function CardEditDialog({
         size="lg"
         className={`flex flex-col gap-4 ${animated ? "link-card-editor" : "max-h-[90dvh] overflow-y-auto p-0 sm:p-0"}`}
         data-testid="card-edit-dialog"
-        onOpenAutoFocus={(event) => event.preventDefault()}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          panel.current?.focus({ preventScroll: true });
+        }}
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           const target = restoreFocus.current?.isConnected
