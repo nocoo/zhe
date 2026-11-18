@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.3.6] - 2026-11-18
+
+### Changed
+- Upgrade @nocoo/basalt to 3.5.1 and align the shell, card surfaces, tokens and icons with its public API
+
+### Removed
+- Remove copied UI primitives and redundant Lucide, Radix, cmdk, Sonner and animation dependencies
+
 ## [v2.3.3] - 2026-10-28
 
 ### Fixed
