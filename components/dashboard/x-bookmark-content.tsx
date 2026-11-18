@@ -2,6 +2,14 @@
 
 import { Avatar, AvatarFallback, AvatarImage, Button, LayerCard } from "@nocoo/basalt";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@nocoo/basalt/components/dialog";
+import {
   ArrowUpRight,
   BadgeCheck,
   Clock3,
@@ -16,17 +24,9 @@ import {
   Quote as QuoteIcon,
   Repeat2,
   Video,
-} from "lucide-react";
+} from "@nocoo/basalt/icons";
 import { useState } from "react";
 import { videoFileSize, videoResolution, type XMedia, type XPost } from "@/cli/src/connector/core";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { XIcon } from "@/components/x-icon";
 import type { XBookmark } from "@/lib/connector/jobs";
 import { cn } from "@/lib/utils";
@@ -259,7 +259,7 @@ function PostMedia({
           />
         </Button>
       </DialogTrigger>
-      <DialogContent size="xl">
+      <DialogContent size="xl" className="flex flex-col gap-4">
         <DialogHeader>
           <DialogTitle>图片预览</DialogTitle>
           <DialogDescription>已保存到您的 Zhe 存储</DialogDescription>

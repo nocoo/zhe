@@ -1,9 +1,10 @@
 "use client";
 
-import { Pencil, Tag as TagIcon, Trash2 } from "lucide-react";
+import { LayerCard } from "@nocoo/basalt";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { Button } from "@nocoo/basalt/components/button";
+import { Pencil, Tag as TagIcon, Trash2 } from "@nocoo/basalt/icons";
 import { memo } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import type { IdeaListItem } from "@/lib/db/scoped";
 import { cn, formatDate } from "@/lib/utils";
 import { getTagStyles } from "@/models/tags";
@@ -79,12 +80,10 @@ export const IdeaCard = memo(function IdeaCard({
   };
 
   return (
-    <div
+    <LayerCard
+      padding="none"
       data-card-actions-container
-      className={cn(
-        "group relative flex flex-col rounded-basalt-card border-0 bg-basalt-secondary ring-1 ring-basalt-border/50 p-4 transition-shadow hover:ring-basalt-border text-left w-full",
-        className,
-      )}
+      className={cn("group relative flex w-full flex-col p-4 text-left", className)}
     >
       <button
         type="button"
@@ -154,7 +153,7 @@ export const IdeaCard = memo(function IdeaCard({
           />
         </div>
       </div>
-    </div>
+    </LayerCard>
   );
 });
 
@@ -188,12 +187,10 @@ export const IdeaRow = memo(function IdeaRow({
   };
 
   return (
-    <div
+    <LayerCard
+      padding="none"
       data-card-actions-container
-      className={cn(
-        "group relative flex items-center gap-4 rounded-basalt-card border-0 bg-basalt-secondary ring-1 ring-basalt-border/50 px-4 py-3 transition-shadow hover:ring-basalt-border text-left w-full",
-        className,
-      )}
+      className={cn("group relative flex w-full items-center gap-4 px-4 py-3 text-left", className)}
     >
       <button
         type="button"
@@ -260,6 +257,6 @@ export const IdeaRow = memo(function IdeaRow({
           { label: "删除想法", icon: Trash2, destructive: true, onSelect: () => onDelete(idea) },
         ]}
       />
-    </div>
+    </LayerCard>
   );
 });

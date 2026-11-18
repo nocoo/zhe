@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 
 import { SidebarProvider as BasaltSidebarProvider } from "@nocoo/basalt/components/sidebar";
+import { TooltipProvider } from "@nocoo/basalt/components/tooltip";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import type { Link } from "@/models/types";
 import type { FoldersViewModel } from "@/viewmodels/useFoldersViewModel";
 import { makeLink } from "../fixtures";
@@ -197,9 +197,10 @@ describe("Sidebar", () => {
       expect(aside).toBeInTheDocument();
       expect(aside?.hasAttribute("data-collapsed")).toBe(true);
 
-      // "全部链接" and "Inbox" should not be visible as text
-      expect(screen.queryByText("全部链接")).not.toBeInTheDocument();
-      expect(screen.queryByText("Inbox")).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("link", { name: "全部链接" }).querySelector(".sr-only"),
+      ).toHaveTextContent("全部链接");
+      expect(screen.queryByRole("link", { name: "Inbox" })).not.toBeInTheDocument();
     });
 
     it("renders all nav items as links in collapsed mode", () => {
@@ -243,7 +244,6 @@ describe("Sidebar", () => {
     it("renders wide sidebar with text navigation", () => {
       const { container } = renderSidebar({ collapsed: false });
 
-      // Should render the wide aside (260px)
       const aside = container.querySelector("aside");
       expect(aside).toBeInTheDocument();
       expect(aside?.getAttribute("data-collapsed")).toBeNull();
@@ -866,11 +866,9 @@ describe("Sidebar", () => {
       resetMockFoldersVm({ folders: mockFolders });
       const { container } = renderSidebar({ collapsed: true });
 
-      // Collapsed mode should not have any count text (just icons)
-      // The nav should only contain icon links, no text counts
-      const navText = container.querySelector("nav")?.textContent ?? "";
-      expect(navText).not.toContain("全部链接");
-      expect(navText).not.toMatch(/\d+/);
+      const nav = container.querySelector("nav");
+      expect(nav?.querySelector(".tabular-nums")).not.toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "全部链接" })).toBeInTheDocument();
     });
   });
 });

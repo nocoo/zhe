@@ -1,6 +1,6 @@
 "use client";
 
-import type { LucideProps } from "lucide-react";
+import type { LucideProps } from "@nocoo/basalt/icons";
 import {
   Book,
   Bookmark,
@@ -26,7 +26,7 @@ import {
   Star,
   Tag,
   Zap,
-} from "lucide-react";
+} from "@nocoo/basalt/icons";
 import type { FolderIconName } from "@/models/folders";
 
 /** Synchronous map from kebab-case icon name to Lucide component */

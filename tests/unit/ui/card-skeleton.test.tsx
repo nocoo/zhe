@@ -3,7 +3,11 @@ import { render, screen } from "@testing-library/react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import DashboardLoading from "@/app/(dashboard)/dashboard/loading";
-import { CARD_GRID_CLASS, CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
+import {
+  CARD_GRID_CLASS,
+  CardGridSkeleton,
+  CardListSkeleton,
+} from "@/components/dashboard/card-skeleton";
 
 vi.mock("next/navigation", () => ({ usePathname: vi.fn(), useSearchParams: vi.fn() }));
 afterEach(() => localStorage.clear());

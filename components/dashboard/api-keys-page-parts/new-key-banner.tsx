@@ -1,8 +1,8 @@
 "use client";
 
+import { Button } from "@nocoo/basalt/components/button";
 import { toast } from "@nocoo/basalt/components/toast";
-import { Copy } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Copy } from "@nocoo/basalt/icons";
 import { copyToClipboard } from "@/lib/utils";
 
 async function handleCopy(text: string) {

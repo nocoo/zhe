@@ -1,6 +1,16 @@
 "use client";
 
-import { ListChecks, ListX, Trash2, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@nocoo/basalt/components/alert-dialog";
+import { Button } from "@nocoo/basalt/components/button";
+import { Checkbox } from "@nocoo/basalt/components/checkbox";
+import { ListChecks, ListX, Trash2, X } from "@nocoo/basalt/icons";
 import {
   type ComponentPropsWithoutRef,
   type ReactNode,
@@ -11,16 +21,6 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { BulkDeleteState } from "@/viewmodels/useBulkDelete";
 import { IconAction } from "./icon-action";
@@ -236,6 +236,7 @@ function BulkDeleteDialog({
       }}
     >
       <AlertDialogContent
+        className="flex flex-col gap-4"
         size="base"
         onEscapeKeyDown={(event) => {
           if (running) event.preventDefault();

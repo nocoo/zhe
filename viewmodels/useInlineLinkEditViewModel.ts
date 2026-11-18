@@ -1,6 +1,6 @@
 "use client";
 
-import { ImageOff } from "lucide-react";
+import { ImageOff } from "@nocoo/basalt/icons";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { updateLink } from "@/actions/links";
 import { deleteScreenshot } from "@/actions/links/screenshot";

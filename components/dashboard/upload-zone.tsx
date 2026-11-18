@@ -1,6 +1,6 @@
 "use client";
 
-import { FileUp } from "lucide-react";
+import { FileUp } from "@nocoo/basalt/icons";
 import { useCallback, useRef } from "react";
 import { usePageCreateAction } from "@/contexts/create-action";
 import { cn } from "@/lib/utils";

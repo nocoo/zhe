@@ -1,9 +1,9 @@
 "use client";
 
+import { LayerCard } from "@nocoo/basalt";
+import { Button } from "@nocoo/basalt/components/button";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { toast } from "@nocoo/basalt/components/toast";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { copyToClipboard } from "@/lib/utils";
 import { useWebhookViewModel, type WebhookInitialData } from "@/viewmodels/useWebhookViewModel";
 import { ApiKeyShortcut } from "./webhook-page-parts/api-key-shortcut";
@@ -126,8 +126,8 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
           )
         }
       />
-      <Card>
-        <CardContent className="px-4 py-4 md:px-5 md:py-5">
+      <LayerCard padding="none">
+        <LayerCard.Body className="px-4 py-4 md:px-5 md:py-5">
           {vm.isLoading ? (
             <p className="text-sm text-basalt-muted-foreground">加载中...</p>
           ) : vm.token && vm.webhookUrl ? (
@@ -149,8 +149,8 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
           ) : (
             <p className="text-sm text-basalt-muted-foreground">尚未生成 Webhook 令牌。</p>
           )}
-        </CardContent>
-      </Card>
+        </LayerCard.Body>
+      </LayerCard>
     </div>
   );
 }

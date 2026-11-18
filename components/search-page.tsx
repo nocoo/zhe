@@ -1,6 +1,6 @@
 "use client";
 import { Button, Input } from "@nocoo/basalt";
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Search } from "@nocoo/basalt/icons";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";

@@ -1,21 +1,21 @@
 "use client";
 
+import { LayerCard } from "@nocoo/basalt";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
-import { useMemo, useState } from "react";
-import { deleteLink } from "@/actions/links";
-import { canonicalGitHubRepo } from "@/cli/src/connector/github-core";
-import { GithubIcon } from "@/components/site-icons";
-import { AnimatedCardList } from "@/components/ui/animated-card-list";
-import { BOOKMARK_GRID_CLASS, CardGridSkeleton } from "@/components/ui/card-skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeaderSkeleton } from "@/components/ui/page-header";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@nocoo/basalt/components/select";
+import { useMemo, useState } from "react";
+import { deleteLink } from "@/actions/links";
+import { canonicalGitHubRepo } from "@/cli/src/connector/github-core";
+import { AnimatedCardList } from "@/components/animated-card-list";
+import { BOOKMARK_GRID_CLASS, CardGridSkeleton } from "@/components/dashboard/card-skeleton";
+import { PageHeaderSkeleton } from "@/components/page-header-skeleton";
+import { GithubIcon } from "@/components/site-icons";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { staggerStyle } from "@/lib/motion";
 import { sortLinksByDate } from "@/models/links";
@@ -195,15 +195,17 @@ export function GitHubLibraryPage() {
           ))}
         </AnimatedCardList>
       ) : (
-        <EmptyState
-          icon={GithubIcon}
-          title={entries.length ? "没有符合条件的 GitHub 收藏" : "还没有 GitHub 收藏"}
-          description={
-            entries.length
-              ? "试试其他分类或标签。"
-              : "保存 GitHub 仓库链接后，可以在这里阅读仓库信息和 README。"
-          }
-        />
+        <LayerCard padding="none">
+          <LayerCard.Empty
+            icon={<GithubIcon className="size-10" strokeWidth={1.5} />}
+            title={entries.length ? "没有符合条件的 GitHub 收藏" : "还没有 GitHub 收藏"}
+            description={
+              entries.length
+                ? "试试其他分类或标签。"
+                : "保存 GitHub 仓库链接后，可以在这里阅读仓库信息和 README。"
+            }
+          />
+        </LayerCard>
       )}
       <SuggestLinkOrgDialog vm={suggestVm} />
     </div>

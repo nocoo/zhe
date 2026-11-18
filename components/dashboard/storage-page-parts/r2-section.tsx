@@ -1,5 +1,8 @@
 "use client";
 
+import { LayerCard } from "@nocoo/basalt";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { Button } from "@nocoo/basalt/components/button";
 import {
   AlertTriangle,
   ArrowDown,
@@ -9,11 +12,8 @@ import {
   HardDrive,
   Loader2,
   Trash2,
-} from "lucide-react";
+} from "@nocoo/basalt/icons";
 import { Fragment, useCallback, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import type { StorageFile, StorageScanResult } from "@/models/storage";
 import { formatBytes } from "@/models/storage";
 import { R2FileRow } from "./r2-file-row";
@@ -192,14 +192,14 @@ function FileList({
 }) {
   if (files.length === 0) {
     return (
-      <Card className="p-8 text-center">
+      <LayerCard padding="none" className="p-8 text-center">
         <CheckCircle className="h-8 w-8 text-basalt-success mx-auto mb-2" strokeWidth={1.5} />
         <p className="text-sm text-basalt-muted-foreground">R2 存储为空</p>
-      </Card>
+      </LayerCard>
     );
   }
   return (
-    <Card className="overflow-hidden">
+    <LayerCard padding="none" className="overflow-hidden">
       {files.map((file) => (
         <R2FileRow
           key={file.key}
@@ -208,7 +208,7 @@ function FileList({
           onToggle={() => onToggleKey(file.key)}
         />
       ))}
-    </Card>
+    </LayerCard>
   );
 }
 

@@ -1,13 +1,13 @@
 "use client";
 
-import { ArrowRight, type LucideIcon, Monitor, Moon, Sun } from "lucide-react";
+import { CommandGroup, CommandItem } from "@nocoo/basalt/components/command-palette";
+import { ArrowRight, type LucideIcon, Monitor, Moon, Sun } from "@nocoo/basalt/icons";
 import { useMemo } from "react";
 import {
   FOLDER_NAV_ITEMS,
   OTHER_NAV_GROUPS,
   PRE_LINK_NAV_GROUPS,
 } from "@/components/sidebar-parts/nav-config";
-import { CommandGroup, CommandItem } from "@/components/ui/command";
 import { normalizeSearchText, searchIncludes } from "@/models/search";
 
 /**

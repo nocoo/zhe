@@ -1,6 +1,15 @@
 "use client";
 
+import { LayerCard } from "@nocoo/basalt";
+import { Button } from "@nocoo/basalt/components/button";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@nocoo/basalt/components/select";
 import {
   AlignLeft,
   Bookmark,
@@ -13,24 +22,15 @@ import {
   ImageIcon,
   LayoutGrid,
   Play,
-} from "lucide-react";
+} from "@nocoo/basalt/icons";
 import Link from "next/link";
 import { useContext, useMemo, useState } from "react";
 import { deleteLink } from "@/actions/links";
 import { canonicalXPost } from "@/cli/src/connector/core";
+import { AnimatedCardList } from "@/components/animated-card-list";
+import { BOOKMARK_GRID_CLASS, CardGridSkeleton } from "@/components/dashboard/card-skeleton";
+import { PageHeaderSkeleton } from "@/components/page-header-skeleton";
 import { TwitterIcon } from "@/components/site-icons";
-import { AnimatedCardList } from "@/components/ui/animated-card-list";
-import { Button } from "@/components/ui/button";
-import { BOOKMARK_GRID_CLASS, CardGridSkeleton } from "@/components/ui/card-skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeaderSkeleton } from "@/components/ui/page-header";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { XBookmarksContext } from "@/contexts/x-bookmarks";
 import { staggerStyle } from "@/lib/motion";
@@ -278,26 +278,28 @@ export function XLibraryPage() {
         }
       />
       {visible.length === 0 ? (
-        <EmptyState
-          icon={Bookmark}
-          title={entries.length ? "没有符合条件的 X 收藏" : "还没有 X 收藏"}
-          description={
-            entries.length
-              ? "试试其他分类、内容类型或标签。"
-              : "保存 X 帖子链接后，可以在这里集中阅读。"
-          }
-          action={
-            entries.length ? (
-              <Button variant="outline" onClick={clearFilters}>
-                清除筛选
-              </Button>
-            ) : (
-              <Button variant="outline" asChild>
-                <Link href="/dashboard">管理链接</Link>
-              </Button>
-            )
-          }
-        />
+        <LayerCard padding="none">
+          <LayerCard.Empty
+            icon={<Bookmark className="size-10" strokeWidth={1.5} />}
+            title={entries.length ? "没有符合条件的 X 收藏" : "还没有 X 收藏"}
+            description={
+              entries.length
+                ? "试试其他分类、内容类型或标签。"
+                : "保存 X 帖子链接后，可以在这里集中阅读。"
+            }
+            action={
+              entries.length ? (
+                <Button variant="outline" onClick={clearFilters}>
+                  清除筛选
+                </Button>
+              ) : (
+                <Button variant="outline" asChild>
+                  <Link href="/dashboard">管理链接</Link>
+                </Button>
+              )
+            }
+          />
+        </LayerCard>
       ) : (
         <AnimatedCardList className={BOOKMARK_GRID_CLASS} masonry data-testid="x-feed">
           {visible.map(({ link }, index) => (

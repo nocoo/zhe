@@ -1,8 +1,8 @@
 "use client";
 
-import { Database } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { LayerCard } from "@nocoo/basalt";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { Database } from "@nocoo/basalt/icons";
 import type { StorageScanResult } from "@/models/storage";
 
 export function D1Section({ data }: { data: StorageScanResult["d1"] }) {
@@ -23,7 +23,7 @@ export function D1Section({ data }: { data: StorageScanResult["d1"] }) {
       </div>
 
       {data.connected && (
-        <Card className="overflow-hidden">
+        <LayerCard padding="none" className="overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-basalt-secondary/50">
@@ -49,7 +49,7 @@ export function D1Section({ data }: { data: StorageScanResult["d1"] }) {
               ))}
             </tbody>
           </table>
-        </Card>
+        </LayerCard>
       )}
     </div>
   );

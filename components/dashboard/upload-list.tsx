@@ -1,12 +1,12 @@
 "use client";
 
+import { LayerCard } from "@nocoo/basalt";
+import { Label } from "@nocoo/basalt/components/label";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
-import { Upload as UploadIcon } from "lucide-react";
-import { CardListSkeleton } from "@/components/ui/card-skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
+import { Slider } from "@nocoo/basalt/components/slider";
+import { Switch } from "@nocoo/basalt/components/switch";
+import { Upload as UploadIcon } from "@nocoo/basalt/icons";
+import { CardListSkeleton } from "@/components/dashboard/card-skeleton";
 import { staggerStyle } from "@/lib/motion";
 import { useBulkDelete } from "@/viewmodels/useBulkDelete";
 import { useUploadsViewModel } from "@/viewmodels/useUploadViewModel";
@@ -22,7 +22,10 @@ function UploadListSkeleton() {
         <div className="h-6 w-36 rounded-basalt-widget bg-basalt-secondary animate-pulse motion-reduce:animate-none" />
       </div>
       <div className="mb-6">
-        <div className="h-32 rounded-basalt-card border-2 border-dashed border-basalt-muted bg-basalt-secondary animate-pulse motion-reduce:animate-none" />
+        <LayerCard
+          padding="none"
+          className="h-32 border-2 border-dashed border-basalt-muted bg-basalt-secondary animate-pulse motion-reduce:animate-none"
+        />
       </div>
       <CardListSkeleton rows={4} variant="upload" />
     </div>
@@ -143,12 +146,14 @@ export function UploadList({
 
       {/* Completed uploads */}
       {uploads.length === 0 && uploadingFiles.length === 0 ? (
-        <EmptyState
-          icon={UploadIcon}
-          title="暂无文件"
-          description="拖拽文件到上方区域或点击选择文件上传"
-          data-testid="upload-empty-state"
-        />
+        <LayerCard padding="none">
+          <LayerCard.Empty
+            icon={<UploadIcon className="size-10" strokeWidth={1.5} />}
+            title="暂无文件"
+            description="拖拽文件到上方区域或点击选择文件上传"
+            data-testid="upload-empty-state"
+          />
+        </LayerCard>
       ) : (
         <div className="space-y-2" data-testid="card-list">
           {uploads.map((upload, i) => (

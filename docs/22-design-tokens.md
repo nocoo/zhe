@@ -3,10 +3,10 @@
 > 返回 [README](../README.md) · Agent 入口见根目录 `AGENTS.md`
 
 本文档是 **Dashboard UI 控件与 Design Token 的唯一权威约定**。  
-实现新页面 / 工具栏 / Panel 时 **必须复用** `components/ui/*` 的 `size` 与 token，**禁止**在 call site 重新堆砌高度、字号、圆角。
+实现新页面 / 工具栏 / Panel 时 **必须直接复用** `@nocoo/basalt`、`@nocoo/basalt/components/*` 与 `@nocoo/basalt/primitives/*`，**禁止**在 call site 重新堆砌高度、字号、圆角或复制 wrapper。
 
 运行时注释与 CSS 变量定义：`app/globals.css`  
-原语实现：`components/ui/{button,input,select,checkbox,textarea,page-header}.tsx`  
+原语实现：Basalt 3.5.1 package exports
 契约测试：`tests/unit/ui/control-density.test.tsx`
 
 ---
@@ -22,7 +22,7 @@
 | L2 card    | `--basalt-secondary` / `bg-basalt-secondary`                                         | 列表区、双栏 section、内嵌卡片             |
 | L3 control | `bg-basalt-control` (`--basalt-control-fill`) + `border-basalt-border` + `shadow-xs` | Button outline / Input / Select / Textarea |
 - Basalt 的 `--basalt-card` 是 L1 面板，`LayerCard` 是嵌入后的 L2 卡片。
-- 普通 `<Card>` 故意使用 `bg-basalt-secondary`（L2），以便嵌在 L1 面板内浮起。
+- 普通卡片直接使用 `LayerCard`；它拥有 L2 表面、`ring-basalt-border/80` 和 `shadow-basalt-card`。卡片本身是 Link 时使用 `LayerCard asChild`。
 - 控件填充跟当前表面走 `bg-basalt-control`，不要写死 `bg-secondary` / `bg-card`。
 - Dialog / AlertDialog 通过 `data-basalt-surface-root` 使用最高层表面 `--basalt-bright`。弹窗面板、嵌套区域和表单控件统一使用该表面，浅色主题为白色，不再嵌入灰色层级；暗色主题沿用对应的 bright token。下拉菜单中的控件跟随 popover 表面。
 
@@ -66,7 +66,7 @@ Text actions, including copyable dates, retain horizontal padding; use a negativ
 margin for text alignment rather than a zero-padding hover surface. Do not invent
 `xs` / `icon-sm` or override global library sizing tokens.
 
-菜单项统一使用 `components/ui/dropdown-menu` / `context-menu`：最小行高 36px、正文 `text-sm`、图文间距 8px，图标固定 16×16px、1.5px 描边且不收缩。业务菜单直接放 Lucide 图标，不再单独设置尺寸或 `mr-2`；说明性图标使用 `aria-hidden`。卡片内的辅助信息图标使用 14×14px、1.5px 描边。
+菜单项直接使用 Basalt `DropdownMenu` / `ContextMenu`。业务图标从 `@nocoo/basalt/icons` 引入，使用包内 item density、16px 图标与 1.5px 描边；说明性图标使用 `aria-hidden`。卡片内的辅助信息图标使用 14×14px、1.5px 描边。
 
 ### 硬规则
 
@@ -91,9 +91,9 @@ margin for text alignment rather than a zero-padding hover surface. Do not inven
 
 ### Sidebar 几何（对齐 Basalt `Sidebar*`）
 
-侧边栏直接使用 Basalt 原语：`SidebarHeader`（56px 高、8px 内缩 + 12px 品牌偏移）、`SidebarSearch`、`SidebarNav`（8px 内缩、4px 行距、`basalt-hover-list` 悬浮层）、`SidebarFooter` + `SidebarUser`。
+侧边栏直接使用 Basalt 原语：`SidebarProvider`、`SidebarBrand`、`SidebarToggle`、`SidebarSearch`、`SidebarNav`、`SidebarFooter` + `SidebarUser`；移动端使用 `SidebarDrawer` 与 `AppHeaderMenuButton`。
 
-- 行高 38px（`--basalt-line-row` + 2×8px），左右内边距 8px，图标与文字间距 8px，圆角 8px（`rounded-basalt-md`），正文 14/22，图标 16px。
+- 展开宽度使用 Basalt 默认 240px，折叠宽度 68px。行使用 package defaults（34px / 13px / 22px 行高），图标 16px。
 - 选中态用 Basalt 语义属性表达：`aria-current="page"` + `data-hover-selected="true"`（`--basalt-selected` 填充 + 500 字重），**不要**自定义 `bg-primary/10` 之类的着色。
 - 分组标题 `text-basalt-sm`、大写、`tracking-wide`、 muted，触发器自带 `aria-expanded`，不再额外造 chevron 按钮。
 - 折叠轨道宽 68px（`w-basalt-rail`），图标按钮 34px 见方；移动端抽屉不显示折叠按钮。
@@ -111,7 +111,7 @@ margin for text alignment rather than a zero-padding hover surface. Do not inven
 | `Textarea`      | —    | Basalt `InputArea`                                        | `size="sm"`     |                                         |
 | `PageHeader`    | —    | Basalt 默认（标题 + `description` 副行 + `actions` 右上） | 见下节          |                                         |
 
-路径：`@nocoo/basalt/components/page-header`；仅加载骨架在 `@/components/ui/page-header`。
+路径：`@nocoo/basalt/components/page-header`；仅加载骨架在 `@/components/page-header-skeleton`。
 
 ### PageHeader（Basalt 默认）
 
@@ -134,7 +134,7 @@ margin for text alignment rather than a zero-padding hover surface. Do not inven
 
 L3 可编辑控件默认：`bg-basalt-control` + `border-border` + `shadow-xs`。
 
-内容卡片保持哑光：`rounded-card` + `ring-1 ring-border/50`，**不加投影**，对齐 Basalt `LayerCard` 的既有表面规则。可交互卡片 hover 只加深环（`hover:ring-border`），不做位移、不加阴影。文章预览、引用与媒体框等卡片内部区域只用更细的边框，避免层层叠加。列表卡片间距 12px（`space-y-3`），网格 `gap-3`，卡片内边距 12px（`p-3`）。
+内容卡片统一使用 Basalt `LayerCard` 的 `ring-1 ring-basalt-border/80 shadow-basalt-card`。卡片外不另写半透明边框；非 `LayerCard` 的业务卡片、图表、表格 wrapper、空态和骨架也必须显式携带同一 ring + shadow。文章预览、引用与媒体框等内部区域只用更细的边框，避免层层叠加。列表卡片间距 12px（`space-y-3`），网格 `gap-3`，卡片内边距 12px（`p-3`）。
 
 ---
 
@@ -169,15 +169,15 @@ Inbox 独立入口、常驻编辑卡片与专用骨架已移除。未分类链�
 
 ## 6. 字号语义（Dashboard）
 
-| 角色                      | 类                                | 说明                                               |
-| ------------------------- | --------------------------------- | -------------------------------------------------- |
-| 页头标题                  | `text-2xl font-semibold`          | Basalt `PageHeader`                                |
-| 弹窗标题                  | `text-lg leading-6 font-semibold` | 统一 `DialogTitle`，18px                           |
-| Panel 主标题 / 行内 title | `text-base font-medium`           | 勿用 `text-lg` 与页头抢层级                        |
-| 正文 / 备注               | `text-sm`                         |                                                    |
-| 弹窗说明                  | `text-sm leading-5`               | 统一 `DialogDescription`，14px                     |
-| 工具栏 / meta / 表单标签  | `text-xs`                         | 与 Button `sm` / 字段 `sm` 一致                    |
-| Chip 内文                 | `text-[11px]` 或 `text-xs`        | 全站 chip 选一种，勿混 `text-[10px]` 除非溢出 `+N` |
+| 角色                      | 类                                                      | 说明                                               |
+| ------------------------- | ------------------------------------------------------- | -------------------------------------------------- |
+| 页头标题                  | `text-2xl font-semibold`                                | Basalt `PageHeader`                                |
+| 弹窗标题                  | `text-basalt-xl font-semibold leading-basalt-tight`     | Basalt `DialogTitle`，18px                         |
+| Panel 主标题 / 行内 title | `text-base font-medium`                                 | 勿用 `text-lg` 与页头抢层级                        |
+| 正文 / 备注               | `text-sm`                                               |                                                    |
+| 弹窗说明                  | `text-basalt-base leading-[var(--basalt-line-relaxed)]` | Basalt `DialogDescription`，14px                   |
+| 工具栏 / meta / 表单标签  | `text-xs`                                               | 与 Button `sm` / 字段 `sm` 一致                    |
+| Chip 内文                 | `text-[11px]` 或 `text-xs`                              | 全站 chip 选一种，勿混 `text-[10px]` 除非溢出 `+N` |
 
 新建、编辑和 AI 整理表单的标签使用 `block text-xs font-medium leading-4`，与字段间距 6px；同行标签及控件顶端对齐。弹窗字段默认 34px / 14px，主操作区按钮同排同高。AI 整理、新建与编辑的操作按钮使用 40px。弹窗高度不超过视口的 90%，内容溢出时在弹窗内滚动。
 
@@ -192,7 +192,7 @@ Inbox 独立入口、常驻编辑卡片与专用骨架已移除。未分类链�
 3. [ ] 有无 `rounded-lg` / 手写 `h-7` / 原生 checkbox？
 4. [ ] 同行控件高度是否一致、`items-center`？
 5. [ ] 是否复用 `PageHeader` 而不是手写一套 header？
-6. [ ] Checkbox / 日期 / 搜索是否来自 `components/ui`？
+6. [ ] Checkbox / 日期 / 搜索是否直接来自 `@nocoo/basalt`？
 7. [ ] 若改了 primitive 默认 size，是否更新了 `tests/unit/ui/control-density.test.tsx`？
 
 ---
@@ -215,7 +215,7 @@ Inbox 独立入口、常驻编辑卡片与专用骨架已移除。未分类链�
 改 token 或原语默认密度时：
 
 1. 改 `app/globals.css` 注释 + 变量（如需要）
-2. 改 `components/ui/*` 的 cva / size map
+2. 升级或配置对应的 Basalt public API；不要复制 primitive
 3. 更新 `tests/unit/ui/control-density.test.tsx`
 4. 同步本文件与 `AGENTS.md` 中的摘要表
 5. 原子 commit：`feat`/`fix` 原语与 `docs` 可分提交
@@ -298,10 +298,9 @@ Selection overlays focus their checkbox with `preventScroll` when the card body 
 
 ### Basalt 3 adoption
 
-Pinned package: `@nocoo/basalt@3.3.6`; compatibility and integration guidance
-checked against the published 3.3.6 package.
-The 3.2 upgrade retains existing imports and peer requirements; the package owns
-its updated island hierarchy, typography, hover and dialog tokens.
+Pinned package: `@nocoo/basalt@^3.5.1`; compatibility and integration guidance
+checked against the published 3.5.1 package. The package owns the island
+hierarchy, typography, hover, card shadow and dialog tokens.
 Control fills contrast with their container: surface roots use
 `--basalt-secondary`, while cards and deeper surfaces use `--basalt-bright`.
 The tag creation browser contract verifies the bright token in both themes,

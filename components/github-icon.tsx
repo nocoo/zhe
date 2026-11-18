@@ -1,6 +1,6 @@
 "use client";
 
-import { createLucideIcon } from "lucide-react";
+import { createLucideIcon } from "@nocoo/basalt/icons";
 
 // Original Lucide v0.577 nodes (ISC license); v1 removed brand exports.
 export const GithubIcon = createLucideIcon("Github", [

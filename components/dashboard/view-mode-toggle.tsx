@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutGrid, LayoutList } from "lucide-react";
+import { LayoutGrid, LayoutList } from "@nocoo/basalt/icons";
 import { IconAction } from "./icon-action";
 
 /** Shared list/grid switch so every collection page aligns with the toolbar. */

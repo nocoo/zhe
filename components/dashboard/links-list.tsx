@@ -1,17 +1,17 @@
 "use client";
 
+import { LayerCard } from "@nocoo/basalt";
 import { toast } from "@nocoo/basalt/components/toast";
-import { Link2 } from "lucide-react";
+import { Link2 } from "@nocoo/basalt/icons";
 import { useCallback, useMemo, useState } from "react";
 import { deleteLink } from "@/actions/links";
-import { AnimatedCardList } from "@/components/ui/animated-card-list";
+import { AnimatedCardList } from "@/components/animated-card-list";
 import {
   BOOKMARK_GRID_CLASS,
   CardGridSkeleton,
   CardListSkeleton,
-} from "@/components/ui/card-skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
-import { PageHeaderSkeleton } from "@/components/ui/page-header";
+} from "@/components/dashboard/card-skeleton";
+import { PageHeaderSkeleton } from "@/components/page-header-skeleton";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { staggerStyle } from "@/lib/motion";
@@ -78,7 +78,13 @@ function LinksContent(props: LinksContentProps) {
 
   if (filteredLinks.length === 0) {
     return (
-      <EmptyState icon={Link2} title="暂无链接" description="点击右下角加号创建您的第一个短链接" />
+      <LayerCard padding="none">
+        <LayerCard.Empty
+          icon={<Link2 className="size-10" strokeWidth={1.5} />}
+          title="暂无链接"
+          description="点击右下角加号创建您的第一个短链接"
+        />
+      </LayerCard>
     );
   }
 

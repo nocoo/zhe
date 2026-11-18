@@ -72,7 +72,7 @@ export async function createTagInEditMode(
   const editor = card.page().getByTestId("card-edit-dialog");
   await editor.locator('[data-testid="tag-picker-trigger"]').click();
 
-  const pickerInput = page.locator("[cmdk-input]").last();
+  const pickerInput = page.getByPlaceholder("搜索或创建标签...").last();
   await pickerInput.fill(tagName);
 
   const createOption = page.locator('[data-testid="tag-create-option"]');
@@ -86,5 +86,5 @@ export async function createTagInEditMode(
   ).toBeVisible({ timeout: 30_000 });
 
   // Selecting a tag closes the picker; Escape here would close the editor.
-  await expect(page.locator("[cmdk-input]")).toBeHidden({ timeout: 5_000 });
+  await expect(page.getByPlaceholder("搜索或创建标签...")).toBeHidden({ timeout: 5_000 });
 }

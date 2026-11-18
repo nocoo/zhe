@@ -1,8 +1,8 @@
 "use client";
 
+import { LayerCard } from "@nocoo/basalt";
 import { SectionRule } from "@nocoo/basalt/components/section-rule";
-import { FileType, HardDrive, ImageIcon, Upload } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FileType, HardDrive, ImageIcon, Upload } from "@nocoo/basalt/icons";
 import type { OverviewStats } from "@/models/overview";
 import { formatClickCount, formatStorageSize } from "@/models/overview";
 import { BreakdownDonut, StatCard, UploadTrendChart } from "./charts";
@@ -28,25 +28,25 @@ export function UploadsSection({ stats }: { stats: OverviewStats }) {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+          <LayerCard padding="none" className="lg:col-span-2">
+            <LayerCard.Header className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
               <Upload className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
-              <CardTitle className="text-sm font-medium">上传趋势</CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+              <h3 className="text-sm font-medium">上传趋势</h3>
+            </LayerCard.Header>
+            <LayerCard.Body className="px-4 pb-4 md:px-5 md:pb-5">
               <UploadTrendChart data={stats.uploadTrend} />
-            </CardContent>
-          </Card>
+            </LayerCard.Body>
+          </LayerCard>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
+          <LayerCard padding="none">
+            <LayerCard.Header className="flex flex-row items-center gap-2 px-4 py-3 md:px-5 md:py-4">
               <FileType className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
-              <CardTitle className="text-sm font-medium">文件类型</CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+              <h3 className="text-sm font-medium">文件类型</h3>
+            </LayerCard.Header>
+            <LayerCard.Body className="px-4 pb-4 md:px-5 md:pb-5">
               <BreakdownDonut data={stats.fileTypeBreakdown} />
-            </CardContent>
-          </Card>
+            </LayerCard.Body>
+          </LayerCard>
         </div>
       </div>
     </SectionRule>

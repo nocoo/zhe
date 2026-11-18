@@ -1,7 +1,6 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { LayerCard } from "@nocoo/basalt";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,9 +11,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+} from "@nocoo/basalt/components/alert-dialog";
+import { Button } from "@nocoo/basalt/components/button";
+import { Input } from "@nocoo/basalt/components/input";
+import { Trash2 } from "@nocoo/basalt/icons";
+import { useEffect, useState } from "react";
 import { getTagStyles, type TagPaletteColor } from "@/models/tags";
 import type { TagManageRow as TagManageRowData } from "@/viewmodels/useTagsViewModel";
 import { TagColorPicker } from "./tag-color-picker";
@@ -53,9 +54,9 @@ export function TagManageRow({ row, disabled, onRename, onRecolor, onDelete }: T
   }
 
   return (
-    <div
-      data-basalt-surface=""
-      className="flex flex-col gap-3 rounded-basalt-card bg-basalt-secondary p-3 md:flex-row md:items-center"
+    <LayerCard
+      padding="none"
+      className="flex flex-col gap-3 bg-basalt-secondary p-3 md:flex-row md:items-center"
       data-testid="tag-manage-row"
       data-tag-id={row.id}
     >
@@ -113,7 +114,7 @@ export function TagManageRow({ row, disabled, onRename, onRecolor, onDelete }: T
             <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
           </Button>
         </AlertDialogTrigger>
-        <AlertDialogContent>
+        <AlertDialogContent className="flex flex-col gap-4">
           <AlertDialogHeader>
             <AlertDialogTitle>删除标签「{row.name}」？</AlertDialogTitle>
             <AlertDialogDescription>
@@ -131,6 +132,6 @@ export function TagManageRow({ row, disabled, onRename, onRecolor, onDelete }: T
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </LayerCard>
   );
 }

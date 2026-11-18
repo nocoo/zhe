@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 
+import { Dialog, DialogContent, DialogTitle } from "@nocoo/basalt/components/dialog";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 afterEach(() => cleanup());
 
@@ -20,7 +20,7 @@ describe("Dialog overlay surface", () => {
     expect(panel.className).not.toMatch(/\bbg-basalt-background\b/);
   });
 
-  it("keeps header and body 16px apart via flex gap", () => {
+  it("preserves the Basalt dialog surface", () => {
     render(
       <Dialog open>
         <DialogContent>
@@ -29,6 +29,6 @@ describe("Dialog overlay surface", () => {
         </DialogContent>
       </Dialog>,
     );
-    expect(screen.getByRole("dialog").className).toMatch(/\bgap-4\b/);
+    expect(screen.getByRole("dialog")).toHaveAttribute("data-basalt-surface-root");
   });
 });

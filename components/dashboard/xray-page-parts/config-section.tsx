@@ -1,10 +1,10 @@
 "use client";
 
-import { Loader2, Pencil, Radar, Save } from "lucide-react";
+import { Button } from "@nocoo/basalt/components/button";
+import { Input } from "@nocoo/basalt/components/input";
+import { Label } from "@nocoo/basalt/components/label";
+import { Loader2, Pencil, Radar, Save } from "@nocoo/basalt/icons";
 import { FeatureCard } from "@/components/dashboard/feature-card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { XRAY_PRESETS } from "@/models/xray";
 import type { UrlMode, XrayViewModel } from "@/viewmodels/useXrayViewModel";
 

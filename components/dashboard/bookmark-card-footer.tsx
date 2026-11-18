@@ -1,10 +1,15 @@
 "use client";
 
+import { Button } from "@nocoo/basalt/components/button";
 import { toast } from "@nocoo/basalt/components/toast";
-import { FolderOpen } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@nocoo/basalt/components/tooltip";
+import { FolderOpen } from "@nocoo/basalt/icons";
 import type { Ref } from "react";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn, copyToClipboard, formatRelativeTime } from "@/lib/utils";
 import type { BookmarkAction } from "@/models/bookmark-actions";
 import { getTagStyles } from "@/models/tags";

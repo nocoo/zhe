@@ -1,9 +1,9 @@
 "use client";
 
-import { Check, Copy, Loader2, RotateCcw, Trash2, Webhook } from "lucide-react";
+import { Button } from "@nocoo/basalt/components/button";
+import { Check, Copy, Loader2, RotateCcw, Trash2, Webhook } from "@nocoo/basalt/icons";
 import { useCallback, useEffect, useState } from "react";
 import { FeatureCard } from "@/components/dashboard/feature-card";
-import { Button } from "@/components/ui/button";
 import { copyToClipboard } from "@/lib/utils";
 import type { BackyViewModel } from "@/viewmodels/useBackyViewModel";
 

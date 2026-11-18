@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckSquare, ExternalLink, FileText, Globe, Star } from "lucide-react";
+import { CheckSquare, ExternalLink, FileText, Globe, Star } from "@nocoo/basalt/icons";
 import { GithubIcon, TwitterIcon } from "@/components/site-icons";
 import {
   SEARCH_SOURCE_LABELS,

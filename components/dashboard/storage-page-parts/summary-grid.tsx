@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Clock, Database, HardDrive } from "lucide-react";
+import { AlertTriangle, Clock, Database, HardDrive } from "@nocoo/basalt/icons";
 import type { StorageScanResult } from "@/models/storage";
 import { formatBytes } from "@/models/storage";
 import { computeTmpStats } from "@/models/tmp-storage";
@@ -14,26 +14,6 @@ interface SummaryCardProps {
   index?: number;
 }
 
-// Re-implement minimal SummaryCard locally to keep the grid self-contained.
-function Card({ label, value, sub, icon: Icon, variant = "default" }: SummaryCardProps) {
-  const accentClass =
-    variant === "warning"
-      ? "text-basalt-warning"
-      : variant === "success"
-        ? "text-basalt-success"
-        : "text-basalt-muted-foreground";
-  return (
-    <div className="rounded-basalt-card bg-basalt-secondary p-4 space-y-2">
-      <div className="flex items-center gap-2">
-        <Icon className={`h-4 w-4 ${accentClass}`} strokeWidth={1.5} />
-        <span className="text-xs text-basalt-muted-foreground">{label}</span>
-      </div>
-      <div className="text-lg font-semibold tabular-nums">{value}</div>
-      <div className="text-xs text-basalt-muted-foreground">{sub}</div>
-    </div>
-  );
-}
-
 export function SummaryGrid({
   data,
   SummaryCard,
@@ -43,8 +23,6 @@ export function SummaryGrid({
 }) {
   const hasOrphans = data.r2.summary.orphanFiles > 0;
   const tmpStats = computeTmpStats(data.r2.files);
-  // The provided SummaryCard is the one from the original file (richer visuals).
-  void Card;
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <SummaryCard

@@ -23,7 +23,29 @@
  * shell wrapper, not the row.
  */
 
-import { ChevronDown, ChevronRight, FileText, MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { Button } from "@nocoo/basalt/components/button";
+import { Checkbox } from "@nocoo/basalt/components/checkbox";
+import {
+  ContextMenu,
+  ContextMenuPanel as ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@nocoo/basalt/components/context-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@nocoo/basalt/components/dropdown-menu";
+import { Input } from "@nocoo/basalt/components/input";
+import {
+  ChevronDown,
+  ChevronRight,
+  FileText,
+  MoreHorizontal,
+  Plus,
+  Trash2,
+} from "@nocoo/basalt/icons";
 import {
   type ComponentType,
   type KeyboardEvent,
@@ -35,21 +57,6 @@ import {
 import type { NodeApi, NodeRendererProps } from "react-arborist";
 import { TodoDueChip } from "@/components/dashboard/todo-due-chip";
 import { TodoTagChip } from "@/components/dashboard/todo-tag-chip";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { TodoForestNode } from "@/models/todos";
 

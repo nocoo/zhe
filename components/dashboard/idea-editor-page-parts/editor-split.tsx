@@ -1,8 +1,8 @@
 "use client";
 
-import { X } from "lucide-react";
+import { LayerCard } from "@nocoo/basalt";
+import { X } from "@nocoo/basalt/icons";
 import { MarkdownPreview } from "@/components/markdown-preview";
-import { Card } from "@/components/ui/card";
 
 export function EditorSplit({
   content,
@@ -13,7 +13,8 @@ export function EditorSplit({
 }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 md:flex-row">
-      <Card
+      <LayerCard
+        padding="none"
         className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
         role="region"
         aria-label="编辑"
@@ -30,9 +31,10 @@ export function EditorSplit({
             spellCheck
           />
         </div>
-      </Card>
+      </LayerCard>
 
-      <Card
+      <LayerCard
+        padding="none"
         className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
         role="region"
         aria-label="预览"
@@ -43,7 +45,7 @@ export function EditorSplit({
         <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
           <MarkdownPreview content={content} />
         </div>
-      </Card>
+      </LayerCard>
     </div>
   );
 }

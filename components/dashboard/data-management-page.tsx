@@ -1,10 +1,10 @@
 "use client";
 
+import { LayerCard } from "@nocoo/basalt";
+import { Button } from "@nocoo/basalt/components/button";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
-import { CheckCircle, Download, Upload } from "lucide-react";
+import { CheckCircle, Download, Upload } from "@nocoo/basalt/icons";
 import { useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSettingsViewModel } from "@/viewmodels/useSettingsViewModel";
 
 export function DataManagementPage() {
@@ -28,32 +28,32 @@ export function DataManagementPage() {
     <div className="space-y-5">
       <PageHeader title="数据管理" description="导入、导出链接数据" />
       {/* ── 数据导出 ──────────────────────────────────────────────── */}
-      <Card>
-        <CardHeader className="px-4 py-3 md:px-5 md:py-4">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+      <LayerCard padding="none">
+        <LayerCard.Header className="px-4 py-3 md:px-5 md:py-4">
+          <h3 className="flex items-center gap-2 text-sm font-medium">
             <Download className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
             数据导出
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+          </h3>
+        </LayerCard.Header>
+        <LayerCard.Body className="px-4 pb-4 md:px-5 md:pb-5">
           <p className="mb-4 text-sm text-basalt-muted-foreground">
             将所有链接数据导出为 JSON 文件，可用于备份或迁移。
           </p>
           <Button onClick={handleExport} disabled={isExporting} variant="outline" size="default">
             {isExporting ? "导出中..." : "导出链接"}
           </Button>
-        </CardContent>
-      </Card>
+        </LayerCard.Body>
+      </LayerCard>
 
       {/* ── 数据导入 ──────────────────────────────────────────────── */}
-      <Card>
-        <CardHeader className="px-4 py-3 md:px-5 md:py-4">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium">
+      <LayerCard padding="none">
+        <LayerCard.Header className="px-4 py-3 md:px-5 md:py-4">
+          <h3 className="flex items-center gap-2 text-sm font-medium">
             <Upload className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
             数据导入
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+          </h3>
+        </LayerCard.Header>
+        <LayerCard.Body className="px-4 pb-4 md:px-5 md:pb-5">
           <p className="mb-4 text-sm text-basalt-muted-foreground">
             从 JSON 文件导入链接数据。已存在的短链接将被自动跳过。
           </p>
@@ -85,8 +85,8 @@ export function DataManagementPage() {
               />
             </div>
           )}
-        </CardContent>
-      </Card>
+        </LayerCard.Body>
+      </LayerCard>
     </div>
   );
 }

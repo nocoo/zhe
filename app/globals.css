@@ -1,8 +1,5 @@
-/* biome-ignore-all lint/correctness/noInvalidPositionAtImportRule: Basalt INTEGRATION.md requires @source before Tailwind */
-@source "../node_modules/@nocoo/basalt/dist/**/*.{js,jsx,ts,tsx}";
-@import "@nocoo/basalt/styles/tailwind";
+@import "@nocoo/basalt/styles";
 @import "tailwindcss";
-@import "tw-animate-css";
 
 @plugin "@tailwindcss/typography";
 
@@ -140,21 +137,6 @@
   --motion-base: 250ms;
   --motion-slow: 400ms;
   --motion-stagger: 80ms;
-
-  --chart-1: var(--basalt-chart-1);
-  --chart-2: var(--basalt-chart-2);
-  --chart-3: var(--basalt-chart-3);
-  --chart-4: var(--basalt-chart-4);
-  --chart-5: var(--basalt-chart-5);
-  --chart-6: var(--basalt-chart-1);
-  --chart-7: var(--basalt-chart-2);
-  --chart-8: var(--basalt-chart-3);
-  --chart-9: var(--basalt-chart-4);
-  --chart-10: var(--basalt-chart-5);
-  --chart-11: var(--basalt-chart-1);
-  --chart-12: var(--basalt-chart-2);
-  --chart-axis: var(--basalt-chart-axis);
-  --chart-muted: var(--basalt-chart-muted);
 }
 
 @utility container {

@@ -154,7 +154,7 @@ describe("production container packaging", () => {
       "app/layout.tsx",
       "public/logo-80.png",
       "lib/db/schema.ts",
-      "components/ui/button.tsx",
+      "components/animated-card-list.tsx",
     ])
       expect(included(file), file).toBe(true);
     for (const file of [

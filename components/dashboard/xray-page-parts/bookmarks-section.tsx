@@ -1,17 +1,17 @@
 "use client";
 
-import { AlertTriangle, BookmarkIcon, Check, Loader2, Plus, RefreshCw } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LayerCard } from "@nocoo/basalt";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { Button } from "@nocoo/basalt/components/button";
+import { AlertTriangle, BookmarkIcon, Check, Loader2, Plus, RefreshCw } from "@nocoo/basalt/icons";
 import type { XrayViewModel } from "@/viewmodels/useXrayViewModel";
 import { TweetCard } from "./tweet-card";
 
 export function BookmarksSection({ vm }: { vm: XrayViewModel }) {
   return (
-    <Card>
-      <CardHeader className="px-4 py-3 md:px-5 md:py-4">
-        <CardTitle className="flex items-center justify-between text-sm font-medium">
+    <LayerCard padding="none">
+      <LayerCard.Header className="px-4 py-3 md:px-5 md:py-4">
+        <h3 className="flex items-center justify-between text-sm font-medium">
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-basalt-warning/10">
               <BookmarkIcon className="h-4 w-4 text-basalt-warning" strokeWidth={1.5} />
@@ -36,9 +36,9 @@ export function BookmarksSection({ vm }: { vm: XrayViewModel }) {
             )}
             {vm.isFetchingBookmarks ? "加载中" : "加载书签"}
           </Button>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="px-4 pb-4 md:px-5 md:pb-5">
+        </h3>
+      </LayerCard.Header>
+      <LayerCard.Body className="px-4 pb-4 md:px-5 md:pb-5">
         {!vm.isConfigured ? (
           <p className="text-sm text-basalt-muted-foreground">
             请先在上方配置 xray API，然后即可加载您的 X 书签。
@@ -72,8 +72,8 @@ export function BookmarksSection({ vm }: { vm: XrayViewModel }) {
             ))}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </LayerCard.Body>
+    </LayerCard>
   );
 }
 

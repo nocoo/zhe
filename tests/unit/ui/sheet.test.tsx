@@ -1,8 +1,8 @@
 // @vitest-environment happy-dom
 
+import { Sheet, SheetContent, SheetTitle } from "@nocoo/basalt/components/sheet";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 afterEach(() => cleanup());
 

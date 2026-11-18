@@ -1,10 +1,10 @@
 "use client";
 
+import { LayerCard } from "@nocoo/basalt";
+import { Button } from "@nocoo/basalt/components/button";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
-import { Plus } from "lucide-react";
+import { Plus } from "@nocoo/basalt/icons";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import type { ApiScope } from "@/models/api-key";
 import { useApiKeysViewModel } from "@/viewmodels/useApiKeysViewModel";
 import { ApiKeyRow } from "./api-keys-page-parts/api-key-row";
@@ -57,8 +57,8 @@ export function ApiKeysPage() {
           )
         }
       />
-      <Card>
-        <CardContent className="px-4 py-4 md:px-5 md:py-5">
+      <LayerCard padding="none">
+        <LayerCard.Body className="px-4 py-4 md:px-5 md:py-5">
           {vm.newlyCreatedKey && (
             <NewKeyBanner newKey={vm.newlyCreatedKey} onDismiss={vm.clearNewKey} />
           )}
@@ -95,8 +95,8 @@ export function ApiKeysPage() {
               )}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </LayerCard.Body>
+      </LayerCard>
       <ConnectorPanel />
     </div>
   );

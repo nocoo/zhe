@@ -1,7 +1,7 @@
 "use client";
 
-import { Lightbulb } from "lucide-react";
-import { CommandItem } from "@/components/ui/command";
+import { CommandItem } from "@nocoo/basalt/components/command-palette";
+import { Lightbulb } from "@nocoo/basalt/icons";
 import type { IdeaListItem } from "@/lib/db/scoped";
 import { highlightMatches } from "@/models/links";
 import type { Tag } from "@/models/types";

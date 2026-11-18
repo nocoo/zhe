@@ -1,6 +1,6 @@
 "use client";
 
-import { Eye } from "lucide-react";
+import { Eye } from "@nocoo/basalt/icons";
 import { IconAction } from "./icon-action";
 
 export function ShowHiddenButton({

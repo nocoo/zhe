@@ -14,7 +14,7 @@ import {
   AppShell as BasaltAppShell,
 } from "@nocoo/basalt/components/app-shell";
 
-import { Search } from "lucide-react";
+import { Search } from "@nocoo/basalt/icons";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useId, useRef } from "react";
 import { getAppHeaderTrail } from "@/components/breadcrumbs";
@@ -27,7 +27,6 @@ import {
   SidebarProvider as DashboardSidebarProvider,
   useSidebar,
 } from "@/components/sidebar-context";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { CreateActionProvider } from "@/contexts/create-action";
 import { DashboardServiceProvider } from "@/contexts/dashboard-service";
 import { EnrichmentProvider } from "@/contexts/enrichment";
@@ -47,19 +46,17 @@ export interface AppShellProps {
 export function AppShell({ children, user, signOutAction, initialFolders = [] }: AppShellProps) {
   return (
     <DashboardServiceProvider initialFolders={initialFolders}>
-      <TooltipProvider>
-        <DashboardSidebarProvider>
-          <SearchProvider>
-            <EnrichmentProvider>
-              <CreateActionProvider>
-                <AppShellInner user={user} signOutAction={signOutAction}>
-                  {children}
-                </AppShellInner>
-              </CreateActionProvider>
-            </EnrichmentProvider>
-          </SearchProvider>
-        </DashboardSidebarProvider>
-      </TooltipProvider>
+      <DashboardSidebarProvider>
+        <SearchProvider>
+          <EnrichmentProvider>
+            <CreateActionProvider>
+              <AppShellInner user={user} signOutAction={signOutAction}>
+                {children}
+              </AppShellInner>
+            </CreateActionProvider>
+          </EnrichmentProvider>
+        </SearchProvider>
+      </DashboardSidebarProvider>
     </DashboardServiceProvider>
   );
 }

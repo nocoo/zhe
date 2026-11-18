@@ -1,6 +1,6 @@
 "use client";
 import { ToggleGroup, ToggleGroupItem } from "@nocoo/basalt/components/toggle-group";
-import { Loader2 } from "lucide-react";
+import { Loader2 } from "@nocoo/basalt/icons";
 import { useState } from "react";
 import { useEnvironmentViewModel } from "@/viewmodels/useEnvironmentViewModel";
 

@@ -1,4 +1,4 @@
-import { ThemeProvider } from "@nocoo/basalt";
+import { ThemeProvider, TooltipProvider } from "@nocoo/basalt";
 import { createElement, type ReactNode } from "react";
 import { expect } from "vitest";
 
@@ -9,7 +9,7 @@ export function withTheme(node: ReactNode) {
     applyToDocument: false,
     defaultTheme: "system",
     // biome-ignore lint/correctness/noChildrenProp: ThemeProviderProps requires children
-    children: node,
+    children: createElement(TooltipProvider, null, node),
   });
 }
 

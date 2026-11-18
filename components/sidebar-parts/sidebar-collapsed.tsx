@@ -46,6 +46,7 @@ function CollapsedRow({
       <TooltipTrigger asChild>
         <SidebarIconItem href={href} active={active} aria-label={label}>
           {children}
+          <span className="sr-only">{label}</span>
         </SidebarIconItem>
       </TooltipTrigger>
       <TooltipContent side="right">{label}</TooltipContent>

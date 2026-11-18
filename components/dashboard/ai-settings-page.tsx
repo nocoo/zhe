@@ -1,18 +1,18 @@
 "use client";
 
+import { LayerCard } from "@nocoo/basalt";
+import { Button } from "@nocoo/basalt/components/button";
+import { Input } from "@nocoo/basalt/components/input";
+import { Label } from "@nocoo/basalt/components/label";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
-import { Loader2, Plug, Save, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@nocoo/basalt/components/select";
+import { Loader2, Plug, Save, X } from "@nocoo/basalt/icons";
 import { CUSTOM_MODEL_VALUE, useAiSettingsViewModel } from "@/viewmodels/useAiSettingsViewModel";
 
 export function AiSettingsPage() {
@@ -23,14 +23,14 @@ export function AiSettingsPage() {
       <PageHeader title="AI" description="配置大模型供应商，用于链接整理建议。" />
 
       {!vm.loaded ? (
-        <Card>
-          <CardContent className="flex items-center justify-center py-12">
+        <LayerCard padding="none">
+          <LayerCard.Body className="flex items-center justify-center py-12">
             <Loader2 className="h-5 w-5 animate-spin text-basalt-muted-foreground" />
-          </CardContent>
-        </Card>
+          </LayerCard.Body>
+        </LayerCard>
       ) : (
-        <Card>
-          <CardContent className="space-y-4 p-4 md:p-5">
+        <LayerCard padding="none">
+          <LayerCard.Body className="space-y-4 p-4 md:p-5">
             <div className="space-y-1">
               <Label htmlFor="ai-provider">供应商</Label>
               <Select
@@ -218,8 +218,8 @@ export function AiSettingsPage() {
                 测试连接
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </LayerCard.Body>
+        </LayerCard>
       )}
     </div>
   );

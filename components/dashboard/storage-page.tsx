@@ -6,8 +6,6 @@
 
 "use client";
 
-import { PageHeader } from "@nocoo/basalt/components/page-header";
-import { RefreshCw } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,8 +15,10 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+} from "@nocoo/basalt/components/alert-dialog";
+import { Button } from "@nocoo/basalt/components/button";
+import { PageHeader } from "@nocoo/basalt/components/page-header";
+import { RefreshCw } from "@nocoo/basalt/icons";
 import { cn } from "@/lib/utils";
 import type { StorageScanResult } from "@/models/storage";
 import { formatBytes } from "@/models/storage";
@@ -48,7 +48,7 @@ function DeleteConfirmDialog({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="flex flex-col gap-4">
         <AlertDialogHeader>
           <AlertDialogTitle>删除孤儿文件？</AlertDialogTitle>
           <AlertDialogDescription>

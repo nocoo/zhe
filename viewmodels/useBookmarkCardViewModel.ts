@@ -10,7 +10,7 @@ import {
   Pencil,
   Sparkles,
   Trash2,
-} from "lucide-react";
+} from "@nocoo/basalt/icons";
 import { useRef, useState } from "react";
 import { useOpenEnrichment } from "@/contexts/enrichment";
 import { destroyCard } from "@/lib/motion";

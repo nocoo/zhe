@@ -1,7 +1,7 @@
+import { Toaster } from "@nocoo/basalt";
 import type { Metadata } from "next";
 import { DM_Sans, Inter } from "next/font/google";
 import { BasaltProviders } from "@/components/basalt-providers";
-import { Toaster } from "@/components/ui/sonner";
 import { THEME_INIT_SCRIPT } from "@/lib/theme-init";
 import { localClientScript } from "@/scripts/lib/local-client-script";
 import "./globals.css";
@@ -51,7 +51,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${dmSans.variable} antialiased`}>
         <BasaltProviders>
           {children}
-          <Toaster />
+          <Toaster mobileOffset={{ bottom: "calc(env(safe-area-inset-bottom) + 6rem)" }} />
         </BasaltProviders>
       </body>
     </html>

@@ -1,5 +1,24 @@
 "use client";
 
+import { Badge } from "@nocoo/basalt/components/badge";
+import { Button } from "@nocoo/basalt/components/button";
+import { Checkbox } from "@nocoo/basalt/components/checkbox";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@nocoo/basalt/components/dialog";
+import { Input } from "@nocoo/basalt/components/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@nocoo/basalt/components/select";
 import {
   ArrowLeft,
   ChevronLeft,
@@ -8,26 +27,7 @@ import {
   Loader2,
   RefreshCw,
   X,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+} from "@nocoo/basalt/icons";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import type { EnrichmentScope } from "@/contexts/enrichment";
 import {
@@ -147,7 +147,7 @@ export function EnrichmentDialog({
     >
       <DialogContent
         size="xl"
-        className="max-h-[90dvh] gap-0 overflow-hidden p-0 sm:p-0"
+        className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:p-0"
         data-testid="enrichment-dialog"
       >
         <DialogHeader className="border-b border-basalt-border px-5 py-4 pr-12">

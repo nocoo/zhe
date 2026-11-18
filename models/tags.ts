@@ -1,23 +1,23 @@
 // Pure business logic for tag operations — no React, no DOM.
 
 /**
- * 12 semantic color names matching `--chart-1` … `--chart-12` in app/globals.css.
- * Hashing or storing a name outside this set used to emit `--chart-13+`,
+ * 12 semantic color names matching `--basalt-chart-1` … `--basalt-chart-12` in app/globals.css.
+ * Hashing or storing a name outside this set used to emit `--basalt-chart-13+`,
  * which is undefined CSS and renders as a near-white / invisible badge.
  */
 export const TAG_PALETTE = [
-  "primary", // --chart-1   262 83% 58%   brand purple
-  "sky", // --chart-2   200 90% 55%
-  "teal", // --chart-3   186 80% 45%
-  "jade", // --chart-4   166 72% 44%
-  "green", // --chart-5   142 71% 45%
-  "lime", // --chart-6   84 65% 46%
-  "amber", // --chart-7   45 93% 47%
-  "orange", // --chart-8   30 90% 55%
-  "vermilion", // --chart-9   15 85% 52%
-  "red", // --chart-10  0 72% 51%
-  "rose", // --chart-11  340 82% 55%
-  "magenta", // --chart-12  290 65% 55%
+  "primary", // --basalt-chart-1   262 83% 58%   brand purple
+  "sky", // --basalt-chart-2   200 90% 55%
+  "teal", // --basalt-chart-3   186 80% 45%
+  "jade", // --basalt-chart-4   166 72% 44%
+  "green", // --basalt-chart-5   142 71% 45%
+  "lime", // --basalt-chart-6   84 65% 46%
+  "amber", // --basalt-chart-7   45 93% 47%
+  "orange", // --basalt-chart-8   30 90% 55%
+  "vermilion", // --basalt-chart-9   15 85% 52%
+  "red", // --basalt-chart-10  0 72% 51%
+  "rose", // --basalt-chart-11  340 82% 55%
+  "magenta", // --basalt-chart-12  290 65% 55%
 ] as const;
 
 export type TagPaletteColor = (typeof TAG_PALETTE)[number];
@@ -71,12 +71,12 @@ export function resolveTagColor(name: string, color?: string | null): TagPalette
 }
 
 /**
- * Get the CSS variable token for a tag (1-indexed, always chart-1 … chart-12).
- * e.g. "primary" → "chart-1", "sky" → "chart-2"
+ * Get the CSS variable token for a tag (1-indexed, always basalt-chart-1 … basalt-chart-12).
+ * e.g. "primary" → "basalt-chart-1", "sky" → "basalt-chart-2"
  */
 export function tagColorToken(name: string, color?: string | null): string {
   const idx = TAG_PALETTE.indexOf(resolveTagColor(name, color));
-  return `chart-${idx + 1}`;
+  return `basalt-chart-${idx + 1}`;
 }
 
 /**
@@ -102,7 +102,7 @@ export interface TagColorStyles {
 /**
  * Get inline style objects for a tag.
  * Uses stored `color` when it is a defined palette name; otherwise hashes `name`.
- * Tokens always resolve to `--chart-1` … `--chart-12`.
+ * Tokens always resolve to `--basalt-chart-1` … `--basalt-chart-12`.
  */
 export function getTagStyles(name: string, color?: string | null): TagColorStyles {
   const token = tagColorToken(name, color);

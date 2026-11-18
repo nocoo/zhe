@@ -1,10 +1,10 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import type { ButtonProps } from "@nocoo/basalt/components/button";
+import { Plus } from "@nocoo/basalt/icons";
 import { forwardRef, useEffect, useRef } from "react";
 import { CreateLinkModal } from "@/components/dashboard/create-link-modal";
 import { IconAction } from "@/components/dashboard/icon-action";
-import type { ButtonProps } from "@/components/ui/button";
 import { useCurrentCreateAction } from "@/contexts/create-action";
 import { useDashboardService } from "@/contexts/dashboard-service";
 

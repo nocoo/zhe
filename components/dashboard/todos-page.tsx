@@ -15,14 +15,20 @@
  * layer.
  */
 
+import { LayerCard } from "@nocoo/basalt";
+import { Button } from "@nocoo/basalt/components/button";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
-import { Plus, SlidersHorizontal, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@nocoo/basalt/components/popover";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@nocoo/basalt/components/sheet";
+import { Plus, SlidersHorizontal, X } from "@nocoo/basalt/icons";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { usePageCreateAction } from "@/contexts/create-action";
 import { useCoarsePointer, useNarrowViewport } from "@/hooks/use-media-query";
 import type { TodoForestNode } from "@/models/todos";
@@ -218,7 +224,8 @@ export function TodosPage() {
       ) : null}
 
       <div className="flex flex-1 min-h-0 gap-3">
-        <Card
+        <LayerCard
+          padding="none"
           className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
           role="region"
           aria-label="Todos tree"
@@ -248,10 +255,11 @@ export function TodosPage() {
               disableDrag={coarsePointer}
             />
           )}
-        </Card>
+        </LayerCard>
 
         {narrow ? null : (
-          <Card
+          <LayerCard
+            padding="none"
             className="flex min-h-0 min-w-0 basis-2/5 flex-col overflow-hidden"
             role="region"
             aria-label="Selected todo detail"
@@ -262,7 +270,7 @@ export function TodosPage() {
               detailLoading={vm.detailLoading}
               onUpdate={vm.handleUpdateTodo}
             />
-          </Card>
+          </LayerCard>
         )}
       </div>
 

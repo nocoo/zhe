@@ -1,6 +1,16 @@
 "use client";
 
 import { LayerCard } from "@nocoo/basalt";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { Button } from "@nocoo/basalt/components/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@nocoo/basalt/components/dialog";
 import {
   BookOpen,
   CircleAlert,
@@ -14,23 +24,13 @@ import {
   Scale,
   Star,
   X,
-} from "lucide-react";
+} from "@nocoo/basalt/icons";
 import { useEffect, useState } from "react";
 import { loadGitHubReadme } from "@/actions/github-connector";
 import { canonicalGitHubRepo, type GitHubRepository } from "@/cli/src/connector/github-core";
+import { BOOKMARK_CARD_CLASS } from "@/components/dashboard/card-skeleton";
 import { MarkdownPreview } from "@/components/markdown-preview";
 import { GithubIcon } from "@/components/site-icons";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { BOOKMARK_CARD_CLASS } from "@/components/ui/card-skeleton";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import type { GitHubBookmark } from "@/lib/connector/github-jobs";
 import { cn, formatNumber } from "@/lib/utils";
 import {
@@ -406,7 +406,7 @@ export function GitHubRepositoryCard({
         editCallbacks={editCallbacks}
       />
       <Dialog open={reading} onOpenChange={setReading}>
-        <DialogContent size="xl" className="max-h-[90dvh] overflow-hidden">
+        <DialogContent size="xl" className="flex max-h-[90dvh] flex-col gap-4 overflow-hidden">
           <div className="flex items-start gap-3">
             <DialogHeader className="min-w-0 flex-1">
               <DialogTitle className="break-all">{name}</DialogTitle>

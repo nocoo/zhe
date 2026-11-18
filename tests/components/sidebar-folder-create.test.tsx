@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 
+import { TooltipProvider } from "@nocoo/basalt/components/tooltip";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { DEFAULT_FOLDER_ICON, FOLDER_ICONS } from "@/models/folders";
 
 vi.mock("next/navigation", () => ({

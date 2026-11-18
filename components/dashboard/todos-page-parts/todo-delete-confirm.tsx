@@ -16,7 +16,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+} from "@nocoo/basalt/components/alert-dialog";
 
 export interface TodoDeleteConfirmProps {
   open: boolean;
@@ -43,7 +43,7 @@ export function TodoDeleteConfirm({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="flex flex-col gap-4">
         <AlertDialogHeader>
           <AlertDialogTitle>删除待办</AlertDialogTitle>
           <AlertDialogDescription>{message}</AlertDialogDescription>

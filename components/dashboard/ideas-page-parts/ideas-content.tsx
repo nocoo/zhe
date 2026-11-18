@@ -1,9 +1,13 @@
 "use client";
 
-import { Lightbulb } from "lucide-react";
+import { LayerCard } from "@nocoo/basalt";
+import { Lightbulb } from "@nocoo/basalt/icons";
+import {
+  CARD_GRID_CLASS,
+  CardGridSkeleton,
+  CardListSkeleton,
+} from "@/components/dashboard/card-skeleton";
 import { IdeaCard, IdeaRow } from "@/components/dashboard/idea-card";
-import { CARD_GRID_CLASS, CardGridSkeleton, CardListSkeleton } from "@/components/ui/card-skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
 import type { IdeaListItem } from "@/lib/db/scoped";
 import { staggerStyle } from "@/lib/motion";
 import type { BulkDeleteState } from "@/viewmodels/useBulkDelete";
@@ -19,11 +23,13 @@ function IdeasSkeleton({ viewMode }: { viewMode: IdeasViewMode }) {
 
 function IdeasEmpty({ filtered }: { filtered: boolean }) {
   return (
-    <EmptyState
-      icon={Lightbulb}
-      title={filtered ? "未找到想法" : "暂无想法"}
-      description={filtered ? "试试调整筛选条件" : "点击右下角加号记录您的第一个想法"}
-    />
+    <LayerCard padding="none">
+      <LayerCard.Empty
+        icon={<Lightbulb className="size-10" strokeWidth={1.5} />}
+        title={filtered ? "未找到想法" : "暂无想法"}
+        description={filtered ? "试试调整筛选条件" : "点击右下角加号记录您的第一个想法"}
+      />
+    </LayerCard>
   );
 }
 

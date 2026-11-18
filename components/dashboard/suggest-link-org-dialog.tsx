@@ -1,10 +1,7 @@
 "use client";
 
-import { Check, ChevronRight, Loader2, Plus, Sparkles, X } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { Button } from "@nocoo/basalt/components/button";
 import {
   Dialog,
   DialogContent,
@@ -12,17 +9,20 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+} from "@nocoo/basalt/components/dialog";
+import { Input } from "@nocoo/basalt/components/input";
+import { InputArea as Textarea } from "@nocoo/basalt/components/input-area";
+import { Label } from "@nocoo/basalt/components/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+} from "@nocoo/basalt/components/select";
+import { Check, ChevronRight, Loader2, Plus, Sparkles, X } from "@nocoo/basalt/icons";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { SUGGEST_TITLE_MAX } from "@/models/ai-suggest-link-org";
 import { SUGGEST_STEPS } from "@/models/ai-suggest-progress";
@@ -114,7 +114,7 @@ export function SuggestLinkOrgDialog({ vm }: { vm: SuggestLinkOrgViewModel }) {
     <Dialog open={vm.open} onOpenChange={(open) => !open && vm.close()}>
       <DialogContent
         size="xl"
-        className="max-h-[90dvh] overflow-hidden sm:w-[40rem]"
+        className="flex max-h-[90dvh] flex-col gap-4 overflow-hidden sm:w-[40rem]"
         data-testid="suggest-link-org-dialog"
       >
         <div className="flex shrink-0 items-start justify-between gap-4">

@@ -1,11 +1,12 @@
 // @vitest-environment happy-dom
+
+import { Button } from "@nocoo/basalt/components/button";
+import { DropdownMenuItem } from "@nocoo/basalt/components/dropdown-menu";
+import { Eye, Trash2 } from "@nocoo/basalt/icons";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Eye, Trash2 } from "lucide-react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { CardActions } from "@/components/dashboard/card-actions";
-import { Button } from "@/components/ui/button";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 let resize: ResizeObserverCallback;
 const disconnect = vi.fn();

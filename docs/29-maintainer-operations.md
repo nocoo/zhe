@@ -178,10 +178,10 @@ The Worker maps Cloudflare geo headers to the Vercel-style headers the origin ex
 
 ## Design Tokens & UI Controls
 
-Content cards stay matte: `rounded-card` plus a single `ring-1 ring-border/50` edge and no shadow, matching Basalt `LayerCard`. Interactive cards deepen the ring on hover (`hover:ring-border`) instead of elevating. Nested previews and media frames use borders only.
+Content cards use Basalt `LayerCard`: `ring-1 ring-basalt-border/80 shadow-basalt-card`. Non-`LayerCard` cards, chart/table wrappers, empty states and skeletons use the same ring and shadow explicitly. Nested previews and media frames use borders only.
 
 **权威全文**：[`docs/22-design-tokens.md`](22-design-tokens.md)
-**CSS 定义**：`app/globals.css` · **原语**：`components/ui/*` · **契约测试**：`tests/unit/ui/control-density.test.tsx`
+**CSS 定义**：`app/globals.css` · **原语**：`@nocoo/basalt` public exports · **契约测试**：`tests/unit/ui/control-density.test.tsx`
 
 写 Dashboard UI 时 **必须复用** 下列契约，**禁止** 在业务组件里重新发明控件高度 / 圆角 / checkbox。
 
@@ -222,26 +222,26 @@ not from `h-8` / `h-9` utility overrides. Toolbar rows stay uniform: text contro
 
 Do **not** invent `xs` / `icon-sm`. Compact is Basalt **`sm`**.
 
-Dropdown and context menu items use the local `components/ui` wrappers: 36px minimum height, 8px icon-to-label gap, and 16px icons with 1.5px strokes. Do not add per-icon sizes or margins inside menu items. Card metadata icons use 14px with the same stroke width.
+Dropdown and context menu items use Basalt package defaults. Do not add per-icon sizes or margins inside menu items; import icons from `@nocoo/basalt/icons`. Card metadata icons use 14px with the same 1.5px stroke width.
 
 ### Hard rules for agents
 
 1. **PageHeader / filter bars** → Basalt default: `title`, `description` on its own row below, `actions` top-right; short filters stay in `actions`, long filter bars in `filters`. Toolbar controls `size="sm"` (28px), icon controls `IconAction density="toolbar"`.
 2. **Settings / form pages** → Button `size="default"` (34px) or `lg` (40px); not toolbar `sm` unless the control is in a true toolbar row.
 3. **Same row → same height**; use `items-center`. Prefer one density per toolbar. A lone page-level action belongs in the header, not in its own band.
-4. **Checkbox** always from `@/components/ui/checkbox` — never raw HTML checkbox.
+4. **Checkbox** always from `@nocoo/basalt/components/checkbox` — never raw HTML checkbox.
 5. **Inline “text-looking” editors** still use `Input size="sm"` + surface overrides (`border-transparent` etc.), not a bare `<input>` with a custom focus ring.
 6. **Changing primitive defaults** requires updating `tests/unit/ui/control-density.test.tsx`, `tests/unit/ui/page-header.test.tsx` and `docs/22-design-tokens.md` in the same change set (separate atomic commits OK: code then docs).
 7. **Reference implementations**: `todos-filter-bar.tsx`, `todo-detail-pane.tsx`, `todo-tree-row.tsx`, `links-list-toolbar.tsx`, `sidebar-parts/sidebar-expanded.tsx`.
-8. **Sidebar** → Basalt `SidebarHeader` / `SidebarSearch` / `SidebarNav` / `SidebarFooter` / `SidebarUser` own the insets; nav rows follow the 38px `SidebarItem` geometry and express selection through `aria-current` + `data-hover-selected`, never a custom tint.
+8. **Sidebar** → Basalt `SidebarProvider` / `SidebarBrand` / `SidebarToggle` / `SidebarSearch` / `SidebarNav` / `SidebarFooter` / `SidebarUser` own the geometry; nav rows follow package `SidebarItem` defaults and preserve custom sections in expanded and collapsed states.
 
 ### Surface hierarchy (L0–L3)
 
 | Layer | Token                                   | Role                        |
 | ----- | --------------------------------------- | --------------------------- |
-| L0    | `bg-background`                         | Page / sidebar chrome       |
-| L1    | `bg-card`                               | AppShell content panel      |
-| L2    | `bg-secondary`                          | Embedded cards / list panes |
+| L0    | `bg-basalt-background`                  | Page / sidebar chrome       |
+| L1    | `bg-basalt-card`                        | AppShell content panel      |
+| L2    | `bg-basalt-secondary`                   | Embedded cards / list panes |
 | L3    | `bg-secondary` + `border` + `shadow-xs` | Editable controls           |
 
 `--card` is the L1 **panel** surface (shadcn name kept); `<Card>` intentionally uses L2 `bg-secondary`.

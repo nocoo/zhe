@@ -40,10 +40,10 @@ test.describe("Tag UI - assign existing", () => {
 
     const editor = page.getByTestId("card-edit-dialog");
     await editor.locator('[data-testid="tag-picker-trigger"]').click();
-    const pickerInput = page.locator("[cmdk-input]").last();
+    const pickerInput = page.getByPlaceholder("搜索或创建标签...").last();
     await pickerInput.fill(tagName);
 
-    const tagItem = page.locator(`[cmdk-item]:has-text("${tagName}")`).first();
+    const tagItem = page.getByRole("option", { name: tagName }).first();
     await expect(tagItem).toBeVisible({ timeout: 10_000 });
     await tagItem.click();
 
@@ -54,7 +54,7 @@ test.describe("Tag UI - assign existing", () => {
     ).toBeVisible({ timeout: 10_000 });
 
     // The picker closes automatically after selection.
-    await expect(page.locator("[cmdk-input]")).toBeHidden({ timeout: 5_000 });
+    await expect(page.getByPlaceholder("搜索或创建标签...")).toBeHidden({ timeout: 5_000 });
 
     await saveAndCloseEdit(card);
 

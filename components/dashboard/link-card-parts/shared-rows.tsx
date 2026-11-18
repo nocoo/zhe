@@ -1,8 +1,6 @@
 "use client";
 
-import { Link2 } from "lucide-react";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
+import { Button } from "@nocoo/basalt/components/button";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@nocoo/basalt/components/dialog";
+import { Link2 } from "@nocoo/basalt/icons";
+import Image from "next/image";
 import { linkPresentation } from "@/models/link-presentation";
 import type { Link } from "@/models/types";
 import { CardTitleText } from "./curated-text";
@@ -165,7 +165,7 @@ export function Description({
           </span>
         </Button>
       </DialogTrigger>
-      <DialogContent size="lg" className="max-h-[90dvh] overflow-y-auto">
+      <DialogContent size="lg" className="flex max-h-[90dvh] flex-col gap-4 overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{display.title}</DialogTitle>
           <DialogDescription>收藏内容</DialogDescription>

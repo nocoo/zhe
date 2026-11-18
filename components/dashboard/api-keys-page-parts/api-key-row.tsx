@@ -1,6 +1,5 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,9 +10,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+} from "@nocoo/basalt/components/alert-dialog";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { Button } from "@nocoo/basalt/components/button";
+import { Trash2 } from "@nocoo/basalt/icons";
 
 import type { ApiKeyListItem } from "@/viewmodels/useApiKeysViewModel";
 
@@ -51,7 +51,7 @@ function RevokeButton({
           撤销
         </Button>
       </AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent className="flex flex-col gap-4">
         <AlertDialogHeader>
           <AlertDialogTitle>撤销 API Key</AlertDialogTitle>
           <AlertDialogDescription>

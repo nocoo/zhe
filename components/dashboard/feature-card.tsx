@@ -1,5 +1,5 @@
-import type { LucideIcon } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LayerCard } from "@nocoo/basalt";
+import type { LucideIcon } from "@nocoo/basalt/icons";
 
 type AccentColor = "info" | "teal" | "warning" | "purple" | "success" | "destructive";
 
@@ -41,9 +41,9 @@ export function FeatureCard({
   const colors = ACCENT_CLASSES[accent];
 
   return (
-    <Card>
-      <CardHeader className="px-4 py-3 md:px-5">
-        <CardTitle className="flex items-center gap-3 text-sm font-medium">
+    <LayerCard padding="none">
+      <LayerCard.Header className="px-4 py-3 md:px-5">
+        <h3 className="flex items-center gap-3 text-sm font-medium">
           <div
             className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-basalt-widget ${colors.bg}`}
           >
@@ -56,9 +56,9 @@ export function FeatureCard({
           >
             {description}
           </span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="px-4 pb-4 md:px-5 md:pb-4">{children}</CardContent>
-    </Card>
+        </h3>
+      </LayerCard.Header>
+      <LayerCard.Body className="px-4 pb-4 md:px-5 md:pb-4">{children}</LayerCard.Body>
+    </LayerCard>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@nocoo/basalt/components/avatar";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { Button } from "@nocoo/basalt/components/button";
 import {
   SidebarFooter,
   SidebarItem,
@@ -8,11 +10,9 @@ import {
   SidebarSearch,
   SidebarUser,
 } from "@nocoo/basalt/components/sidebar";
-import { Plus } from "lucide-react";
+import { Plus } from "@nocoo/basalt/icons";
 import { SidebarFolderCreate } from "@/components/sidebar-folder-create";
 import { SidebarFolderItem } from "@/components/sidebar-folder-item";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import type { buildLinkCounts } from "@/models/links";
 import type { Folder } from "@/models/types";
 import type { useFoldersViewModel } from "@/viewmodels/useFoldersViewModel";

@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 
 import { toast } from "@nocoo/basalt/components/toast";
+import { Pencil } from "@nocoo/basalt/icons";
 import {
   act,
   fireEvent,
@@ -11,7 +12,6 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Pencil } from "lucide-react";
 import { createRef } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BookmarkActions } from "@/components/dashboard/bookmark-actions";

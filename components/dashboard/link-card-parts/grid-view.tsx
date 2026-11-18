@@ -1,8 +1,8 @@
 "use client";
 
-import { ImageIcon } from "lucide-react";
+import { Button } from "@nocoo/basalt/components/button";
+import { ImageIcon } from "@nocoo/basalt/icons";
 import Image from "next/image";
-import { Button } from "@/components/ui/button";
 import { XIcon } from "@/components/x-icon";
 import { Description, type LinkPreviewProps, SourceLinks, TitleRow } from "./shared-rows";
 

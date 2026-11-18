@@ -1,9 +1,9 @@
 "use client";
 
+import { Button } from "@nocoo/basalt/components/button";
 import { PageHeader } from "@nocoo/basalt/components/page-header";
-import { RefreshCw, SlidersHorizontal } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@nocoo/basalt/components/popover";
+import { RefreshCw, SlidersHorizontal } from "@nocoo/basalt/icons";
 import type { Folder, Tag } from "@/models/types";
 import { EnrichmentButton } from "../enrichment-button";
 import { IconAction } from "../icon-action";

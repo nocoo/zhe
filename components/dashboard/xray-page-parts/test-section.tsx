@@ -1,10 +1,17 @@
 "use client";
 
-import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Loader2, Search } from "lucide-react";
+import { Button } from "@nocoo/basalt/components/button";
+import { Input } from "@nocoo/basalt/components/input";
+import { Label } from "@nocoo/basalt/components/label";
+import {
+  AlertTriangle,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  Search,
+} from "@nocoo/basalt/icons";
 import { FeatureCard } from "@/components/dashboard/feature-card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { XrayViewModel } from "@/viewmodels/useXrayViewModel";
 import { TweetCard } from "./tweet-card";
 

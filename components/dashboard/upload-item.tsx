@@ -10,6 +10,17 @@ import {
   LayerCard,
 } from "@nocoo/basalt";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@nocoo/basalt/components/alert-dialog";
+import { DropdownMenuItem } from "@nocoo/basalt/components/dropdown-menu";
+import {
   Check,
   Copy,
   ExternalLink,
@@ -19,19 +30,8 @@ import {
   Trash2,
   Video,
   X,
-} from "lucide-react";
+} from "@nocoo/basalt/icons";
 import { useState } from "react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { useDialogReturnFocus } from "@/hooks/use-dialog-return-focus";
 import type { Upload } from "@/lib/db/schema";
 import { formatDate } from "@/lib/utils";
@@ -68,7 +68,7 @@ function DeleteUploadDialog({
   const focusReturn = useDialogReturnFocus();
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent {...focusReturn}>
+      <AlertDialogContent className="flex flex-col gap-4" {...focusReturn}>
         <AlertDialogHeader>
           <AlertDialogTitle>确认删除</AlertDialogTitle>
           <AlertDialogDescription>此操作不可撤销，确定要删除这个文件吗？</AlertDialogDescription>
@@ -108,7 +108,7 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
       data-testid="upload-item"
       data-card-actions-container
       padding="none"
-      className="rounded-basalt-card px-4 py-3 ring-1 ring-basalt-border/50"
+      className="px-4 py-3"
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -205,7 +205,7 @@ export function UploadItem({ upload, onDelete }: UploadItemProps) {
         />
         {isVideo && (
           <Dialog open={preview} onOpenChange={setPreview}>
-            <DialogContent size="xl" {...previewFocusReturn}>
+            <DialogContent size="xl" className="flex flex-col gap-4" {...previewFocusReturn}>
               <DialogHeader>
                 <DialogTitle>{upload.fileName}</DialogTitle>
                 <DialogDescription>已保存在您的 Zhe 存储</DialogDescription>
@@ -239,11 +239,7 @@ interface UploadingItemProps {
 
 export function UploadingItem({ file, onDismiss }: UploadingItemProps) {
   return (
-    <LayerCard
-      data-testid="uploading-item"
-      padding="none"
-      className="rounded-basalt-card px-4 py-3 ring-1 ring-basalt-border/50"
-    >
+    <LayerCard data-testid="uploading-item" padding="none" className="px-4 py-3">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {/* Status icon */}

@@ -1,8 +1,7 @@
 "use client";
 
-import { Loader2, X } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@nocoo/basalt/components/badge";
+import { Button } from "@nocoo/basalt/components/button";
 import {
   Dialog,
   DialogContent,
@@ -10,10 +9,11 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+} from "@nocoo/basalt/components/dialog";
+import { Input } from "@nocoo/basalt/components/input";
+import { InputArea as Textarea } from "@nocoo/basalt/components/input-area";
+import { Label } from "@nocoo/basalt/components/label";
+import { Loader2, X } from "@nocoo/basalt/icons";
 import { useDialogReturnFocus } from "@/hooks/use-dialog-return-focus";
 import { getTagStyles } from "@/models/tags";
 import type { IdeasViewModel } from "@/viewmodels/useIdeasViewModel";
@@ -42,7 +42,7 @@ export function CreateIdeaModal({
   const focusReturn = useDialogReturnFocus();
   return (
     <Dialog open={vm.isCreateModalOpen} onOpenChange={vm.setIsCreateModalOpen}>
-      <DialogContent size="xl" className="create-dialog" {...focusReturn}>
+      <DialogContent size="xl" className="create-dialog flex flex-col gap-4" {...focusReturn}>
         <DialogHeader>
           <DialogTitle>新想法</DialogTitle>
           <DialogDescription>记录新的想法，支持 Markdown 格式。</DialogDescription>
@@ -111,7 +111,7 @@ export function DeleteIdeaConfirm({ vm }: { vm: IdeasViewModel }) {
   const focusReturn = useDialogReturnFocus();
   return (
     <Dialog open={vm.isDeleteConfirmOpen} onOpenChange={vm.cancelDelete}>
-      <DialogContent {...focusReturn}>
+      <DialogContent className="flex flex-col gap-4" {...focusReturn}>
         <DialogHeader>
           <DialogTitle>删除想法</DialogTitle>
           <DialogDescription>确定要删除这个想法吗？此操作无法撤销。</DialogDescription>

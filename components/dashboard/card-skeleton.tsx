@@ -1,4 +1,4 @@
-import { AnimatedCardList } from "@/components/ui/animated-card-list";
+import { AnimatedCardList } from "@/components/animated-card-list";
 import { cn } from "@/lib/utils";
 
 export const CARD_GRID_CLASS =
@@ -7,7 +7,7 @@ export const CARD_GRID_CLASS =
 export const BOOKMARK_GRID_CLASS =
   "grid grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-3";
 export const BOOKMARK_CARD_CLASS =
-  "group flex min-w-0 flex-col overflow-hidden rounded-basalt-card ring-1 ring-basalt-border/50 transition-shadow hover:ring-basalt-border";
+  "group flex min-w-0 flex-col overflow-hidden rounded-basalt-card ring-1 ring-basalt-border/80 shadow-basalt-card transition-shadow hover:ring-basalt-border";
 
 function Bone({ className }: { className: string }) {
   return <div className={cn("shrink-0 rounded bg-basalt-muted-foreground/10", className)} />;
@@ -107,7 +107,7 @@ export function CardListSkeleton({
           key={id}
           aria-hidden
           className={cn(
-            "overflow-hidden rounded-basalt-card bg-basalt-secondary p-4 ring-1 ring-basalt-border/40 animate-pulse motion-reduce:animate-none",
+            "overflow-hidden rounded-basalt-card bg-basalt-secondary p-4 ring-1 ring-basalt-border/80 shadow-basalt-card animate-pulse motion-reduce:animate-none",
             variant === "idea" && "py-3",
             rowHeightClass,
           )}
@@ -201,7 +201,7 @@ export function CardGridSkeleton({
       key={id}
       aria-hidden
       className={cn(
-        "overflow-hidden rounded-basalt-card bg-basalt-secondary ring-1 ring-basalt-border/40 animate-pulse motion-reduce:animate-none",
+        "overflow-hidden rounded-basalt-card bg-basalt-secondary ring-1 ring-basalt-border/80 shadow-basalt-card animate-pulse motion-reduce:animate-none",
         variant !== "idea" && BOOKMARK_CARD_CLASS,
         variant !== "idea" && variant !== "x" && "h-96",
         aspectClass,

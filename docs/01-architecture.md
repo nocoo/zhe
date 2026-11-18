@@ -64,24 +64,23 @@ User → Cloudflare CDN → [Layer 1] zhe-edge Worker (KV)
 
 ## 目录职责
 
-| 目录             | 职责                                         | 示例                                                                                      |
-| ---------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `models/`        | 纯业务逻辑，无 React/服务端依赖（15 个模块） | `links.ts`, `tags.ts`, `xray.ts`                                                          |
-| `lib/`           | 共享工具库                                   | `slug.ts`, `analytics.ts`, `metadata.ts`, `constants.ts`, `auth-context.ts`, `version.ts` |
-| `lib/db/`        | 数据库访问层                                 | `d1-client.ts`, `scoped.ts`, `index.ts`, `schema.ts`                                      |
-| `lib/kv/`        | Cloudflare KV 缓存层                         | `client.ts`（HTTP REST）, `sync.ts`（全量同步）                                           |
-| `lib/r2/`        | Cloudflare R2 对象存储                       | `client.ts`（S3 兼容客户端，预签名 URL）                                                  |
-| `actions/`       | Server Actions（`'use server'`，13 个模块）  | `links.ts`, `tags.ts`, `backy.ts`, `xray.ts`                                              |
-| `contexts/`      | React Context 状态管理                       | `dashboard-service.tsx`                                                                   |
-| `viewmodels/`    | MVVM ViewModel 钩子（11 个模块）             | `useLinksViewModel.ts`, `useXrayViewModel.ts`                                             |
-| `components/`    | React UI 组件                                | `link-card.tsx`, `app-sidebar.tsx`                                                        |
-| `components/ui/` | shadcn/ui 基础组件（自动生成）               | `button.tsx`, `dialog.tsx`                                                                |
-| `app/`           | Next.js App Router 页面与路由                | `page.tsx`, `api/`, `(dashboard)/`, `(auth)/`                                             |
-| `hooks/`         | 通用 React 钩子                              | `use-mobile.tsx`                                                                          |
-| `worker/`        | Cloudflare Worker 边缘代理                   | `src/index.ts`, `wrangler.toml`                                                           |
-| `drizzle/`       | 数据库迁移文件                               | `migrations/0000-0016`                                                                    |
-| `docs/`          | 项目文档（11 篇）                            | `01-architecture.md` ~ `11-four-layer-test-plan.md`                                       |
-| `tests/`         | 测试套件                                     | `unit/`, `api/`, `components/`, `integration/`, `mocks/`, `playwright/`                   |
+| 目录          | 职责                                         | 示例                                                                                      |
+| ------------- | -------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `models/`     | 纯业务逻辑，无 React/服务端依赖（15 个模块） | `links.ts`, `tags.ts`, `xray.ts`                                                          |
+| `lib/`        | 共享工具库                                   | `slug.ts`, `analytics.ts`, `metadata.ts`, `constants.ts`, `auth-context.ts`, `version.ts` |
+| `lib/db/`     | 数据库访问层                                 | `d1-client.ts`, `scoped.ts`, `index.ts`, `schema.ts`                                      |
+| `lib/kv/`     | Cloudflare KV 缓存层                         | `client.ts`（HTTP REST）, `sync.ts`（全量同步）                                           |
+| `lib/r2/`     | Cloudflare R2 对象存储                       | `client.ts`（S3 兼容客户端，预签名 URL）                                                  |
+| `actions/`    | Server Actions（`'use server'`，13 个模块）  | `links.ts`, `tags.ts`, `backy.ts`, `xray.ts`                                              |
+| `contexts/`   | React Context 状态管理                       | `dashboard-service.tsx`                                                                   |
+| `viewmodels/` | MVVM ViewModel 钩子（11 个模块）             | `useLinksViewModel.ts`, `useXrayViewModel.ts`                                             |
+| `components/` | App shell 与业务组件                         | Basalt 组合、dashboard cards、业务侧栏                                                    |
+| `app/`        | Next.js App Router 页面与路由                | `page.tsx`, `api/`, `(dashboard)/`, `(auth)/`                                             |
+| `hooks/`      | 通用 React 钩子                              | `use-mobile.tsx`                                                                          |
+| `worker/`     | Cloudflare Worker 边缘代理                   | `src/index.ts`, `wrangler.toml`                                                           |
+| `drizzle/`    | 数据库迁移文件                               | `migrations/0000-0016`                                                                    |
+| `docs/`       | 项目文档（11 篇）                            | `01-architecture.md` ~ `11-four-layer-test-plan.md`                                       |
+| `tests/`      | 测试套件                                     | `unit/`, `api/`, `components/`, `integration/`, `mocks/`, `playwright/`                   |
 
 ## 核心设计模式
 
