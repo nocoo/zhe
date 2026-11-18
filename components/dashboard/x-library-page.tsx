@@ -309,7 +309,7 @@ export function XLibraryPage() {
               itemId={link.id}
               label={link.title || link.metaTitle || link.originalUrl}
               key={link.id}
-              className=""
+              className="animate-fade-up"
               style={staggerStyle(index)}
             >
               <LinkCard

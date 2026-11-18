@@ -103,7 +103,7 @@ export function TagsPage() {
       ) : (
         <div className="space-y-2" data-testid="tags-list">
           {vm.rows.map((row, i) => (
-            <div key={row.id} className="" style={staggerStyle(i)}>
+            <div key={row.id} className="animate-fade-up" style={staggerStyle(i)}>
               <TagManageRow
                 row={row}
                 disabled={vm.savingId === row.id}

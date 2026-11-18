@@ -137,7 +137,7 @@ export function UploadList({
       {uploadingFiles.length > 0 && (
         <div className="space-y-2 mb-4">
           {uploadingFiles.map((file, i) => (
-            <div key={file.id} className="" style={staggerStyle(i)}>
+            <div key={file.id} className="animate-fade-up" style={staggerStyle(i)}>
               <UploadingItem file={file} onDismiss={dismissUploadingFile} />
             </div>
           ))}
@@ -162,7 +162,7 @@ export function UploadList({
               itemId={upload.id}
               label={upload.fileName}
               key={upload.id}
-              className=""
+              className="animate-fade-up"
               style={staggerStyle(i)}
             >
               <UploadItem upload={upload} onDelete={handleDelete} />

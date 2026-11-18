@@ -34,6 +34,13 @@
   }
 }
 
+@utility animate-fade-up {
+  animation: fade-up var(--motion-base) cubic-bezier(0.22, 0.75, 0.25, 1) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
 :is([role="dialog"], [role="alertdialog"])[data-basalt-surface-root] {
   --basalt-background: var(--basalt-bright);
   --basalt-card: var(--basalt-bright);

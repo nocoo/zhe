@@ -77,7 +77,7 @@ export function CardListSkeleton({
             aria-hidden
             className={cn(
               BOOKMARK_CARD_CLASS,
-              "animate-pulse motion-reduce:animate-none",
+              "bg-basalt-secondary animate-pulse motion-reduce:animate-none",
               rowHeightClass,
             )}
           >
