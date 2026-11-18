@@ -53,7 +53,7 @@ export function BookmarkCardFooter({
     >
       {showClassification && (
         <div
-          className="flex h-9 min-w-0 flex-1 items-center gap-basalt-space-lg px-basalt-space-card-sm"
+          className="flex h-9 min-w-0 flex-1 items-center gap-basalt-space-lg px-basalt-card-sm"
           data-bookmark-classification
         >
           <span
@@ -90,7 +90,7 @@ export function BookmarkCardFooter({
       )}
       <div
         className={cn(
-          "flex min-h-10 shrink-0 items-center justify-between gap-basalt-space-lg border-t border-basalt-border/60 px-basalt-space-card-sm py-basalt-space-sm",
+          "flex min-h-10 shrink-0 items-center justify-between gap-basalt-space-lg border-t border-basalt-border/60 px-basalt-card-sm py-basalt-space-sm",
           compact && "sm:border-t-0",
         )}
         data-bookmark-action-row

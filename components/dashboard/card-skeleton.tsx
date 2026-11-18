@@ -30,14 +30,14 @@ function BookmarkFooterBones({
       )}
     >
       {showClassification && (
-        <div className="flex h-9 flex-1 items-center gap-basalt-space-lg px-basalt-space-card-sm">
+        <div className="flex h-9 flex-1 items-center gap-basalt-space-lg px-basalt-card-sm">
           <Bone className="h-3 w-16" />
           <Bone className="h-4 w-16" />
         </div>
       )}
       <div
         className={cn(
-          "flex min-h-10 items-center gap-basalt-space-sm border-t border-basalt-border/60 px-basalt-space-card-sm py-basalt-space-sm",
+          "flex min-h-10 items-center gap-basalt-space-sm border-t border-basalt-border/60 px-basalt-card-sm py-basalt-space-sm",
           compact && "sm:border-t-0",
         )}
       >
@@ -81,7 +81,7 @@ export function CardListSkeleton({
               rowHeightClass,
             )}
           >
-            <div className="flex min-h-24 items-center gap-basalt-layout-sm px-basalt-space-card-sm py-basalt-space-lg">
+            <div className="flex min-h-24 items-center gap-basalt-layout-sm px-basalt-card-sm py-basalt-space-lg">
               <Bone className="hidden h-20 w-28 sm:block" />
               <div className="flex-1 space-y-2">
                 <Bone className="h-4 w-2/3" />

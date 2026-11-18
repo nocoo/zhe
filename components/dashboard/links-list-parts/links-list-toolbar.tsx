@@ -128,7 +128,7 @@ export function LinksListToolbar(props: ToolbarProps) {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[calc(100vw-2rem)] max-w-xs p-basalt-space-card-sm">
+      <PopoverContent align="end" className="w-[calc(100vw-2rem)] max-w-xs p-basalt-card-sm">
         <div className="flex flex-wrap items-center gap-basalt-space-lg">
           <FilterControls {...controls} />
         </div>

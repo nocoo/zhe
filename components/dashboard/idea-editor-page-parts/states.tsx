@@ -21,14 +21,20 @@ export function EditorSkeleton() {
         </div>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3 md:flex-row">
-        <LayerCard padding="none" className="min-h-[12rem] flex-1 space-y-3 p-6 animate-pulse">
+        <LayerCard
+          padding="none"
+          className="min-h-[12rem] flex-1 space-y-3 p-basalt-card animate-pulse"
+        >
           <div className="h-4 w-3/4 rounded bg-basalt-background" />
           <div className="h-4 w-full rounded bg-basalt-background" />
           <div className="h-4 w-5/6 rounded bg-basalt-background" />
           <div className="h-4 w-2/3 rounded bg-basalt-background" />
           <div className="h-4 w-1/2 rounded bg-basalt-background" />
         </LayerCard>
-        <LayerCard padding="none" className="min-h-[12rem] flex-1 space-y-3 p-6 animate-pulse">
+        <LayerCard
+          padding="none"
+          className="min-h-[12rem] flex-1 space-y-3 p-basalt-card animate-pulse"
+        >
           <div className="h-4 w-3/4 rounded bg-basalt-background" />
           <div className="h-4 w-1/2 rounded bg-basalt-background" />
           <div className="h-4 w-2/3 rounded bg-basalt-background" />

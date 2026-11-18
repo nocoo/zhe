@@ -233,7 +233,7 @@ export function TagFilter({ tags, selectedTagIds, onToggle }: TagFilterProps) {
           aria-label="标签"
         >
           {filteredTags.length === 0 ? (
-            <p className="py-basalt-space-card-sm text-center text-basalt-sm text-basalt-muted-foreground">
+            <p className="py-basalt-card-sm text-center text-basalt-sm text-basalt-muted-foreground">
               未找到标签
             </p>
           ) : (
