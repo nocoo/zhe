@@ -36,7 +36,7 @@ function LinksListSkeleton({ viewMode }: { viewMode: ViewMode }) {
 
 function LoadingState({ viewMode, ready }: { viewMode: ViewMode; ready: boolean }) {
   return (
-    <div>
+    <div className="space-y-basalt-layout">
       <PageHeaderSkeleton />
       {ready && <LinksListSkeleton viewMode={viewMode} />}
     </div>
@@ -90,7 +90,7 @@ function LinksContent(props: LinksContentProps) {
 
   return (
     <AnimatedCardList
-      className={viewMode === "grid" ? BOOKMARK_GRID_CLASS : "space-y-3"}
+      className={viewMode === "grid" ? BOOKMARK_GRID_CLASS : "space-y-basalt-layout-sm"}
       data-testid={viewMode === "grid" ? "card-grid" : "card-list"}
     >
       {filteredLinks.map((link, i) => (
@@ -186,7 +186,7 @@ export function LinksList() {
   if (loading || !viewReady) return <LoadingState viewMode={viewMode} ready={viewReady} />;
 
   return (
-    <div>
+    <div className="space-y-basalt-layout">
       <LinksListToolbar
         showHidden={filters.showHidden}
         onToggleHidden={() => filters.setShowHidden((value) => !value)}

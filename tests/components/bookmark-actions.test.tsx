@@ -204,7 +204,7 @@ describe("unified bookmark action contract", () => {
     const user = userEvent.setup();
     render(<Harness />);
     const button = screen.getByRole("button", { name: "复制收藏时间" });
-    expect(button).toHaveClass("px-2");
+    expect(button).toHaveClass("px-basalt-space-lg", "text-basalt-xs");
     expect(button).toHaveTextContent("3天前");
     expect(button.querySelector("time")).toHaveAttribute("datetime", "2026-10-13T02:00:00.000Z");
     await user.hover(button);
@@ -233,6 +233,9 @@ describe("unified bookmark action contract", () => {
     ] as const) {
       await user.click(trigger);
       expect(screen.getAllByRole("menuitem")).toHaveLength(2);
+      for (const item of screen.getAllByRole("menuitem")) {
+        expect(item.querySelector("svg")).toHaveClass("size-4", "shrink-0");
+      }
       await user.click(screen.getByRole("menuitem", { name: label }));
       await waitFor(() => expect(handler).toHaveBeenCalledOnce());
       expect(trigger).toHaveFocus();

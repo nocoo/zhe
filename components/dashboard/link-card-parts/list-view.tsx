@@ -8,7 +8,7 @@ import { Description, type LinkPreviewProps, SourceLinks, TitleRow } from "./sha
 export function ListView(props: LinkPreviewProps) {
   const image = props.screenshotUrl || props.faviconUrl;
   return (
-    <div className="flex min-h-24 min-w-0 items-center gap-3 p-3">
+    <div className="flex min-h-24 min-w-0 items-center gap-basalt-layout-sm p-basalt-space-card-sm">
       <a
         href={props.link.originalUrl}
         target="_blank"
@@ -29,7 +29,7 @@ export function ListView(props: LinkPreviewProps) {
           <ImageIcon className="size-6 text-basalt-muted-foreground" />
         )}
       </a>
-      <div className="min-w-0 flex-1 space-y-1">
+      <div className="min-w-0 flex-1 space-y-basalt-space-sm">
         <TitleRow {...props} />
         <SourceLinks link={props.link} shortUrl={props.shortUrl} />
         {props.onOpenDetails ? (

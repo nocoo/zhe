@@ -245,7 +245,7 @@ describe("LinksList", () => {
     render(<LinksList />);
 
     expect(screen.getByText("全部链接")).toBeInTheDocument();
-    expect(screen.getByText("共 3 条链接")).toBeInTheDocument();
+    expect(screen.getByText("共 3 条链接")).toHaveClass("text-basalt-sm");
     expect(screen.getByRole("link", { name: "/abc" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "/def" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "/ghi" })).toBeInTheDocument();

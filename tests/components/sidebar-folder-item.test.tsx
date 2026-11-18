@@ -2,6 +2,7 @@
 
 import { TooltipProvider } from "@nocoo/basalt/components/tooltip";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Folder } from "@/models/types";
 
@@ -102,8 +103,7 @@ describe("SidebarFolderItem", () => {
 
       const countEl = screen.getByText("5");
       expect(countEl).toBeInTheDocument();
-      // count stays visible; its wrapper fades out on group hover
-      expect(countEl.parentElement?.className).toContain("group-hover:opacity-0");
+      expect(countEl.parentElement).toHaveClass("size-6", "group-hover:invisible");
       expect(countEl.className).toContain("text-basalt-sm");
     });
 
@@ -132,17 +132,16 @@ describe("SidebarFolderItem", () => {
       expect(countEl.className).toContain("tabular-nums");
     });
 
-    it("shows edit and delete options in context menu", () => {
-      // Radix DropdownMenu uses portals that don't render in jsdom.
-      // We verify the menu trigger exists and callbacks are wired correctly instead.
-      const onStartEditing = vi.fn();
-      const onDelete = vi.fn();
-      renderItem({ onStartEditing, onDelete });
+    it("shows edit and delete options with standard menu icon sizing", async () => {
+      const user = userEvent.setup();
+      renderItem({ onStartEditing: vi.fn(), onDelete: vi.fn() });
 
-      // Menu trigger exists
       const menuTrigger = screen.getByLabelText("文件夹操作");
-      expect(menuTrigger).toBeInTheDocument();
       expect(menuTrigger.getAttribute("aria-haspopup")).toBe("menu");
+      await user.click(menuTrigger);
+      for (const item of screen.getAllByRole("menuitem")) {
+        expect(item.querySelector("svg")).toHaveClass("size-4", "shrink-0");
+      }
     });
 
     it("passes onStartEditing callback for edit action", () => {

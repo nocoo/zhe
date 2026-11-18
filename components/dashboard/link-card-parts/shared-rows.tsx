@@ -103,7 +103,7 @@ export function TitleRow({
 export function SourceLinks({ link, shortUrl }: { link: Link; shortUrl: string }) {
   return (
     <div
-      className="flex h-5 min-w-0 items-center gap-2 text-xs text-basalt-muted-foreground"
+      className="flex h-5 min-w-0 items-center gap-basalt-space-lg text-basalt-xs text-basalt-muted-foreground"
       data-bookmark-links
     >
       <a

@@ -357,17 +357,17 @@ function RowMenuItems({
   return (
     <>
       <Item onSelect={() => onAddChild(todo.id)}>
-        <Plus aria-hidden /> 添加子项
+        <Plus className="size-4 shrink-0" aria-hidden /> 添加子项
       </Item>
       <Item onSelect={() => onAddSibling(todo.id, todo.parentId)}>
-        <Plus aria-hidden /> 添加同级
+        <Plus className="size-4 shrink-0" aria-hidden /> 添加同级
       </Item>
       <Separator />
       <Item
         onSelect={() => onConfirmDelete(todo)}
         className="text-basalt-destructive focus:text-basalt-destructive"
       >
-        <Trash2 aria-hidden /> 删除…
+        <Trash2 className="size-4 shrink-0" aria-hidden /> 删除…
       </Item>
     </>
   );

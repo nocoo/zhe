@@ -122,14 +122,14 @@ export function LinksListToolbar(props: ToolbarProps) {
           <SlidersHorizontal className="h-3.5 w-3.5" strokeWidth={1.5} />
           <span>筛选</span>
           {activeFilterCount > 0 && (
-            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-basalt-primary px-1 text-[10px] font-medium text-basalt-primary-foreground leading-none">
+            <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-basalt-primary px-basalt-space-sm text-basalt-xs font-medium leading-none text-basalt-primary-foreground">
               {activeFilterCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[calc(100vw-2rem)] max-w-xs p-3">
-        <div className="flex flex-wrap items-center gap-2">
+      <PopoverContent align="end" className="w-[calc(100vw-2rem)] max-w-xs p-basalt-space-card-sm">
+        <div className="flex flex-wrap items-center gap-basalt-space-lg">
           <FilterControls {...controls} />
         </div>
       </PopoverContent>
@@ -140,7 +140,7 @@ export function LinksListToolbar(props: ToolbarProps) {
     <PageHeader
       title={headerTitle}
       description={
-        <span role="status">
+        <span role="status" className="text-basalt-sm">
           {hasActiveFilters ? `${linkCount} / ${totalCount} 条链接` : `共 ${linkCount} 条链接`}
         </span>
       }

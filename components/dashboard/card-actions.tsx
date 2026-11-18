@@ -129,9 +129,12 @@ export function CardActions({
                     }
                   >
                     {pending ? (
-                      <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden />
+                      <Loader2
+                        className="size-4 shrink-0 animate-spin motion-reduce:animate-none"
+                        aria-hidden
+                      />
                     ) : (
-                      <Icon aria-hidden />
+                      <Icon className="size-4 shrink-0" aria-hidden />
                     )}
                     <span className="min-w-0 break-words">
                       {label}
