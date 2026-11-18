@@ -236,6 +236,11 @@ export function CardEditDialog({
           event.preventDefault();
           panel.current?.focus({ preventScroll: true });
         }}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape" || event.defaultPrevented) return;
+          event.preventDefault();
+          void finish();
+        }}
         onCloseAutoFocus={(event) => {
           event.preventDefault();
           const target = restoreFocus.current?.isConnected
