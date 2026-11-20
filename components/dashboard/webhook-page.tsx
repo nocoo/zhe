@@ -26,11 +26,8 @@ interface ConfiguredViewProps {
   tmpUploadUrl: string | null;
   rateLimit: number;
   setRateLimit: (v: number) => void;
-  isMigrating: boolean;
-  migratedApiKey: string | null;
   isGenerating: boolean;
   isRevoking: boolean;
-  onMigrate: () => void;
   onGenerate: () => void;
   onRevoke: () => void;
   onRateLimitChange: (v: number) => void;
@@ -43,11 +40,8 @@ function ConfiguredView(props: ConfiguredViewProps) {
     tmpUploadUrl,
     rateLimit,
     setRateLimit,
-    isMigrating,
-    migratedApiKey,
     isGenerating,
     isRevoking,
-    onMigrate,
     onGenerate,
     onRevoke,
     onRateLimitChange,
@@ -55,12 +49,10 @@ function ConfiguredView(props: ConfiguredViewProps) {
 
   return (
     <div className="space-y-4" data-testid="webhook-token-section">
-      <ApiKeyShortcut
-        isMigrating={isMigrating}
-        migratedApiKey={migratedApiKey}
-        onMigrate={onMigrate}
-        onCopy={handleCopy}
-      />
+      <p className="text-sm text-basalt-muted-foreground">
+        直接调用生成的 URL 即可收藏链接，无需登录或额外鉴权头。X 链接会先保存，再由已登录的 Zhe CLI
+        Connector 自动补全。
+      </p>
 
       <CredentialRow label="令牌" value={token} onCopy={handleCopy} testId="token" />
       <CredentialRow
@@ -105,6 +97,7 @@ function ConfiguredView(props: ConfiguredViewProps) {
 
 export function WebhookPage({ initialData }: { initialData?: WebhookInitialData }) {
   const vm = useWebhookViewModel(initialData);
+  const canMigrate = !vm.isLoading && Boolean(vm.token && vm.webhookUrl);
 
   return (
     <div className="space-y-basalt-layout">
@@ -126,6 +119,12 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
           )
         }
       />
+      <ApiKeyShortcut
+        isMigrating={vm.isMigrating}
+        migratedApiKey={canMigrate ? vm.migratedApiKey : null}
+        onMigrate={canMigrate ? vm.handleMigrate : undefined}
+        onCopy={handleCopy}
+      />
       <LayerCard padding="none">
         <LayerCard.Body className="px-4 py-4 md:px-5 md:py-5">
           {vm.isLoading ? (
@@ -137,11 +136,8 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
               tmpUploadUrl={vm.tmpUploadUrl}
               rateLimit={vm.rateLimit}
               setRateLimit={vm.setRateLimit}
-              isMigrating={vm.isMigrating}
-              migratedApiKey={vm.migratedApiKey}
               isGenerating={vm.isGenerating}
               isRevoking={vm.isRevoking}
-              onMigrate={vm.handleMigrate}
               onGenerate={vm.handleGenerate}
               onRevoke={vm.handleRevoke}
               onRateLimitChange={vm.handleRateLimitChange}

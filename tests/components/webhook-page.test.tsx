@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { WebhookPage } from "@/components/dashboard/webhook-page";
 import { unwrap } from "../test-utils";
@@ -72,6 +72,30 @@ describe("WebhookPage", () => {
     render(<WebhookPage />);
 
     expect(screen.getByText("Webhook")).toBeInTheDocument();
+  });
+
+  it("links to API Keys from a standalone banner before any token exists", () => {
+    render(<WebhookPage />);
+
+    const banner = screen.getByTestId("webhook-api-key-shortcut");
+    expect(within(banner).getByRole("link", { name: "前往 API Keys" })).toHaveAttribute(
+      "href",
+      "/dashboard/api-keys",
+    );
+    expect(banner.previousElementSibling?.tagName).toBe("HEADER");
+    expect(within(banner).queryByRole("button", { name: "创建 API Key" })).not.toBeInTheDocument();
+  });
+
+  it("keeps creation from an existing token in the banner, outside its credential card", () => {
+    mockWebhookVm.token = "test-token";
+    mockWebhookVm.webhookUrl = "https://zhe.example.com/api/link/create/test-token";
+    render(<WebhookPage />);
+
+    const banner = screen.getByTestId("webhook-api-key-shortcut");
+    const credentials = screen.getByTestId("webhook-token-section");
+    expect(banner.nextElementSibling).toContainElement(credentials);
+    fireEvent.click(within(banner).getByRole("button", { name: "创建 API Key" }));
+    expect(mockHandleMigrate).toHaveBeenCalledOnce();
   });
 
   it("copies token to clipboard when copy token button clicked", () => {

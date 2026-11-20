@@ -1,12 +1,14 @@
 "use client";
 
-import { Button, LayerCard } from "@nocoo/basalt";
+import { Banner } from "@nocoo/basalt/components/banner";
+import { Button } from "@nocoo/basalt/components/button";
 import { ArrowRight, Check, Copy, KeyRound } from "@nocoo/basalt/icons";
+import Link from "next/link";
 
 interface ApiKeyShortcutProps {
   isMigrating: boolean;
   migratedApiKey: string | null;
-  onMigrate: () => void;
+  onMigrate: (() => void) | undefined;
   onCopy: (text: string) => void;
 }
 
@@ -19,13 +21,13 @@ function MigratedKeyDisplay({
 }) {
   return (
     <div className="space-y-2 pt-1">
-      <div className="flex items-center gap-1 text-sm text-green-700 dark:text-green-400">
+      <div className="flex items-center gap-1 text-sm text-basalt-success">
         <Check className="h-4 w-4" />
         <span>API Key 已创建！请保存以下密钥（仅显示一次）：</span>
       </div>
       <div className="flex items-center gap-2">
         <code
-          className="rounded bg-green-100 dark:bg-green-900/30 px-2 py-1 text-xs font-mono text-green-800 dark:text-green-300 break-all"
+          className="min-w-0 break-all rounded-basalt-widget bg-basalt-control px-2 py-1 font-mono text-xs text-basalt-foreground"
           data-testid="migrated-api-key"
         >
           {apiKey}
@@ -61,35 +63,35 @@ export function ApiKeyShortcut({
   onCopy,
 }: ApiKeyShortcutProps) {
   return (
-    <LayerCard.Well data-testid="webhook-api-key-shortcut">
-      <div className="flex items-start gap-2">
-        <div className="space-y-2">
-          <p className="text-sm text-basalt-foreground">
-            <strong>Webhook 持续可用</strong>
-            。直接调用生成的 URL 即可收藏链接，无需登录或额外鉴权头。
-          </p>
-          <p className="text-xs text-basalt-muted-foreground">
-            X 链接会先保存，再由已登录的 Zhe CLI Connector 自动补全。也可以创建 API Key 来使用更多
-            API 操作。
-          </p>
-          {migratedApiKey ? (
-            <MigratedKeyDisplay apiKey={migratedApiKey} onCopy={onCopy} />
-          ) : (
-            <Button
-              variant="outline"
-              size="default"
-              className="gap-1.5 "
-              onClick={onMigrate}
-              disabled={isMigrating}
-              data-testid="migrate-to-apikey-btn"
-            >
-              <KeyRound className="h-3.5 w-3.5" />
-              {isMigrating ? "创建中..." : "创建 API Key"}
-              {!isMigrating && <ArrowRight className="h-3.5 w-3.5" />}
-            </Button>
-          )}
+    <Banner
+      size="sm"
+      variant="secondary"
+      title="使用 API Key"
+      icon={<KeyRound strokeWidth={1.5} aria-hidden />}
+      description={
+        <div className="space-y-basalt-space-lg">
+          <p>在 Zhe CLI 或其他应用中使用更多 API 操作，现有 Webhook URL 仍可使用。</p>
+          {migratedApiKey ? <MigratedKeyDisplay apiKey={migratedApiKey} onCopy={onCopy} /> : null}
+          <div className="flex flex-wrap items-center gap-basalt-space-lg">
+            <Banner.Action asChild variant="secondary">
+              <Link href="/dashboard/api-keys">
+                前往 API Keys <ArrowRight aria-hidden />
+              </Link>
+            </Banner.Action>
+            {onMigrate && !migratedApiKey && (
+              <Banner.Action
+                variant="ghost"
+                onClick={onMigrate}
+                disabled={isMigrating}
+                data-testid="migrate-to-apikey-btn"
+              >
+                {isMigrating ? "创建中..." : "创建 API Key"}
+              </Banner.Action>
+            )}
+          </div>
         </div>
-      </div>
-    </LayerCard.Well>
+      }
+      data-testid="webhook-api-key-shortcut"
+    />
   );
 }

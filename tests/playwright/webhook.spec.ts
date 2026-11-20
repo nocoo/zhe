@@ -53,6 +53,10 @@ test.describe
 
       // Token section should NOT be visible
       await expect(page.locator('[data-testid="webhook-token-section"]')).not.toBeVisible();
+
+      const banner = page.getByTestId("webhook-api-key-shortcut");
+      await banner.getByRole("link", { name: "前往 API Keys" }).click();
+      await expect(page).toHaveURL(/\/dashboard\/api-keys$/);
     });
 
     test("generates a token and displays token section", async ({ page }) => {
