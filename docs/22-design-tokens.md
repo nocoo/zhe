@@ -123,7 +123,7 @@ margin for text alignment rather than a zero-padding hover surface. Do not inven
 - 主操作永远最后一个。
 - 骨架 `PageHeaderSkeleton` 与 Basalt 叠放几何一致（标题块 + 副标题块 + 右侧 actions 占位）。
 - The gap from the complete `PageHeader` or its skeleton to the first content block uses `basalt-layout` (16px at default typography), matching All Links. Keep filters and actions inside the header's own layout.
-- The top `AppHeader` uses one full breadcrumb trail: Overview, sidebar group (when distinct), navigable parents, and the current page. Groups without a destination remain text; the current item is the only `aria-current="page"` item in the breadcrumb. Narrow layouts keep the immediate parent and current page readable, with earlier crumbs still available to assistive technology. Content headings do not repeat the trail.
+- The top `AppHeader` shows the current sidebar group, navigable parents, and the current page. Overview is an ancestor only within its own group. Groups without a destination remain text; the current item is the only `aria-current="page"` item in the breadcrumb. Narrow layouts keep the immediate parent and current page readable, with earlier crumbs still available to assistive technology. Content headings do not repeat the trail.
 
 ---
 

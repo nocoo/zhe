@@ -133,7 +133,6 @@ function AppShellInner({
           breadcrumbsLabel="面包屑导航"
           className={cn(
             "[&_nav>span]:min-w-0 [&_nav>span>svg]:shrink-0 [&_nav>span>:last-child]:truncate",
-            "max-[479px]:[&_nav>span:has(>span:not([aria-current]))]:sr-only",
             nested &&
               "max-[359px]:[&_nav>span:first-child:not(:focus-within)]:sr-only max-[359px]:[&_nav:has(>span:first-child:not(:focus-within))>span:nth-last-child(2)>svg]:hidden",
           )}

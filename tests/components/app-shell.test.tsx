@@ -189,10 +189,7 @@ describe("AppShell", () => {
   it("renders the complete links breadcrumb with one current item", async () => {
     await renderShell();
     const crumbNav = screen.getByRole("navigation", { name: "面包屑导航" });
-    expect(within(crumbNav).getByRole("link", { name: "概览" })).toHaveAttribute(
-      "href",
-      "/dashboard/overview",
-    );
+    expect(within(crumbNav).queryByText("概览")).not.toBeInTheDocument();
     expect(within(crumbNav).getByText("链接管理")).not.toHaveAttribute("aria-current");
     expect(within(crumbNav).getByText("全部链接")).toHaveAttribute("aria-current", "page");
   });

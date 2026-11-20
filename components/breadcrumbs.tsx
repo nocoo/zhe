@@ -17,28 +17,23 @@ export function getAppHeaderTrail(
   if (pathname === OVERVIEW.href) return [{ label: OVERVIEW.label }];
   if (pathname === "/dashboard") {
     const title = getLinkCollectionTitle(folder, folderName);
-    const parents = [OVERVIEW, { label: "链接管理" }];
+    const group = { label: "链接管理" };
     if (folder === "uncategorized" || (folder && folderName)) {
-      return [
-        ...parents,
-        { href: "/dashboard", label: getLinkCollectionTitle() },
-        { label: title },
-      ];
+      return [group, { href: "/dashboard", label: getLinkCollectionTitle() }, { label: title }];
     }
-    return [...parents, { label: title }];
+    return [group, { label: title }];
   }
-  if (pathname === "/dashboard/search") return [OVERVIEW, { label: "搜索" }];
+  if (pathname === "/dashboard/search") return [{ label: "搜索" }];
 
   const editingIdea = /^\/dashboard\/ideas\/\d+$/.test(pathname);
   const destination = editingIdea ? "/dashboard/ideas" : pathname;
   for (const group of NAV_GROUPS) {
     const item = group.items.find(({ href }) => href === destination);
     if (!item) continue;
-    const parents =
-      group.label === OVERVIEW.label ? [OVERVIEW] : [OVERVIEW, { label: group.label }];
+    const parent = group.label === OVERVIEW.label ? OVERVIEW : { label: group.label };
     return editingIdea
-      ? [...parents, { href: item.href, label: item.title }, { label: "编辑想法" }]
-      : [...parents, { label: item.title }];
+      ? [parent, { href: item.href, label: item.title }, { label: "编辑想法" }]
+      : [parent, { label: item.title }];
   }
-  return [OVERVIEW, { label: "未找到页面" }];
+  return [{ label: "未找到页面" }];
 }

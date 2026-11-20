@@ -463,3 +463,9 @@ Giving the final crumb `flex-1` let earlier crumbs consume the whole row on
 mobile. Let each label shrink from its intrinsic width and verify that the
 current item remains visible at the deepest route. Measure sidebar items via
 the native row marker; the brand link shares the overview URL but is not a row.
+
+## 2026-11-20: Use actual breadcrumb ancestors
+
+Adding Overview as a universal root inserted an extra level above independent
+sidebar groups. Use Overview only for its own group; other trails start at their
+own group or page, with links only for real navigable parents.

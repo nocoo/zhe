@@ -273,12 +273,7 @@ test.describe("Dashboard navigation", () => {
       expect(new Set(metrics.map((row) => JSON.stringify(row))).size).toBe(1);
 
       const trail = page.getByRole("navigation", { name: "面包屑导航" });
-      await expect(trail.locator(":scope > span")).toHaveText([
-        "概览",
-        "链接管理",
-        "全部链接",
-        name,
-      ]);
+      await expect(trail.locator(":scope > span")).toHaveText(["链接管理", "全部链接", name]);
       await expect(trail.getByRole("link", { name: "链接管理" })).toHaveCount(0);
       await expect(appTitle(page, name)).toBeVisible();
       await expect(islandHeading(page, name)).toBeVisible();
