@@ -1,10 +1,10 @@
 "use client";
 import { Button, Input } from "@nocoo/basalt";
-import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { ArrowLeft, Search } from "@nocoo/basalt/icons";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { DashboardPageHeader } from "@/components/dashboard/page-header";
 import { SearchResult } from "@/components/search-result";
 import { SearchSourceFilter } from "@/components/search-source-filter";
 import { normalizeSearchText, SEARCH_SOURCES, type SearchFilter } from "@/models/search";
@@ -80,7 +80,8 @@ export function SearchPage() {
       className="mx-auto flex w-full max-w-4xl flex-col gap-basalt-layout"
       onKeyDown={keyboard}
     >
-      <PageHeader
+      <DashboardPageHeader
+        icon={Search}
         title="搜索"
         description="在收藏、想法和待办中查找"
         actions={

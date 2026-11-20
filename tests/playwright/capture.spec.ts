@@ -64,7 +64,14 @@ test("reviewable demo catalog in disposable native E2E storage", async ({ page }
       await expect(page.getByRole("button", { name: /保存/ })).toBeVisible();
     const heading = page.locator("[data-basalt-island] header[aria-labelledby]").first();
     await expect(heading).toBeVisible();
-    await expect(heading.getByRole("heading", { level: 1 })).toHaveCSS("font-size", "24px");
+    const title = heading.getByRole("heading", { level: 1 });
+    await expect(title).toHaveCSS("font-size", "24px");
+    const icon = title.locator("svg");
+    await expect(icon).toHaveCount(1);
+    await expect(icon).toHaveAttribute("aria-hidden", "true");
+    await expect(icon).toHaveAttribute("stroke-width", "1.5");
+    await expect(icon).toHaveCSS("width", "24px");
+    await expect(icon).toHaveCSS("height", "24px");
     await expect(heading.locator("p").first()).toHaveCSS("font-size", "14px");
     for (const label of await heading.locator("p span").all()) {
       await expect(label).toHaveCSS("font-size", "14px");

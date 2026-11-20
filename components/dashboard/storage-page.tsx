@@ -17,11 +17,11 @@ import {
   AlertDialogTitle,
 } from "@nocoo/basalt/components/alert-dialog";
 import { Button } from "@nocoo/basalt/components/button";
-import { PageHeader } from "@nocoo/basalt/components/page-header";
-import { RefreshCw } from "@nocoo/basalt/icons";
+import { HardDrive, RefreshCw } from "@nocoo/basalt/icons";
 import { cn } from "@/lib/utils";
 import type { StorageScanResult } from "@/models/storage";
 import { formatBytes } from "@/models/storage";
+import { DashboardPageHeader } from "./page-header";
 import { D1Section } from "./storage-page-parts/d1-section";
 import { R2Section } from "./storage-page-parts/r2-section";
 import { StorageSkeleton } from "./storage-page-parts/storage-skeleton";
@@ -78,7 +78,11 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
   if (loading && !data) {
     return (
       <div className="space-y-basalt-layout">
-        <PageHeader title="存储管理" description="R2 与 D1 用量、孤儿文件清理" />
+        <DashboardPageHeader
+          icon={HardDrive}
+          title="存储管理"
+          description="R2 与 D1 用量、孤儿文件清理"
+        />
         <StorageSkeleton />
       </div>
     );
@@ -88,7 +92,8 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
 
   return (
     <div className="space-y-basalt-layout">
-      <PageHeader
+      <DashboardPageHeader
+        icon={HardDrive}
         title="存储管理"
         description="R2 与 D1 用量、孤儿文件清理"
         actions={

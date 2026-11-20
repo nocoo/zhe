@@ -1,7 +1,7 @@
 "use client";
 
-import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { toast } from "@nocoo/basalt/components/toast";
+import { Lightbulb } from "@nocoo/basalt/icons";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 import { useIdeaEditorViewModel } from "@/viewmodels/useIdeaEditorViewModel";
@@ -9,6 +9,7 @@ import { EditorSplit, ErrorToast } from "./idea-editor-page-parts/editor-split";
 import { EditorToolbar } from "./idea-editor-page-parts/editor-toolbar";
 import { EditorSkeleton, IdeaNotFound } from "./idea-editor-page-parts/states";
 import { useEditorShortcuts } from "./idea-editor-page-parts/useEditorShortcuts";
+import { DashboardPageHeader } from "./page-header";
 
 export interface IdeaEditorPageProps {
   id: number;
@@ -42,7 +43,7 @@ export function IdeaEditorPage({ id }: IdeaEditorPageProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-basalt-layout">
-      <PageHeader title="编辑想法" description="编写内容、标题与标签" />
+      <DashboardPageHeader icon={Lightbulb} title="编辑想法" description="编写内容、标题与标签" />
       <EditorToolbar
         title={vm.title}
         setTitle={vm.setTitle}

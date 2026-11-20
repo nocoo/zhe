@@ -2,10 +2,10 @@
 
 import { LayerCard } from "@nocoo/basalt";
 import { Button } from "@nocoo/basalt/components/button";
-import { PageHeader } from "@nocoo/basalt/components/page-header";
-import { CheckCircle, Download, Upload } from "@nocoo/basalt/icons";
+import { CheckCircle, Database, Download, Upload } from "@nocoo/basalt/icons";
 import { useRef } from "react";
 import { useSettingsViewModel } from "@/viewmodels/useSettingsViewModel";
+import { DashboardPageHeader } from "./page-header";
 
 export function DataManagementPage() {
   const { isExporting, isImporting, importResult, handleExport, handleImport, clearImportResult } =
@@ -26,7 +26,7 @@ export function DataManagementPage() {
 
   return (
     <div className="space-y-basalt-layout">
-      <PageHeader title="数据管理" description="导入、导出链接数据" />
+      <DashboardPageHeader icon={Database} title="数据管理" description="导入、导出链接数据" />
       {/* ── 数据导出 ──────────────────────────────────────────────── */}
       <LayerCard padding="none">
         <LayerCard.Header className="px-4 py-3 md:px-5 md:py-4">

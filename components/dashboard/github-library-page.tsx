@@ -1,7 +1,6 @@
 "use client";
 
 import { LayerCard } from "@nocoo/basalt";
-import { PageHeader } from "@nocoo/basalt/components/page-header";
 import {
   Select,
   SelectContent,
@@ -28,6 +27,7 @@ import { GitHubRepositoryCard } from "./github-repository-card";
 import { LibraryActions } from "./library-actions";
 import { LinkFilterBar } from "./link-filter-bar";
 import { ShowHiddenButton } from "./link-visibility";
+import { DashboardPageHeader } from "./page-header";
 import { SuggestLinkOrgDialog } from "./suggest-link-org-dialog";
 
 export function GitHubLibraryPage() {
@@ -110,13 +110,9 @@ export function GitHubLibraryPage() {
     );
   return (
     <div className="@container/github space-y-basalt-layout">
-      <PageHeader
-        title={
-          <span className="flex items-center gap-2">
-            <GithubIcon className="size-6" strokeWidth={1.5} aria-hidden />
-            GitHub 收藏
-          </span>
-        }
+      <DashboardPageHeader
+        icon={GithubIcon}
+        title="GitHub 收藏"
         description={
           <span role="status">
             共 {entries.length} 个仓库

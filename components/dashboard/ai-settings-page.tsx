@@ -4,7 +4,6 @@ import { LayerCard } from "@nocoo/basalt";
 import { Button } from "@nocoo/basalt/components/button";
 import { Input } from "@nocoo/basalt/components/input";
 import { Label } from "@nocoo/basalt/components/label";
-import { PageHeader } from "@nocoo/basalt/components/page-header";
 import {
   Select,
   SelectContent,
@@ -12,15 +11,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@nocoo/basalt/components/select";
-import { Loader2, Plug, Save, X } from "@nocoo/basalt/icons";
+import { Loader2, Plug, Save, Sparkles, X } from "@nocoo/basalt/icons";
 import { CUSTOM_MODEL_VALUE, useAiSettingsViewModel } from "@/viewmodels/useAiSettingsViewModel";
+import { DashboardPageHeader } from "./page-header";
 
 export function AiSettingsPage() {
   const vm = useAiSettingsViewModel();
 
   return (
     <div className="space-y-basalt-layout" data-testid="ai-settings-page">
-      <PageHeader title="AI" description="配置大模型供应商，用于链接整理建议。" />
+      <DashboardPageHeader
+        icon={Sparkles}
+        title="AI"
+        description="配置大模型供应商，用于链接整理建议。"
+      />
 
       {!vm.loaded ? (
         <LayerCard padding="none">

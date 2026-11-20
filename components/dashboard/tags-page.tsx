@@ -3,13 +3,13 @@
 import { LayerCard } from "@nocoo/basalt";
 import { Button } from "@nocoo/basalt/components/button";
 import { Input } from "@nocoo/basalt/components/input";
-import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { Tags } from "@nocoo/basalt/icons";
 import { useState } from "react";
 import { usePageCreateAction } from "@/contexts/create-action";
 import { staggerStyle } from "@/lib/motion";
 import { type TagPaletteColor, tagColorFromName } from "@/models/tags";
 import { useTagsViewModel } from "@/viewmodels/useTagsViewModel";
+import { DashboardPageHeader } from "./page-header";
 import { TagColorPicker } from "./tags-page-parts/tag-color-picker";
 import { TagManageRow } from "./tags-page-parts/tag-manage-row";
 
@@ -38,7 +38,7 @@ export function TagsPage() {
 
   return (
     <div className="space-y-basalt-layout" data-testid="tags-page">
-      <PageHeader title="标签" description={`共 ${vm.rows.length} 个`} />
+      <DashboardPageHeader icon={Tags} title="标签" description={`共 ${vm.rows.length} 个`} />
 
       {vm.creating && (
         <LayerCard

@@ -1,16 +1,18 @@
 // @vitest-environment happy-dom
 
-import { PageHeader } from "@nocoo/basalt/components/page-header";
+import { Lightbulb } from "@nocoo/basalt/icons";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import { DashboardPageHeader } from "@/components/dashboard/page-header";
 import { PageHeaderSkeleton } from "@/components/page-header-skeleton";
 
 afterEach(() => cleanup());
 
 describe("PageHeader", () => {
-  it("renders title, description below, and actions on the title row", () => {
+  it("renders a decorative title icon, description below, and actions on the title row", () => {
     const { container } = render(
-      <PageHeader
+      <DashboardPageHeader
+        icon={Lightbulb}
         title="想法"
         description="共 3 条"
         actions={
@@ -20,11 +22,11 @@ describe("PageHeader", () => {
         }
       />,
     );
-    expect(screen.getByRole("heading", { name: "想法" })).toBeInTheDocument();
+    const title = screen.getByRole("heading", { name: "想法" });
+    expect(title.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByText("共 3 条")).toBeInTheDocument();
     const header = container.querySelector("header");
     expect(header).toBeTruthy();
-    const title = screen.getByRole("heading", { name: "想法" });
     const description = screen.getByText("共 3 条");
     expect(
       title.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING,

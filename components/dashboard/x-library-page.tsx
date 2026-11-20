@@ -2,7 +2,6 @@
 
 import { LayerCard } from "@nocoo/basalt";
 import { Button } from "@nocoo/basalt/components/button";
-import { PageHeader } from "@nocoo/basalt/components/page-header";
 import {
   Select,
   SelectContent,
@@ -52,6 +51,7 @@ import { LibraryActions } from "./library-actions";
 import { LinkCard } from "./link-card";
 import { TagFilter } from "./link-filter-bar";
 import { ShowHiddenButton } from "./link-visibility";
+import { DashboardPageHeader } from "./page-header";
 import { SuggestLinkOrgDialog } from "./suggest-link-org-dialog";
 
 const contentIcons = {
@@ -163,12 +163,9 @@ export function XLibraryPage() {
 
   return (
     <div className={selection.active ? "space-y-basalt-layout pb-20" : "space-y-basalt-layout"}>
-      <PageHeader
-        title={
-          <span className="flex items-center gap-2">
-            <TwitterIcon className="size-6" strokeWidth={1.5} aria-hidden />X 收藏
-          </span>
-        }
+      <DashboardPageHeader
+        icon={TwitterIcon}
+        title="X 收藏"
         description={
           <span role="status">
             共 {entries.length} 条收藏

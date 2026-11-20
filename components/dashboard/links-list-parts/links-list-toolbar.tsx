@@ -1,14 +1,14 @@
 "use client";
 
 import { Button } from "@nocoo/basalt/components/button";
-import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { Popover, PopoverContent, PopoverTrigger } from "@nocoo/basalt/components/popover";
-import { RefreshCw, SlidersHorizontal } from "@nocoo/basalt/icons";
+import { Folder as FolderGlyph, Link2, RefreshCw, SlidersHorizontal } from "@nocoo/basalt/icons";
 import type { Folder, Tag } from "@/models/types";
 import { EnrichmentButton } from "../enrichment-button";
 import { IconAction } from "../icon-action";
 import { LinkFilterBar } from "../link-filter-bar";
 import { ShowHiddenButton } from "../link-visibility";
+import { DashboardPageHeader } from "../page-header";
 import { SpecialSourceFilter } from "../special-source-filter";
 import { ViewModeToggle } from "../view-mode-toggle";
 import type { useSpecialSources } from "./useSpecialSources";
@@ -137,7 +137,8 @@ export function LinksListToolbar(props: ToolbarProps) {
   );
 
   return (
-    <PageHeader
+    <DashboardPageHeader
+      icon={controls.showFolderFilter ? Link2 : FolderGlyph}
       title={headerTitle}
       description={
         <span role="status">

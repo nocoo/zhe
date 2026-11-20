@@ -2,7 +2,6 @@
 
 import { Button } from "@nocoo/basalt/components/button";
 import { Input } from "@nocoo/basalt/components/input";
-import { PageHeader } from "@nocoo/basalt/components/page-header";
 import {
   Select,
   SelectContent,
@@ -10,9 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@nocoo/basalt/components/select";
-import { Filter, Search, X } from "@nocoo/basalt/icons";
+import { Filter, Lightbulb, Search, X } from "@nocoo/basalt/icons";
 import { getTagStyles } from "@/models/tags";
 import type { IdeasSortBy, IdeasViewModel } from "@/viewmodels/useIdeasViewModel";
+import { DashboardPageHeader } from "../page-header";
 import { ViewModeToggle } from "../view-mode-toggle";
 
 function SearchBox({ vm }: { vm: IdeasViewModel }) {
@@ -93,7 +93,8 @@ export function IdeasToolbar({
 }) {
   const filtered = Boolean(vm.searchQuery || vm.selectedTagId);
   return (
-    <PageHeader
+    <DashboardPageHeader
+      icon={Lightbulb}
       title="想法"
       description={
         filtered

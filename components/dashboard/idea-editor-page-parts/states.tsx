@@ -2,13 +2,13 @@
 
 import { LayerCard } from "@nocoo/basalt";
 import { Button } from "@nocoo/basalt/components/button";
-import { PageHeader } from "@nocoo/basalt/components/page-header";
-import { ArrowLeft } from "@nocoo/basalt/icons";
+import { ArrowLeft, Lightbulb } from "@nocoo/basalt/icons";
+import { DashboardPageHeader } from "../page-header";
 
 export function EditorSkeleton() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-basalt-layout">
-      <PageHeader title="编辑想法" description="编写内容、标题与标签" />
+      <DashboardPageHeader icon={Lightbulb} title="编辑想法" description="编写内容、标题与标签" />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 animate-pulse">
           <div className="h-8 w-8 rounded-basalt-widget bg-basalt-secondary" />

@@ -2,8 +2,7 @@
 
 import { LayerCard } from "@nocoo/basalt";
 import { Button } from "@nocoo/basalt/components/button";
-import { PageHeader } from "@nocoo/basalt/components/page-header";
-import { Plus } from "@nocoo/basalt/icons";
+import { Key, Plus } from "@nocoo/basalt/icons";
 import { useState } from "react";
 import type { ApiScope } from "@/models/api-key";
 import { useApiKeysViewModel } from "@/viewmodels/useApiKeysViewModel";
@@ -11,6 +10,7 @@ import { ApiKeyRow } from "./api-keys-page-parts/api-key-row";
 import { CreateKeyForm } from "./api-keys-page-parts/create-key-form";
 import { NewKeyBanner } from "./api-keys-page-parts/new-key-banner";
 import { ConnectorPanel } from "./connector-panel";
+import { DashboardPageHeader } from "./page-header";
 
 export function ApiKeysPage() {
   const vm = useApiKeysViewModel();
@@ -39,7 +39,8 @@ export function ApiKeysPage() {
 
   return (
     <div className="space-y-basalt-layout">
-      <PageHeader
+      <DashboardPageHeader
+        icon={Key}
         title="API Keys"
         description="外部应用访问数据的密钥"
         actions={

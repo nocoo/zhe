@@ -112,13 +112,14 @@ margin for text alignment rather than a zero-padding hover surface. Do not inven
 | `Textarea`      | —    | Basalt `InputArea`                                        | `size="sm"`     |                                         |
 | `PageHeader`    | —    | Basalt 默认（标题 + `description` 副行 + `actions` 右上） | 见下节          |                                         |
 
-路径：`@nocoo/basalt/components/page-header`；仅加载骨架在 `@/components/page-header-skeleton`。
+Paths: `@/components/dashboard/page-header` composes Basalt's native `PageHeader`; `@/components/page-header-skeleton` is the loading placeholder.
 
 ### PageHeader（Basalt 默认）
 
-内容区页头直接从 Basalt 引入，尽量不加 className 覆盖。
+`DashboardPageHeader` adds a decorative leading icon to the native Basalt heading without overriding the header layout.
 
 - 标题 `title`（h1），说明与计数放在 `description`（标题下方一行）。
+- Use a 24px icon with a 1.5 stroke and the default 8px gap, following the X Library heading. The icon is hidden from assistive technology and does not shrink with long titles.
 - Use Basalt's native 24px title and 14px description at default typography. Counts and inline labels inherit the description size.
 - 短筛选与主操作放在 `actions`（标题行右侧）；筛选较多时用 `filters` 独占一行。
 - List and grid are one compact, single-selection Basalt `ToggleGroup`, shared by All Links and Ideas. Keep the saved preference and keyboard navigation.

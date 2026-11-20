@@ -2,10 +2,11 @@
 
 import { LayerCard } from "@nocoo/basalt";
 import { Button } from "@nocoo/basalt/components/button";
-import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { toast } from "@nocoo/basalt/components/toast";
+import { Webhook } from "@nocoo/basalt/icons";
 import { copyToClipboard } from "@/lib/utils";
 import { useWebhookViewModel, type WebhookInitialData } from "@/viewmodels/useWebhookViewModel";
+import { DashboardPageHeader } from "./page-header";
 import { ApiKeyShortcut } from "./webhook-page-parts/api-key-shortcut";
 import {
   CredentialRow,
@@ -101,7 +102,8 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
 
   return (
     <div className="space-y-basalt-layout">
-      <PageHeader
+      <DashboardPageHeader
+        icon={Webhook}
         title="Webhook"
         description="生成一个 URL，供外部系统直接收藏网页和 X 帖子。"
         actions={

@@ -17,7 +17,6 @@
 
 import { LayerCard } from "@nocoo/basalt";
 import { Button } from "@nocoo/basalt/components/button";
-import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { Popover, PopoverContent, PopoverTrigger } from "@nocoo/basalt/components/popover";
 import {
   Sheet,
@@ -26,13 +25,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@nocoo/basalt/components/sheet";
-import { Plus, SlidersHorizontal, X } from "@nocoo/basalt/icons";
+import { ListTodo, Plus, SlidersHorizontal, X } from "@nocoo/basalt/icons";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePageCreateAction } from "@/contexts/create-action";
 import { useCoarsePointer, useNarrowViewport } from "@/hooks/use-media-query";
 import type { TodoForestNode } from "@/models/todos";
 import { useTodosViewModel } from "@/viewmodels/useTodosViewModel";
+import { DashboardPageHeader } from "./page-header";
 import { TodoDeleteConfirm } from "./todos-page-parts/todo-delete-confirm";
 import { TodoDetailPane } from "./todos-page-parts/todo-detail-pane";
 import { TodoTreeShell } from "./todos-page-parts/todo-tree-shell";
@@ -174,7 +174,8 @@ export function TodosPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-basalt-layout" data-todos-page>
-      <PageHeader
+      <DashboardPageHeader
+        icon={ListTodo}
         title="待办"
         description={vm.loading ? "加载中…" : countLabel}
         actions={

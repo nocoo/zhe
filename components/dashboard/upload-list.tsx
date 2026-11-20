@@ -2,22 +2,22 @@
 
 import { LayerCard } from "@nocoo/basalt";
 import { Label } from "@nocoo/basalt/components/label";
-import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { Slider } from "@nocoo/basalt/components/slider";
 import { Switch } from "@nocoo/basalt/components/switch";
-import { Upload as UploadIcon } from "@nocoo/basalt/icons";
+import { FileUp, Upload as UploadIcon } from "@nocoo/basalt/icons";
 import { CardListSkeleton } from "@/components/dashboard/card-skeleton";
 import { staggerStyle } from "@/lib/motion";
 import { useBulkDelete } from "@/viewmodels/useBulkDelete";
 import { useUploadsViewModel } from "@/viewmodels/useUploadViewModel";
 import { BulkDeleteActions, SelectableCard } from "./bulk-delete";
+import { DashboardPageHeader } from "./page-header";
 import { UploadItem, UploadingItem } from "./upload-item";
 import { UploadZone } from "./upload-zone";
 
 function UploadListSkeleton() {
   return (
     <div className="space-y-basalt-layout">
-      <PageHeader title="文件上传" description="加载中…" />
+      <DashboardPageHeader icon={FileUp} title="文件上传" description="加载中…" />
       <div className="flex items-center gap-4">
         <div className="h-6 w-36 rounded-basalt-widget bg-basalt-secondary animate-pulse motion-reduce:animate-none" />
       </div>
@@ -112,7 +112,8 @@ export function UploadList({
   return (
     <div className="space-y-basalt-layout">
       {/* Header */}
-      <PageHeader
+      <DashboardPageHeader
+        icon={FileUp}
         title="文件上传"
         description={<span data-testid="upload-file-count">共 {uploads.length} 个文件</span>}
         actions={
