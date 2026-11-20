@@ -71,6 +71,12 @@ The script performs these steps automatically:
 8. Push → Tag (`v`-prefixed, annotated) → Push tags → GitHub Release
 9. Successful main-push CI triggers the `Release` Docker CD workflow. Verify the exact source SHA, successful CI/CD, deployed image digest and origin acceptance; publishing a tag alone does not prove deployment. The release script itself does not deploy.
 
+Repository administrators may push a release commit directly to `main` after
+the normal local gates pass. GitHub still requires `quality / Z1: Gate` for
+other contributors, and the separate `main ref integrity` ruleset blocks force
+pushes and deletion for everyone. Production deployment still requires
+successful CI for the exact `main` commit.
+
 Production runs `DEPLOY_PHASE=production`, `DEPLOY_URL=https://zhe.to` and
 `DEPLOY_ORIGIN_MARKER=jp4`: CD deploys the GHCR digest to `/data/zhe` on jp4,
 checks the private origin on `127.0.0.1:17006`, then requires public no-store
