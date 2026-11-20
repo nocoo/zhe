@@ -62,7 +62,7 @@ export function EditorToolbar({
   onBack,
 }: EditorToolbarProps) {
   return (
-    <div className="flex items-center justify-between mb-4 gap-3">
+    <div className="flex items-center justify-between gap-3">
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <Button
           variant="outline"

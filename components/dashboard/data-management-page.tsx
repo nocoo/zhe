@@ -25,7 +25,7 @@ export function DataManagementPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-basalt-layout">
       <PageHeader title="数据管理" description="导入、导出链接数据" />
       {/* ── 数据导出 ──────────────────────────────────────────────── */}
       <LayerCard padding="none">

@@ -53,7 +53,7 @@ export function IdeasPage() {
   };
 
   return (
-    <div>
+    <div className="space-y-basalt-layout">
       <IdeasToolbar
         vm={vm}
         selecting={selection.active}

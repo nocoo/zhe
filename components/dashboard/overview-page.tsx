@@ -13,7 +13,7 @@ const OVERVIEW_DESCRIPTION = "链接点击、图床用量与 KV 缓存状态。"
 
 function OverviewSkeleton() {
   return (
-    <div>
+    <div className="space-y-basalt-layout">
       <PageHeader title="概览" description={OVERVIEW_DESCRIPTION} />
       <div className="space-y-8 md:space-y-10">
         <SectionRule title="链接统计">
@@ -97,7 +97,7 @@ function OverviewContent({
   workerHealthLoading: boolean;
 }) {
   return (
-    <div>
+    <div className="space-y-basalt-layout">
       <PageHeader title="概览" description={OVERVIEW_DESCRIPTION} />
       <div className="space-y-8 md:space-y-10">
         <LinksSection stats={stats} />

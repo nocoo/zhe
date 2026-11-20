@@ -8,13 +8,14 @@ import {
   DropdownMenuTrigger,
 } from "@nocoo/basalt/components/dropdown-menu";
 import { Input } from "@nocoo/basalt/components/input";
+import { SidebarItem } from "@nocoo/basalt/components/sidebar";
 import { Check, MoreHorizontal, Pencil, Trash2, X } from "@nocoo/basalt/icons";
 import { useState } from "react";
 import { FolderIcon } from "@/components/folder-icon";
 import { cn } from "@/lib/utils";
 import { FOLDER_ICONS } from "@/models/folders";
 import type { Folder } from "@/models/types";
-import { NavRowCount, NavRowLink } from "./sidebar-parts/nav-row";
+import { NavRowCount } from "./sidebar-parts/nav-row";
 
 export interface SidebarFolderItemProps {
   folder: Folder;
@@ -132,13 +133,13 @@ export function SidebarFolderItem({
 
   return (
     <div className="group relative">
-      <NavRowLink href={`/dashboard?folder=${folder.id}`} active={isSelected}>
+      <SidebarItem href={`/dashboard?folder=${folder.id}`} active={isSelected}>
         <FolderIcon name={folder.icon} className="size-4" strokeWidth={1.5} aria-hidden />
         <span className="min-w-0 flex-1 truncate text-left">{folder.name}</span>
-        <span className="flex size-6 shrink-0 items-center justify-end group-hover:invisible group-focus-within:invisible">
+        <span className="flex w-6 shrink-0 items-center justify-end group-hover:invisible group-focus-within:invisible">
           <NavRowCount>{linkCount}</NavRowCount>
         </span>
-      </NavRowLink>
+      </SidebarItem>
 
       {/* Dropdown outside the link so clicks never bubble into navigation */}
       <DropdownMenu>

@@ -7,6 +7,7 @@
  */
 import { expect, test } from "./fixtures";
 import { cardAction } from "./helpers/card-actions";
+import { islandHeading } from "./helpers/chrome";
 import { executeD1, TEST_USER } from "./helpers/d1";
 
 /** Helper: wait for link-crud page to finish loading inside <main>. */
@@ -367,7 +368,7 @@ test.describe("Link CRUD", () => {
       await main.getByRole("button", { name: "刷新链接" }).click();
 
       // Verify page still shows the links header (scoped to main)
-      await expect(main.getByText("全部链接")).toBeVisible();
+      await expect(islandHeading(page, "全部链接")).toBeVisible();
     });
   });
 });

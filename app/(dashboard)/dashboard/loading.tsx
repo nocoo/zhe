@@ -30,7 +30,7 @@ export default function DashboardLoading() {
   else if (pathname === "/dashboard")
     cards = ready ? viewMode === "grid" ? <CardGridSkeleton /> : <CardListSkeleton /> : null;
   return (
-    <div className="@container/github">
+    <div className="@container/github space-y-basalt-layout">
       <PageHeaderSkeleton />
       {cards}
     </div>

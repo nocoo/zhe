@@ -249,7 +249,7 @@ test.describe("Overview page", () => {
 
     // Click "概览" in the sidebar (use getByRole to avoid strict mode violation
     // from duplicate text — there's a breadcrumb "概览" and a nav link "概览")
-    await page.locator("nav").getByRole("link", { name: "概览" }).click();
+    await page.locator("aside").getByRole("link", { name: "概览", exact: true }).click();
 
     // Should navigate to /dashboard/overview
     await expect(page).toHaveURL(/\/dashboard\/overview/, { timeout: 15_000 });

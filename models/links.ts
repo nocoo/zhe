@@ -3,6 +3,11 @@
 import { canonicalGitHubRepo } from "@/cli/src/connector/github-core";
 import type { AnalyticsStats, Link, LinkTag, Tag } from "./types";
 
+export function getLinkCollectionTitle(folder?: string | null, folderName?: string): string {
+  if (folder === "uncategorized") return "未分类";
+  return folderName ?? "全部链接";
+}
+
 /** Build a short URL from site base URL and slug */
 export function buildShortUrl(siteUrl: string, slug: string): string {
   return `${siteUrl}/${slug}`;

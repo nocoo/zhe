@@ -37,13 +37,13 @@ export function TagsPage() {
   }
 
   return (
-    <div data-testid="tags-page">
+    <div className="space-y-basalt-layout" data-testid="tags-page">
       <PageHeader title="标签" description={`共 ${vm.rows.length} 个`} />
 
       {vm.creating && (
         <LayerCard
           padding="none"
-          className="mb-4 flex flex-col gap-3 bg-basalt-secondary p-3 md:flex-row md:items-center"
+          className="flex flex-col gap-3 bg-basalt-secondary p-3 md:flex-row md:items-center"
           data-testid="tag-create-form"
         >
           <Input

@@ -1,5 +1,6 @@
 "use client";
 import { Button, Input } from "@nocoo/basalt";
+import { PageHeader } from "@nocoo/basalt/components/page-header";
 import { ArrowLeft, Search } from "@nocoo/basalt/icons";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -76,54 +77,65 @@ export function SearchPage() {
   return (
     <section
       aria-label="搜索结果"
-      className="mx-auto flex w-full max-w-4xl flex-col"
+      className="mx-auto flex w-full max-w-4xl flex-col gap-basalt-layout"
       onKeyDown={keyboard}
     >
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Button size="sm" variant="ghost" aria-label="返回" onClick={() => router.back()}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h1 className="shrink-0 text-xl font-semibold tracking-tight">搜索</h1>
-        <div className="relative min-w-0 flex-1 basis-64">
-          <Search
-            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-basalt-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            ref={input}
-            aria-label="搜索关键词"
-            aria-describedby="search-hint"
-            title="在链接、X、GitHub、想法和待办中查找 · ↑ ↓ 选择 · Enter 打开 · Esc 返回"
-            placeholder="标题、正文、账号、仓库、标签或 URL…"
-            value={query}
-            maxLength={2000}
-            size="sm"
-            className="pl-9"
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setOffset(0);
-            }}
-          />
-          <span id="search-hint" className="sr-only">
-            在链接、X、GitHub、想法和待办中查找，↑ ↓ 选择，Enter 打开，Esc 返回
-          </span>
-        </div>
-        <div aria-live="polite" aria-atomic="true" className="text-xs text-basalt-muted-foreground">
-          {result.loading
-            ? result.message || "正在搜索…"
-            : result.data
-              ? `${result.data.total} 个结果`
-              : ""}
-        </div>
-        <SearchSourceFilter
-          value={source}
-          counts={result.data?.counts}
-          onChange={(value) => {
-            setSource(value);
-            setOffset(0);
-          }}
-        />
-      </div>
+      <PageHeader
+        title="搜索"
+        description="在收藏、想法和待办中查找"
+        actions={
+          <Button size="sm" variant="ghost" aria-label="返回" onClick={() => router.back()}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        }
+        filters={
+          <>
+            <div className="relative min-w-0 flex-1 basis-64">
+              <Search
+                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-basalt-muted-foreground"
+                aria-hidden="true"
+              />
+              <Input
+                ref={input}
+                aria-label="搜索关键词"
+                aria-describedby="search-hint"
+                title="在链接、X、GitHub、想法和待办中查找 · ↑ ↓ 选择 · Enter 打开 · Esc 返回"
+                placeholder="标题、正文、账号、仓库、标签或 URL…"
+                value={query}
+                maxLength={2000}
+                size="sm"
+                className="pl-9"
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setOffset(0);
+                }}
+              />
+              <span id="search-hint" className="sr-only">
+                在链接、X、GitHub、想法和待办中查找，↑ ↓ 选择，Enter 打开，Esc 返回
+              </span>
+            </div>
+            <div
+              aria-live="polite"
+              aria-atomic="true"
+              className="text-xs text-basalt-muted-foreground"
+            >
+              {result.loading
+                ? result.message || "正在搜索…"
+                : result.data
+                  ? `${result.data.total} 个结果`
+                  : ""}
+            </div>
+            <SearchSourceFilter
+              value={source}
+              counts={result.data?.counts}
+              onChange={(value) => {
+                setSource(value);
+                setOffset(0);
+              }}
+            />
+          </>
+        }
+      />
       {!normalizeSearchText(query) && (
         <div className="py-10 text-center text-basalt-muted-foreground">
           <Search className="mx-auto mb-3 h-7 w-7 opacity-50" />
@@ -178,7 +190,7 @@ export function SearchPage() {
         ))}
       </ul>
       {result.data && result.data.total > 20 && (
-        <nav aria-label="搜索分页" className="mt-5 flex items-center justify-between">
+        <nav aria-label="搜索分页" className="flex items-center justify-between">
           <Button
             size="sm"
             variant="outline"

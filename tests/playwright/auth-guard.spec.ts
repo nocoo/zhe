@@ -54,7 +54,7 @@ test.describe("Auth guard (authenticated)", () => {
     await page.goto("/dashboard");
 
     // Should stay on dashboard — header shows correct title
-    await expect(appTitle(page, "链接管理")).toBeVisible();
+    await expect(appTitle(page, "全部链接")).toBeVisible();
   });
 
   test("authenticated user visiting / is redirected to dashboard overview", async ({ page }) => {

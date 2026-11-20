@@ -9,7 +9,7 @@ export function BackyPage({ initialData }: { initialData?: BackyInitialData }) {
   const vm = useBackyViewModel(initialData);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-basalt-layout">
       <PageHeader title="Backy" description="远程备份推送与拉取" />
       <PushSection vm={vm} />
       <PullSection vm={vm} />

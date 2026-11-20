@@ -24,7 +24,7 @@ import {
   OTHER_NAV_GROUPS,
   PRE_LINK_NAV_GROUPS,
 } from "./nav-config";
-import { NavRowCount, NavRowLink } from "./nav-row";
+import { NavRowCount } from "./nav-row";
 
 type FoldersVm = ReturnType<typeof useFoldersViewModel>;
 type LinkCounts = ReturnType<typeof buildLinkCounts>;
@@ -121,7 +121,7 @@ function LinkManagementGroup({
       }
     >
       {FOLDER_NAV_ITEMS.map((item) => (
-        <NavRowLink
+        <SidebarItem
           key={item.title}
           href={item.href}
           active={isFolderNavActive(currentFolder, item.folderParam)}
@@ -131,7 +131,7 @@ function LinkManagementGroup({
           <NavRowCount>
             {item.folderParam === null ? linkCounts.total : linkCounts.uncategorized}
           </NavRowCount>
-        </NavRowLink>
+        </SidebarItem>
       ))}
 
       {folders.map((folder) => (

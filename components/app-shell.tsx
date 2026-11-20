@@ -28,8 +28,9 @@ import {
   useSidebar,
 } from "@/components/sidebar-context";
 import { CreateActionProvider } from "@/contexts/create-action";
-import { DashboardServiceProvider } from "@/contexts/dashboard-service";
+import { DashboardServiceProvider, useDashboardState } from "@/contexts/dashboard-service";
 import { EnrichmentProvider } from "@/contexts/enrichment";
+import { cn } from "@/lib/utils";
 import type { Folder } from "@/models/types";
 
 export interface AppShellProps {
@@ -77,8 +78,15 @@ function AppShellInner({
   const mobileSheetId = useId();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { folders } = useDashboardState();
+  const folder = searchParams.get("folder");
   const locationKey = `${pathname}?${searchParams.toString()}`;
-  const { breadcrumbs, title } = getAppHeaderTrail(pathname, searchParams.get("folder"));
+  const breadcrumbs = getAppHeaderTrail(
+    pathname,
+    folder,
+    folders.find(({ id }) => id === folder)?.name,
+  );
+  const nested = breadcrumbs.length > 2 && Boolean(breadcrumbs.at(-2)?.href);
 
   useEffect(() => {
     if (locationKey) closeMobileSidebar();
@@ -122,7 +130,13 @@ function AppShellInner({
             ) : null
           }
           breadcrumbs={breadcrumbs}
-          title={title}
+          breadcrumbsLabel="面包屑导航"
+          className={cn(
+            "[&_nav>span]:min-w-0 [&_nav>span>svg]:shrink-0 [&_nav>span>:last-child]:truncate",
+            "max-[479px]:[&_nav>span:has(>span:not([aria-current]))]:sr-only",
+            nested &&
+              "max-[359px]:[&_nav>span:first-child:not(:focus-within)]:sr-only max-[359px]:[&_nav:has(>span:first-child:not(:focus-within))>span:nth-last-child(2)>svg]:hidden",
+          )}
           actions={
             <>
               {isMobile && (

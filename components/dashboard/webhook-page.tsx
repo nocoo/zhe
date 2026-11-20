@@ -107,7 +107,7 @@ export function WebhookPage({ initialData }: { initialData?: WebhookInitialData 
   const vm = useWebhookViewModel(initialData);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-basalt-layout">
       <PageHeader
         title="Webhook"
         description="生成一个 URL，供外部系统直接收藏网页和 X 帖子。"

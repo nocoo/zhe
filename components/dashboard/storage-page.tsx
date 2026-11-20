@@ -77,7 +77,7 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
 
   if (loading && !data) {
     return (
-      <div>
+      <div className="space-y-basalt-layout">
         <PageHeader title="存储管理" description="R2 与 D1 用量、孤儿文件清理" />
         <StorageSkeleton />
       </div>
@@ -87,7 +87,7 @@ export function StoragePage({ initialData }: { initialData?: StorageScanResult }
   if (!data) return null;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-basalt-layout">
       <PageHeader
         title="存储管理"
         description="R2 与 D1 用量、孤儿文件清理"

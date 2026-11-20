@@ -155,14 +155,14 @@ export function XLibraryPage() {
   );
   if (loading)
     return (
-      <>
+      <div className="space-y-basalt-layout">
         <PageHeaderSkeleton />
         <CardGridSkeleton variant="x" />
-      </>
+      </div>
     );
 
   return (
-    <div className={selection.active ? "pb-20" : undefined}>
+    <div className={selection.active ? "space-y-basalt-layout pb-20" : "space-y-basalt-layout"}>
       <PageHeader
         title={
           <span className="flex items-center gap-2">

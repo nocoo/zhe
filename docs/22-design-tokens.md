@@ -94,6 +94,7 @@ margin for text alignment rather than a zero-padding hover surface. Do not inven
 侧边栏直接使用 Basalt 原语：`SidebarProvider`、`SidebarBrand`、`SidebarToggle`、`SidebarSearch`、`SidebarNav`、`SidebarFooter` + `SidebarUser`；移动端使用 `SidebarDrawer` 与 `AppHeaderMenuButton`。
 
 - 展开宽度使用 Basalt 默认 240px，折叠宽度 68px。行使用 package defaults（34px / 13px / 22px 行高），图标 16px。
+- All expanded navigation, including All Links and editable folders, uses `SidebarItem`. Counts and sibling folder menus must not change row height or typography.
 - 选中态用 Basalt 语义属性表达：`aria-current="page"` + `data-hover-selected="true"`（`--basalt-selected` 填充 + 500 字重），**不要**自定义 `bg-primary/10` 之类的着色。
 - 分组标题 `text-basalt-sm`、大写、`tracking-wide`、 muted，触发器自带 `aria-expanded`，不再额外造 chevron 按钮。
 - 折叠轨道宽 68px（`w-basalt-rail`），图标按钮 34px 见方；移动端抽屉不显示折叠按钮。
@@ -121,6 +122,8 @@ margin for text alignment rather than a zero-padding hover surface. Do not inven
 - 短筛选与主操作放在 `actions`（标题行右侧）；筛选较多时用 `filters` 独占一行。
 - 主操作永远最后一个。
 - 骨架 `PageHeaderSkeleton` 与 Basalt 叠放几何一致（标题块 + 副标题块 + 右侧 actions 占位）。
+- The gap from the complete `PageHeader` or its skeleton to the first content block uses `basalt-layout` (16px at default typography), matching All Links. Keep filters and actions inside the header's own layout.
+- The top `AppHeader` uses one full breadcrumb trail: Overview, sidebar group (when distinct), navigable parents, and the current page. Groups without a destination remain text; the current item is the only `aria-current="page"` item in the breadcrumb. Narrow layouts keep the immediate parent and current page readable, with earlier crumbs still available to assistive technology. Content headings do not repeat the trail.
 
 ---
 

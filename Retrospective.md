@@ -456,3 +456,10 @@ The initial capture checked images before the X gallery mounted, and the scoped
 lint command omitted the new SVGs, so pre-commit caught their missing titles
 after Demo had already been rebuilt. Wait for the expected gallery and decoded
 dimensions, and lint the fixture files themselves before replacing Demo storage.
+
+## 2026-11-20: Preserve the current breadcrumb at narrow widths
+
+Giving the final crumb `flex-1` let earlier crumbs consume the whole row on
+mobile. Let each label shrink from its intrinsic width and verify that the
+current item remains visible at the deepest route. Measure sidebar items via
+the native row marker; the brand link shares the overview URL but is not a row.

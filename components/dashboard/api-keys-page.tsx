@@ -38,7 +38,7 @@ export function ApiKeysPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-basalt-layout">
       <PageHeader
         title="API Keys"
         description="外部应用访问数据的密钥"

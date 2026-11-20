@@ -173,7 +173,7 @@ export function TodosPage() {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col" data-todos-page>
+    <div className="flex h-full min-h-0 flex-col gap-basalt-layout" data-todos-page>
       <PageHeader
         title="待办"
         description={vm.loading ? "加载中…" : countLabel}
@@ -206,7 +206,7 @@ export function TodosPage() {
       {vm.error || createError ? (
         <div
           role="alert"
-          className="mb-3 rounded-basalt-card border border-basalt-destructive/40 bg-basalt-destructive/10 px-3 py-2 text-xs text-basalt-destructive"
+          className="rounded-basalt-card border border-basalt-destructive/40 bg-basalt-destructive/10 px-3 py-2 text-xs text-basalt-destructive"
         >
           {vm.error ?? createError}
           <Button

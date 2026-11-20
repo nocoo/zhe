@@ -141,7 +141,7 @@ test.describe("Dashboard navigation", () => {
     await page.goto("/dashboard");
 
     // Click the 概览 nav link (it's the one inside the nav, not the section label)
-    await page.locator('nav a:has-text("概览")').click();
+    await page.locator("aside").getByRole("link", { name: "概览", exact: true }).click();
     await page.waitForURL("**/dashboard/overview");
 
     await expect(appTitle(page, "概览")).toBeVisible();
@@ -229,7 +229,7 @@ test.describe("Dashboard navigation", () => {
       (url) => url.pathname === "/dashboard" && !url.searchParams.has("folder"),
     );
 
-    await expect(appTitle(page, "链接管理")).toBeVisible();
+    await expect(appTitle(page, "全部链接")).toBeVisible();
   });
 
   test("old Inbox URLs use the ordinary unclassified list", async ({ page }) => {
@@ -237,6 +237,66 @@ test.describe("Dashboard navigation", () => {
     await expect(appTitle(page, "未分类")).toBeVisible();
     await expect(page.getByRole("link", { name: "Inbox", exact: true })).toHaveCount(0);
     await expect(page.getByTestId("edit-area")).toHaveCount(0);
+  });
+
+  test("folder navigation shares sidebar geometry and exposes real breadcrumb parents", async ({
+    page,
+  }) => {
+    const id = randomUUID();
+    const name = "A folder with a deliberately long name";
+    await executeD1("INSERT INTO folders(id,user_id,name,icon,created_at) VALUES(?,?,?,?,?)", [
+      id,
+      TEST_USER.id,
+      name,
+      "folder",
+      Date.now(),
+    ]);
+    try {
+      await page.goto(`/dashboard?folder=${id}`);
+      const rows = page.locator(
+        `aside a[data-sidebar-row]:is([href="/dashboard/overview"], [href="/dashboard"], [href="/dashboard?folder=${id}"])`,
+      );
+      await expect(rows).toHaveCount(3);
+      const metrics = await rows.evaluateAll((elements) =>
+        elements.map((row) => {
+          const icon = row.querySelector("svg");
+          const style = getComputedStyle(row);
+          return [
+            row.getBoundingClientRect().height,
+            style.fontSize,
+            style.lineHeight,
+            icon?.getBoundingClientRect().width,
+            icon?.getAttribute("stroke-width"),
+          ];
+        }),
+      );
+      expect(new Set(metrics.map((row) => JSON.stringify(row))).size).toBe(1);
+
+      const trail = page.getByRole("navigation", { name: "面包屑导航" });
+      await expect(trail.locator(":scope > span")).toHaveText([
+        "概览",
+        "链接管理",
+        "全部链接",
+        name,
+      ]);
+      await expect(trail.getByRole("link", { name: "链接管理" })).toHaveCount(0);
+      await expect(appTitle(page, name)).toBeVisible();
+      await expect(islandHeading(page, name)).toBeVisible();
+
+      const parent = trail.getByRole("link", { name: "全部链接" });
+      for (const width of [390, 320]) {
+        await page.setViewportSize({ width, height: 844 });
+        await expect(page.getByRole("button", { name: "打开导航" })).toBeVisible();
+        await expect(parent).toBeVisible();
+        await expect(appTitle(page, name)).toBeVisible();
+        expect((await appTitle(page, name).boundingBox())?.width).toBeGreaterThan(24);
+      }
+      await parent.click();
+      await expect(page).toHaveURL(/\/dashboard$/);
+      await expect(appTitle(page, "全部链接")).toBeVisible();
+    } finally {
+      await executeD1("DELETE FROM folders WHERE id = ? AND user_id = ?", [id, TEST_USER.id]);
+    }
   });
 
   test("collapse and expand sidebar", async ({ page }) => {

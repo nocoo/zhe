@@ -16,12 +16,12 @@ import { UploadZone } from "./upload-zone";
 
 function UploadListSkeleton() {
   return (
-    <div>
+    <div className="space-y-basalt-layout">
       <PageHeader title="文件上传" description="加载中…" />
-      <div className="mb-6 flex items-center gap-4">
+      <div className="flex items-center gap-4">
         <div className="h-6 w-36 rounded-basalt-widget bg-basalt-secondary animate-pulse motion-reduce:animate-none" />
       </div>
-      <div className="mb-6">
+      <div>
         <LayerCard
           padding="none"
           className="h-32 border-2 border-dashed border-basalt-muted bg-basalt-secondary animate-pulse motion-reduce:animate-none"
@@ -110,7 +110,7 @@ export function UploadList({
   }
 
   return (
-    <div>
+    <div className="space-y-basalt-layout">
       {/* Header */}
       <PageHeader
         title="文件上传"
@@ -129,13 +129,13 @@ export function UploadList({
       />
 
       {/* Upload zone */}
-      <div className="mb-4">
+      <div>
         <UploadZone isDragOver={isDragOver} onDragOver={setIsDragOver} onFiles={handleFiles} />
       </div>
 
       {/* Uploading files (in-progress / errors) */}
       {uploadingFiles.length > 0 && (
-        <div className="space-y-2 mb-4">
+        <div className="space-y-2">
           {uploadingFiles.map((file, i) => (
             <div key={file.id} className="animate-fade-up" style={staggerStyle(i)}>
               <UploadingItem file={file} onDismiss={dismissUploadingFile} />

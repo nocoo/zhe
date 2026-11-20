@@ -186,30 +186,30 @@ describe("AppShell", () => {
     expect(screen.getByText("Dashboard Content")).toBeInTheDocument();
   });
 
-  it("renders the current page title in the header", async () => {
+  it("renders the complete links breadcrumb with one current item", async () => {
     await renderShell();
-    expect(screen.getByRole("heading", { name: "链接管理" })).toBeInTheDocument();
-  });
-
-  it("renders 链接管理 as the header title on dashboard root", async () => {
-    await renderShell();
-    expect(screen.getByRole("heading", { name: "链接管理" })).toBeInTheDocument();
-    expect(screen.queryByLabelText("Breadcrumb")).not.toBeInTheDocument();
+    const crumbNav = screen.getByRole("navigation", { name: "面包屑导航" });
+    expect(within(crumbNav).getByRole("link", { name: "概览" })).toHaveAttribute(
+      "href",
+      "/dashboard/overview",
+    );
+    expect(within(crumbNav).getByText("链接管理")).not.toHaveAttribute("aria-current");
+    expect(within(crumbNav).getByText("全部链接")).toHaveAttribute("aria-current", "page");
   });
 
   it("nests tool pages under a non-clickable group label", async () => {
     mockPathname = "/dashboard/uploads";
     await renderShell();
-    const crumbNav = screen.getByLabelText("Breadcrumb");
+    const crumbNav = screen.getByRole("navigation", { name: "面包屑导航" });
     expect(crumbNav).toHaveTextContent("工具");
     expect(within(crumbNav).queryByRole("link", { name: "工具" })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "文件上传" })).toBeInTheDocument();
+    expect(within(crumbNav).getByText("文件上传")).toHaveAttribute("aria-current", "page");
   });
 
   it("nests the idea editor under clickable ancestors", async () => {
     mockPathname = "/dashboard/ideas/3";
     await renderShell();
-    const crumbNav = screen.getByLabelText("Breadcrumb");
+    const crumbNav = screen.getByRole("navigation", { name: "面包屑导航" });
     expect(within(crumbNav).getByRole("link", { name: "概览" })).toHaveAttribute(
       "href",
       "/dashboard/overview",
@@ -218,7 +218,7 @@ describe("AppShell", () => {
       "href",
       "/dashboard/ideas",
     );
-    expect(screen.getByRole("heading", { name: "编辑想法" })).toBeInTheDocument();
+    expect(within(crumbNav).getByText("编辑想法")).toHaveAttribute("aria-current", "page");
     expect(within(crumbNav).queryByRole("link", { name: "编辑想法" })).not.toBeInTheDocument();
   });
 
@@ -328,7 +328,9 @@ describe("AppShell", () => {
       const aside = document.querySelector("aside");
       expect(aside).toBeInTheDocument();
       expect(aside?.hasAttribute("data-collapsed")).toBe(false);
-      expect(screen.getByText("全部链接")).toBeInTheDocument();
+      expect(
+        within(screen.getByRole("dialog", { name: "导航" })).getByText("全部链接"),
+      ).toBeInTheDocument();
     });
 
     it("closes the mobile drawer when the route changes", async () => {
@@ -383,7 +385,7 @@ describe("AppShell", () => {
       mockFoldersVm.folders = mockFolders;
       const { container } = await renderShell();
 
-      expect(container.querySelectorAll("nav a")).toHaveLength(16);
+      expect(container.querySelectorAll("aside nav a")).toHaveLength(16);
       fireEvent.click(screen.getByRole("button", { name: "新建文件夹" }));
       expect(mockFoldersVm.setIsCreating).toHaveBeenCalledWith(true);
       expect(mockSidebarCtx.toggle).toHaveBeenCalledOnce();

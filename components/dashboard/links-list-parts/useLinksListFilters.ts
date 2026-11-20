@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
+import { getLinkCollectionTitle } from "@/models/links";
 import { matchesSpecialSources } from "@/models/special-sources";
 import type { Folder, Link, LinkTag } from "@/models/types";
 import { useSpecialSources } from "./useSpecialSources";
@@ -106,12 +107,7 @@ export function useLinksListFilters({
     return folders.find((f) => f.id === selectedFolderId) ?? null;
   }, [folders, selectedFolderId]);
 
-  const headerTitle =
-    selectedFolderId === "uncategorized"
-      ? "未分类"
-      : selectedFolder
-        ? selectedFolder.name
-        : "全部链接";
+  const headerTitle = getLinkCollectionTitle(selectedFolderId, selectedFolder?.name);
 
   const hasActiveFilters =
     filterFolderId !== null || filterTagIds.size > 0 || specialSources.changed;

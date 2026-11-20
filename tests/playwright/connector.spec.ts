@@ -101,7 +101,7 @@ async function enrichBookmark(
   });
   await page.goto("/dashboard");
   await expect(islandHeading(page, "全部链接")).toBeVisible();
-  await expect(appTitle(page, "链接管理")).toBeVisible();
+  await expect(appTitle(page, "全部链接")).toBeVisible();
   await expect(page.getByRole("link", { name: "GitHub", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "切换主题" })).toBeVisible();
   const postId = "2000000000000000001";

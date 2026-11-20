@@ -103,13 +103,13 @@ export function GitHubLibraryPage() {
   );
   if (loading)
     return (
-      <div className="@container/github">
+      <div className="@container/github space-y-basalt-layout">
         <PageHeaderSkeleton />
         <CardGridSkeleton variant="github" gridClass={BOOKMARK_GRID_CLASS} count={8} />
       </div>
     );
   return (
-    <div className="@container/github">
+    <div className="@container/github space-y-basalt-layout">
       <PageHeader
         title={
           <span className="flex items-center gap-2">

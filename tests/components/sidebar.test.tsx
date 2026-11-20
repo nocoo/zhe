@@ -537,7 +537,7 @@ describe("Sidebar", () => {
 
       const workLink = screen.getByText("工作").closest("a");
       expect(workLink).toHaveClass("basalt-nav-item");
-      expect(workLink).not.toHaveAttribute("data-hover-selected");
+      expect(workLink).toHaveAttribute("data-hover-selected", "false");
     });
 
     it("renders no folder items when folders is empty", () => {

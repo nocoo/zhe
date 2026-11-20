@@ -22,6 +22,7 @@ test("reviewable demo catalog in disposable native E2E storage", async ({ page }
     "x",
     "github",
     "tags",
+    "search",
     "uploads",
     "storage",
     "api-keys",
@@ -61,6 +62,17 @@ test("reviewable demo catalog in disposable native E2E storage", async ({ page }
       await expect(page.getByText("A weekly reading ritual", { exact: true })).toBeVisible();
     if (route === "settings/ai")
       await expect(page.getByRole("button", { name: /保存/ })).toBeVisible();
+    const heading = page.locator("[data-basalt-island] header[aria-labelledby]").first();
+    await expect(heading).toBeVisible();
+    expect(
+      await heading.evaluate((header) => {
+        const next = header.nextElementSibling;
+        return (
+          next &&
+          Math.round(next.getBoundingClientRect().top - header.getBoundingClientRect().bottom)
+        );
+      }),
+    ).toBe(16);
     await expect(page.locator("main")).not.toContainText("Application error");
     await page.locator('img[loading="lazy"]').evaluateAll((images) => {
       for (const image of images) if (image instanceof HTMLImageElement) image.loading = "eager";

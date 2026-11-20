@@ -10,7 +10,7 @@ export function XrayPage({ initialData }: { initialData?: XrayInitialData }) {
   const vm = useXrayViewModel(initialData);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-basalt-layout">
       <PageHeader title="Xray" description="配置接口并收录 Twitter 书签" />
       {/* ── API 配置 + 接口测试（并排） ──────────────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

@@ -95,7 +95,7 @@ describe("SidebarFolderItem", () => {
 
       const link = screen.getByText("工作").closest("a");
       expect(link?.className).toContain("basalt-nav-item");
-      expect(link?.hasAttribute("data-hover-selected")).toBe(false);
+      expect(link).toHaveAttribute("data-hover-selected", "false");
     });
 
     it("shows link count by default", () => {
@@ -103,7 +103,7 @@ describe("SidebarFolderItem", () => {
 
       const countEl = screen.getByText("5");
       expect(countEl).toBeInTheDocument();
-      expect(countEl.parentElement).toHaveClass("size-6", "group-hover:invisible");
+      expect(countEl.parentElement).toHaveClass("w-6", "group-hover:invisible");
       expect(countEl.className).toContain("text-basalt-sm");
     });
 

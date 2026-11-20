@@ -19,7 +19,7 @@ export function AiSettingsPage() {
   const vm = useAiSettingsViewModel();
 
   return (
-    <div data-testid="ai-settings-page">
+    <div className="space-y-basalt-layout" data-testid="ai-settings-page">
       <PageHeader title="AI" description="配置大模型供应商，用于链接整理建议。" />
 
       {!vm.loaded ? (
