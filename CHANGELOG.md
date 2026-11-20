@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.3.10] - 2026-11-20
+
+### Added
+- Add consistent leading icons to dashboard page titles.
+- Expand demo fixtures with varied content, sample images, and card layout examples.
+
+### Fixed
+- Refine the login button and preserve the compact Basalt badge proportions.
+- Align grid cards and fill their image previews while preserving the natural height of X masonry cards.
+- Normalize sidebar items, breadcrumb hierarchy, page title and subtitle typography, and spacing below page headers.
+- Use a segmented list/grid switch for links and ideas.
+- Move the API Keys shortcut into a standalone banner on the Webhook page.
+
 ## [v2.3.9] - 2026-11-18
 
 ### Fixed
