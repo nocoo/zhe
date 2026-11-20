@@ -25,8 +25,9 @@ test.describe("Link CRUD", () => {
       const main = page.locator("main");
       await expect(main.getByRole("button", { name: "新建链接", exact: true })).toBeVisible();
       await expect(main.getByRole("button", { name: "刷新链接" })).toBeVisible();
-      await expect(main.getByRole("button", { name: "List view" })).toBeVisible();
-      await expect(main.getByRole("button", { name: "Grid view" })).toBeVisible();
+      const views = main.getByRole("radiogroup", { name: "视图模式" });
+      await expect(views.getByRole("radio", { name: "List view" })).toBeVisible();
+      await expect(views.getByRole("radio", { name: "Grid view" })).toBeVisible();
     });
   });
 
@@ -205,12 +206,15 @@ test.describe("Link CRUD", () => {
 
     test("toggle view mode between list and grid", async ({ page }) => {
       const main = page.locator("main");
-      const gridButton = main.getByRole("button", { name: "Grid view" });
-      const listButton = main.getByRole("button", { name: "List view" });
+      const gridButton = main.getByRole("radio", { name: "Grid view" });
+      const listButton = main.getByRole("radio", { name: "List view" });
 
       // Switch to grid
       const card = page.getByTestId("link-card").filter({ hasText: `/${testSlug}` });
-      await gridButton.click();
+      await listButton.press("ArrowRight");
+      await expect(gridButton).toBeFocused();
+      await gridButton.press("Space");
+      await expect(gridButton).toBeChecked();
       await expect(card).toHaveAttribute("data-view", "grid");
       expect(await card.evaluate((element) => element.getBoundingClientRect().height)).toBeCloseTo(
         384,

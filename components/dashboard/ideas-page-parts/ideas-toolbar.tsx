@@ -10,10 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@nocoo/basalt/components/select";
-import { Filter, LayoutGrid, List, Search, X } from "@nocoo/basalt/icons";
+import { Filter, Search, X } from "@nocoo/basalt/icons";
 import { getTagStyles } from "@/models/tags";
 import type { IdeasSortBy, IdeasViewModel } from "@/viewmodels/useIdeasViewModel";
-import { IconAction } from "../icon-action";
+import { ViewModeToggle } from "../view-mode-toggle";
 
 function SearchBox({ vm }: { vm: IdeasViewModel }) {
   return (
@@ -82,31 +82,6 @@ function SortSelect({ vm }: { vm: IdeasViewModel }) {
   );
 }
 
-function ViewModeToggle({ vm }: { vm: IdeasViewModel }) {
-  return (
-    <>
-      <IconAction
-        density="toolbar"
-        variant={vm.viewMode === "grid" ? "secondary" : "outline"}
-        aria-pressed={vm.viewMode === "grid"}
-        label="Grid view"
-        onClick={() => vm.setViewMode("grid")}
-      >
-        <LayoutGrid aria-hidden />
-      </IconAction>
-      <IconAction
-        density="toolbar"
-        variant={vm.viewMode === "list" ? "secondary" : "outline"}
-        aria-pressed={vm.viewMode === "list"}
-        label="List view"
-        onClick={() => vm.setViewMode("list")}
-      >
-        <List aria-hidden />
-      </IconAction>
-    </>
-  );
-}
-
 export function IdeasToolbar({
   vm,
   selectionActions,
@@ -132,7 +107,7 @@ export function IdeasToolbar({
               <SearchBox vm={vm} />
               <TagFilter vm={vm} />
               <SortSelect vm={vm} />
-              <ViewModeToggle vm={vm} />
+              <ViewModeToggle value={vm.viewMode} onChange={vm.setViewMode} />
               {filtered ? (
                 <Button type="button" variant="ghost" size="sm" onClick={vm.clearFilters}>
                   清除

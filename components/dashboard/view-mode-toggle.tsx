@@ -1,7 +1,12 @@
 "use client";
 
+import { ToggleGroup, ToggleGroupItem } from "@nocoo/basalt/components/toggle-group";
 import { LayoutGrid, LayoutList } from "@nocoo/basalt/icons";
-import { IconAction } from "./icon-action";
+
+const views = [
+  { value: "list", label: "List view", icon: LayoutList },
+  { value: "grid", label: "Grid view", icon: LayoutGrid },
+] as const;
 
 /** Shared list/grid switch so every collection page aligns with the toolbar. */
 export function ViewModeToggle({
@@ -12,25 +17,26 @@ export function ViewModeToggle({
   onChange: (mode: "list" | "grid") => void;
 }) {
   return (
-    <>
-      <IconAction
-        density="toolbar"
-        variant={value === "list" ? "secondary" : "outline"}
-        aria-pressed={value === "list"}
-        label="List view"
-        onClick={() => onChange("list")}
-      >
-        <LayoutList aria-hidden />
-      </IconAction>
-      <IconAction
-        density="toolbar"
-        variant={value === "grid" ? "secondary" : "outline"}
-        aria-pressed={value === "grid"}
-        label="Grid view"
-        onClick={() => onChange("grid")}
-      >
-        <LayoutGrid aria-hidden />
-      </IconAction>
-    </>
+    <ToggleGroup
+      type="single"
+      orientation="horizontal"
+      aria-label="视图模式"
+      value={value}
+      onValueChange={(next) => {
+        if (next === "list" || next === "grid") onChange(next);
+      }}
+    >
+      {views.map(({ value, label, icon: Icon }) => (
+        <ToggleGroupItem
+          key={value}
+          value={value}
+          aria-label={label}
+          title={label}
+          className="size-6 justify-center p-0"
+        >
+          <Icon className="size-4" strokeWidth={1.5} aria-hidden />
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
   );
 }

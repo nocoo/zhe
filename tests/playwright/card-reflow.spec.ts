@@ -153,7 +153,7 @@ test("ideas: unequal excerpts and tags keep grid sections aligned", async ({ pag
     }
   }
   await page.goto("/dashboard/ideas");
-  await page.getByRole("button", { name: "Grid view" }).click();
+  await page.getByRole("radio", { name: "Grid view" }).click();
   const cards = page.getByTestId("card-grid").locator("[data-card-actions-container]");
   await expect(cards).toHaveCount(excerpts.length);
   const layout = await cards.evaluateAll((elements) =>

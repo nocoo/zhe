@@ -119,7 +119,9 @@ margin for text alignment rather than a zero-padding hover surface. Do not inven
 内容区页头直接从 Basalt 引入，尽量不加 className 覆盖。
 
 - 标题 `title`（h1），说明与计数放在 `description`（标题下方一行）。
+- Use Basalt's native 24px title and 14px description at default typography. Counts and inline labels inherit the description size.
 - 短筛选与主操作放在 `actions`（标题行右侧）；筛选较多时用 `filters` 独占一行。
+- List and grid are one compact, single-selection Basalt `ToggleGroup`, shared by All Links and Ideas. Keep the saved preference and keyboard navigation.
 - 主操作永远最后一个。
 - 骨架 `PageHeaderSkeleton` 与 Basalt 叠放几何一致（标题块 + 副标题块 + 右侧 actions 占位）。
 - The gap from the complete `PageHeader` or its skeleton to the first content block uses `basalt-layout` (16px at default typography), matching All Links. Keep filters and actions inside the header's own layout.

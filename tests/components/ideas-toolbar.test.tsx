@@ -97,10 +97,11 @@ describe("IdeasToolbar", () => {
   it("switches view modes without duplicating global creation", async () => {
     const vm = vmStub({ viewMode: "list" });
     const user = userEvent.setup();
-    render(<IdeasToolbar vm={vm} />);
-    await user.click(screen.getByRole("button", { name: "Grid view" }));
+    const { rerender } = render(<IdeasToolbar vm={vm} />);
+    await user.click(screen.getByRole("radio", { name: "Grid view" }));
     expect(vm.setViewMode).toHaveBeenCalledWith("grid");
-    await user.click(screen.getByRole("button", { name: "List view" }));
+    rerender(<IdeasToolbar vm={{ ...vm, viewMode: "grid" }} />);
+    await user.click(screen.getByRole("radio", { name: "List view" }));
     expect(vm.setViewMode).toHaveBeenCalledWith("list");
     expect(screen.queryByRole("button", { name: "新想法" })).not.toBeInTheDocument();
   });

@@ -140,7 +140,7 @@ export function LinksListToolbar(props: ToolbarProps) {
     <PageHeader
       title={headerTitle}
       description={
-        <span role="status" className="text-basalt-sm">
+        <span role="status">
           {hasActiveFilters ? `${linkCount} / ${totalCount} 条链接` : `共 ${linkCount} 条链接`}
         </span>
       }

@@ -185,7 +185,7 @@ test.describe("Ideas", () => {
       await page.goto("/dashboard/ideas");
       await waitForIdeasPage(page);
 
-      await page.getByRole("button", { name: "Grid view" }).click();
+      await page.getByRole("radio", { name: "Grid view" }).click();
 
       await expect(page.getByTestId("card-grid")).toBeVisible();
     });
@@ -194,7 +194,7 @@ test.describe("Ideas", () => {
       await page.goto("/dashboard/ideas");
       await waitForIdeasPage(page);
 
-      await page.getByRole("button", { name: "List view" }).click();
+      await page.getByRole("radio", { name: "List view" }).click();
 
       await expect(page.getByTestId("card-list")).toBeVisible();
     });

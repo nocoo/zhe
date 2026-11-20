@@ -245,7 +245,9 @@ describe("LinksList", () => {
     render(<LinksList />);
 
     expect(screen.getByText("全部链接")).toBeInTheDocument();
-    expect(screen.getByText("共 3 条链接")).toHaveClass("text-basalt-sm");
+    const count = screen.getByText("共 3 条链接");
+    expect(count.parentElement).toHaveClass("text-basalt-base");
+    expect(count).not.toHaveClass("text-basalt-sm");
     expect(screen.getByRole("link", { name: "/abc" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "/def" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "/ghi" })).toBeInTheDocument();
@@ -320,7 +322,7 @@ describe("LinksList", () => {
     render(<LinksList />);
 
     const listBtn = screen.getByLabelText("List view");
-    expect(listBtn).toHaveAttribute("aria-pressed", "true");
+    expect(listBtn).toHaveAttribute("aria-checked", "true");
   });
 
   it("switches to grid view when grid toggle is clicked", async () => {
@@ -330,10 +332,10 @@ describe("LinksList", () => {
     fireEvent.click(screen.getByLabelText("Grid view"));
 
     const gridBtn = screen.getByLabelText("Grid view");
-    expect(gridBtn).toHaveAttribute("aria-pressed", "true");
+    expect(gridBtn).toHaveAttribute("aria-checked", "true");
 
     const listBtn = screen.getByLabelText("List view");
-    expect(listBtn).toHaveAttribute("aria-pressed", "false");
+    expect(listBtn).toHaveAttribute("aria-checked", "false");
   });
 
   it("switches back to list view when list toggle is clicked", async () => {
@@ -343,7 +345,7 @@ describe("LinksList", () => {
     fireEvent.click(screen.getByLabelText("List view"));
 
     const listBtn = screen.getByLabelText("List view");
-    expect(listBtn).toHaveAttribute("aria-pressed", "true");
+    expect(listBtn).toHaveAttribute("aria-checked", "true");
   });
 
   it("persists view mode to localStorage", async () => {

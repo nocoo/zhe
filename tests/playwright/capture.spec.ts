@@ -37,7 +37,7 @@ test("reviewable demo catalog in disposable native E2E storage", async ({ page }
     await expect(page.locator("main")).toBeVisible();
     await expect(page.locator(".animate-pulse:visible, .animate-spin:visible")).toHaveCount(0);
     if (route === "") {
-      await page.getByRole("button", { name: "Grid view", exact: true }).click();
+      await page.getByRole("radio", { name: "Grid view", exact: true }).click();
       await expect(
         page.getByTestId("link-card").filter({ hasText: "Coast transect" }),
       ).toBeVisible();
@@ -64,6 +64,11 @@ test("reviewable demo catalog in disposable native E2E storage", async ({ page }
       await expect(page.getByRole("button", { name: /保存/ })).toBeVisible();
     const heading = page.locator("[data-basalt-island] header[aria-labelledby]").first();
     await expect(heading).toBeVisible();
+    await expect(heading.getByRole("heading", { level: 1 })).toHaveCSS("font-size", "24px");
+    await expect(heading.locator("p").first()).toHaveCSS("font-size", "14px");
+    for (const label of await heading.locator("p span").all()) {
+      await expect(label).toHaveCSS("font-size", "14px");
+    }
     expect(
       await heading.evaluate((header) => {
         const next = header.nextElementSibling;
