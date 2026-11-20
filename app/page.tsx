@@ -53,7 +53,7 @@ export default async function Home() {
 
       <div
         data-basalt-surface-root=""
-        className="relative flex w-full max-w-xs flex-col overflow-hidden rounded-2xl bg-basalt-card ring-1 ring-black/[0.08] dark:ring-white/[0.06]"
+        className="relative flex aspect-[54/86] w-full max-w-64 flex-col overflow-clip rounded-2xl bg-basalt-card ring-1 ring-black/[0.08] dark:ring-white/[0.06]"
         style={{ boxShadow: BADGE_SHADOW }}
       >
         <BadgeHeader dateStr={dateStr} />

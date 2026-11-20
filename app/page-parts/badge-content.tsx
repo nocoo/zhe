@@ -39,8 +39,8 @@ export function BadgeContent({
   localIdentity?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center p-basalt-card-lg">
-      <div className="h-24 w-24 overflow-hidden rounded-full bg-basalt-secondary p-2.5 ring-1 ring-basalt-border">
+    <div className="flex flex-1 flex-col items-center p-basalt-card">
+      <div className="size-20 overflow-hidden rounded-full bg-basalt-secondary p-2.5 ring-1 ring-basalt-border">
         <img
           src="/logo-80.png"
           alt="Zhe"
@@ -50,12 +50,12 @@ export function BadgeContent({
         />
       </div>
 
-      <p className="mt-5 text-lg font-semibold text-basalt-foreground">就是这</p>
+      <p className="mt-basalt-card text-lg font-semibold text-basalt-foreground">就是这</p>
       <p className="mt-1 text-xs text-basalt-muted-foreground">登录以管理您的短链接</p>
 
-      <div className="mt-5 h-px w-full bg-basalt-border" />
+      <div className="mt-basalt-card h-px w-full bg-basalt-border" />
 
-      <form action={signInAction} className="mt-basalt-card-lg w-full">
+      <form action={signInAction} className="mt-auto w-full pt-basalt-card">
         <Button type="submit" size="lg" className="w-full" icon={<GoogleIcon />}>
           {localIdentity ? "Local sign in" : "Continue with Google"}
         </Button>
