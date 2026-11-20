@@ -146,9 +146,16 @@ auto-fill columns with an 18rem minimum, collapsing to one column on narrow scre
 Ordinary grid and GitHub use 24rem cards. X uses natural-height masonry, preserving
 DOM/date order and observing content/media resize to repack without column gaps.
 Its skeleton also uses masonry and varied content heights.
+Ordinary grids reserve two description lines so image, title, source and footer
+positions stay aligned with any description length. GitHub cards reserve a topic
+row below the description, even without topics. List screenshots and fixed
+preview tiles use cover cropping; favicons stay contained. X photo previews
+follow the loaded image ratio, while video posters fill their stored frames.
+Xray's two-column attachment grid uses equal cover tiles without constraining
+the surrounding cards. Full-image and video viewers keep the entire media visible.
 List cards retain a compact horizontal preview and combine classification and actions
-into one footer row on desktop. Ideas use a separate 14rem minimum grid;
-uploads retain their existing layout.
+into one footer row on desktop. Ideas use a separate 14rem minimum grid with
+stretched cards and a three-line excerpt slot. Uploads retain their existing layout.
 Loading respects the saved grid/list preference, including uncategorized links.
 
 骨架容器提供 `role="status"`、`aria-busy` 和加载名称，内部装饰对辅助技术隐藏。骨架使用轻微 pulse；数据到达后卡片通过 `animate-fade-up` 和 `staggerStyle` 依次渐入，延迟最多累计 12 张，稳定 key 避免刷新重播。减少动态效果设置下停用 pulse 和卡片入场，保留正常布局；重排继续使用共享 `AnimatedCardList`。

@@ -84,7 +84,7 @@ export const IdeaCard = memo(function IdeaCard({
       padding="none"
       data-card-actions-container
       className={cn(
-        "group relative flex w-full flex-col p-4 text-left transition-shadow hover:ring-basalt-border",
+        "group relative flex h-full w-full flex-col p-4 text-left transition-shadow hover:ring-basalt-border",
         className,
       )}
     >
@@ -104,19 +104,28 @@ export const IdeaCard = memo(function IdeaCard({
       <div className="relative z-10 flex flex-col flex-1 pointer-events-none">
         <h3 className="font-medium text-basalt-foreground line-clamp-1 mb-2">{displayTitle}</h3>
 
-        {idea.excerpt && (
-          <p className="text-sm text-basalt-muted-foreground line-clamp-3 flex-1 mb-3">
-            {idea.excerpt}
-          </p>
-        )}
+        <div className="mb-3 min-h-15">
+          {idea.excerpt && (
+            <p className="line-clamp-3 wrap-anywhere text-sm leading-5 text-basalt-muted-foreground">
+              {idea.excerpt}
+            </p>
+          )}
+        </div>
 
         {ideaTags.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
             {ideaTags.slice(0, 3).map((tag) => {
               const styles = getTagStyles(tag.name, tag.color);
               return (
-                <Badge key={tag.id} variant="secondary" className="text-xs" style={styles.badge}>
-                  {tag.name}
+                <Badge
+                  key={tag.id}
+                  variant="secondary"
+                  className="max-w-full text-xs"
+                  style={styles.badge}
+                >
+                  <span className="truncate" title={tag.name}>
+                    {tag.name}
+                  </span>
                 </Badge>
               );
             })}

@@ -228,6 +228,28 @@ test("source filters and GitHub README", async ({ page, context, baseURL }) => {
     await expect(page.getByRole("searchbox", { name: "搜索 GitHub 收藏" })).toHaveCount(0);
     const cards = page.getByTestId("github-repository");
     await expect(cards).toHaveCount(6);
+    await expect
+      .poll(() =>
+        cards.evaluateAll((elements) => {
+          const slots = elements.map((card) => {
+            const bounds = card.getBoundingClientRect();
+            const sections = card.querySelectorAll(
+              'h2, [data-testid="github-card-description"], [data-testid="github-card-metrics"], [data-bookmark-footer]',
+            );
+            return JSON.stringify(
+              [
+                bounds.height,
+                ...Array.from(sections).flatMap((section) => {
+                  const box = section.getBoundingClientRect();
+                  return [box.top - bounds.top, box.height];
+                }),
+              ].map(Math.round),
+            );
+          });
+          return new Set(slots).size;
+        }),
+      )
+      .toBe(1);
     const card = page.locator(`[data-testid="github-repository"][data-link-id="${ids[0]}"]`);
     await expect(card.getByTitle("GitHub stars · 1,250")).toContainText("1.3K");
     await expect(card.getByTitle("默认分支 main 的 commit 总数 · 321")).toContainText("321");

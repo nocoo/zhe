@@ -43,7 +43,7 @@ export function FeatureCard({
   return (
     <LayerCard padding="none">
       <LayerCard.Header className="px-4 py-3 md:px-5">
-        <h3 className="flex items-center gap-3 text-sm font-medium">
+        <h3 className="flex min-w-0 flex-1 items-center gap-3 text-sm font-medium">
           <div
             className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-basalt-widget ${colors.bg}`}
           >

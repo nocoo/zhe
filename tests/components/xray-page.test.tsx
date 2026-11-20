@@ -450,6 +450,28 @@ describe("XrayPage", () => {
     expect(thumb).toHaveAttribute("src", "https://pbs.twimg.com/thumb1.jpg");
   });
 
+  it("fills equal frames when photos and video posters share a row", () => {
+    const tweet = makeTweetData({
+      media: [
+        { id: "photo", type: "PHOTO", url: "https://pbs.twimg.com/media/photo.jpg" },
+        {
+          id: "video",
+          type: "VIDEO",
+          url: "https://video.twimg.com/video.mp4",
+          thumbnail_url: "https://pbs.twimg.com/thumb.jpg",
+        },
+      ],
+    });
+    mockVm.tweetResult = { success: true, data: tweet };
+    render(<XrayPage />);
+
+    for (const name of ["Media", "Video thumbnail"]) {
+      const preview = screen.getByAltText(name);
+      expect(preview).toHaveClass("h-full", "w-full", "object-cover");
+      expect(preview.closest("a")).toHaveClass("aspect-video");
+    }
+  });
+
   it("renders GIF media with GIF badge", () => {
     const tweet = makeTweetData({
       media: [
@@ -465,6 +487,11 @@ describe("XrayPage", () => {
     render(<XrayPage />);
 
     expect(screen.getByText("GIF")).toBeInTheDocument();
+    expect(screen.queryByAltText("Video thumbnail")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "GIF" })).toHaveAttribute(
+      "href",
+      "https://video.twimg.com/gif1.mp4",
+    );
   });
 
   it("renders quoted tweet", () => {

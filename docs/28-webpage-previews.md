@@ -4,7 +4,10 @@
 
 ## 尺寸与压缩
 
-`GridScreenshot` 的预览区域使用 `aspect-[4/3]`，共享网格 `CARD_GRID_CLASS` 在各断点展示 2–6 列。图片使用 `unoptimized` 直接读取 CDN，因此在采集端控制像素和体积。
+The saved image is 4:3. Ordinary grids use the available width with an 18rem
+column minimum; the preview fills the space above the text in each 24rem card.
+List thumbnails and grid previews both use top-aligned cover cropping. Images
+load directly from the CDN via `unoptimized`, so capture controls file size.
 
 | 项目     | 配置                                                |
 | -------- | --------------------------------------------------- |
@@ -47,4 +50,4 @@ Dashboard 仅对仍缺图的普通链接做前台批量轮询，隐藏页面暂�
 
 需要已连接的 OpenCLI 浏览器扩展，以及现有 R2 配置（包括 `R2_USER_HASH_SALT` 和指向 CDN 的 `R2_PUBLIC_DOMAIN`）。不支持的地址、错误页、验证页或加载超时会保留缺图状态并按重试策略处理。
 
-验证覆盖 CLI 截图与文件清理、三来源并发领取、轮换调度、租约过期、重复 PUT、上传期间编辑/删除/撤销、R2 清理和卡片自动更新。`tests/api/v1/connector.test.ts` 通过本地 D1/R2 栈验证真实 HTTP 上传与公开 WebP 读取；`tests/playwright/connector.spec.ts` 验证 2× 屏幕下预览无需刷新即可出现，并检查桌面、手机的 4:3 展示和删除清理。
+验证覆盖 CLI 截图与文件清理、三来源并发领取、轮换调度、租约过期、重复 PUT、上传期间编辑/删除/撤销、R2 清理和卡片自动更新。`tests/api/v1/connector.test.ts` 通过本地 D1/R2 栈验证真实 HTTP 上传与公开 WebP 读取；`tests/playwright/connector.spec.ts` verifies the 4:3 source image, live preview replacement, frame coverage at desktop and mobile widths, and deletion cleanup.

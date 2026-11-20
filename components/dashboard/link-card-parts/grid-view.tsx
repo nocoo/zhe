@@ -46,7 +46,9 @@ export function GridView(props: LinkPreviewProps) {
       <div className="shrink-0 space-y-basalt-space-sm p-basalt-card-sm">
         <TitleRow {...props} />
         <SourceLinks link={props.link} shortUrl={props.shortUrl} />
-        <Description link={props.link} />
+        <div className="h-11">
+          <Description link={props.link} fill />
+        </div>
       </div>
     </div>
   );

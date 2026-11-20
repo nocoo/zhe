@@ -131,8 +131,10 @@ describe("X bookmark presentation", () => {
       expect(within(card).getAllByRole("button", { name: /^查看图片/ })).toHaveLength(count);
       const grid = screen.getByTestId("x-media-grid");
       expect(grid).toHaveClass(count > 1 ? "columns-2" : "grid");
-      for (const image of within(grid).getAllByRole("img"))
-        expect(image).toHaveStyle({ aspectRatio: "3/4" });
+      for (const image of within(grid).getAllByRole("img")) {
+        expect(image).toHaveStyle({ aspectRatio: "auto 3/4" });
+        expect(image).toHaveClass("object-cover");
+      }
       expect(within(card).queryByText("Saved folder")).not.toBeInTheDocument();
       expect(within(card).queryByText("Saved tag")).not.toBeInTheDocument();
       expect(card.querySelector("[data-bookmark-classification]")).toBeNull();

@@ -811,7 +811,7 @@ for (const viewport of [
           expect(preview.y + preview.height).toBeLessThan(cardBox.y + cardBox.height);
           expect(
             await poster.locator("img").evaluate((element) => getComputedStyle(element).objectFit),
-          ).toBe("contain");
+          ).toBe("cover");
           await page.screenshot({
             path: `.artifacts/x-library-${width}.png`,
             animations: "disabled",
@@ -1066,6 +1066,7 @@ for (const viewport of [
             const shape = shapes[index];
             assert(box && shape);
             expect(box.height / box.width).toBeCloseTo(shape.height / shape.width, 2);
+            await expect(photo).toHaveCSS("object-fit", "cover");
           }
           await albumCard.getByRole("button", { name: "查看 X 全文", exact: true }).click();
           const galleryDialog = page.getByRole("dialog", { name: "X 帖子", exact: true });

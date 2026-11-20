@@ -343,34 +343,32 @@ export function GitHubRepositoryCard({
             </span>
           </div>
           <SourceLinks link={link} shortUrl={vm.shortUrl} />
-          {topics.length > 0 && (
-            <div
-              className="flex h-6 shrink-0 items-center gap-2 overflow-hidden"
-              data-testid="github-card-tags"
-            >
-              {topics.slice(0, 3).map((topic) => (
-                <span
-                  key={topic}
-                  title={`GitHub topic: ${topic}`}
-                  className="min-w-0 truncate text-xs text-basalt-muted-foreground"
-                  data-testid="github-repository-label"
-                >
-                  {topic}
-                </span>
-              ))}
-              {topics.length > 3 && (
-                <span className="shrink-0 text-xs text-basalt-muted-foreground">
-                  +{topics.length - 3}
-                </span>
-              )}
-            </div>
-          )}
           <div className="min-h-0 flex-1" data-testid="github-card-description">
             <Description
               lines={5}
               fill
               link={{ ...link, metaDescription: repository?.description || link.metaDescription }}
             />
+          </div>
+          <div
+            className="flex h-6 shrink-0 items-center gap-2 overflow-hidden"
+            data-testid="github-card-tags"
+          >
+            {topics.slice(0, 3).map((topic) => (
+              <span
+                key={topic}
+                title={`GitHub topic: ${topic}`}
+                className="min-w-0 truncate text-xs text-basalt-muted-foreground"
+                data-testid="github-repository-label"
+              >
+                {topic}
+              </span>
+            ))}
+            {topics.length > 3 && (
+              <span className="shrink-0 text-xs text-basalt-muted-foreground">
+                +{topics.length - 3}
+              </span>
+            )}
           </div>
           <RepositoryInfo
             repository={repository}

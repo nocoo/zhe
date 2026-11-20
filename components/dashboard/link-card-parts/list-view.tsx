@@ -22,7 +22,7 @@ export function ListView(props: LinkPreviewProps) {
             alt="链接预览"
             width={112}
             height={80}
-            className="h-full w-full object-contain"
+            className={`h-full w-full ${props.screenshotUrl ? "object-cover object-top" : "object-contain"}`}
             unoptimized
           />
         ) : (

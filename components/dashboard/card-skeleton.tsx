@@ -170,15 +170,46 @@ function GridCardBones({ variant, index }: { variant: GridVariant; index: number
         </div>
       </div>
     );
+  if (variant === "link")
+    return (
+      <>
+        <Bone className="min-h-0 w-full flex-1 rounded-none border-b border-basalt-border/60" />
+        <div className="shrink-0 space-y-basalt-space-sm p-basalt-card-sm">
+          <div className="flex h-5 items-center">
+            <Bone className="h-4 w-3/4" />
+          </div>
+          <div className="flex h-5 items-center">
+            <Bone className="h-3 w-1/2" />
+          </div>
+          <div className="flex h-11 flex-col gap-2 pt-1">
+            <Bone className="h-3 w-full" />
+            <Bone className="h-3 w-2/3" />
+          </div>
+        </div>
+        <BookmarkFooterBones />
+      </>
+    );
   return (
     <>
       <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
-        <Bone className="h-5 w-3/4" />
-        <Bone className="h-3 w-1/2" />
-        <Bone className="min-h-0 w-full flex-1" />
-        <Bone className="h-10 w-full" />
+        <div className="flex h-7 shrink-0 items-center">
+          <Bone className="h-4 w-3/4" />
+        </div>
+        <div className="flex h-5 shrink-0 items-center">
+          <Bone className="h-3 w-1/2" />
+        </div>
+        <div className="min-h-0 flex-1 space-y-2">
+          <Bone className="h-3 w-full" />
+          <Bone className="h-3 w-full" />
+          <Bone className="h-3 w-2/3" />
+        </div>
+        <div className="flex h-6 shrink-0 items-center">
+          <Bone className="h-3 w-1/2" />
+        </div>
+        <Bone className="h-8 w-full" />
+        <Bone className="h-5 w-full" />
       </div>
-      <BookmarkFooterBones reader={variant === "github"} />
+      <BookmarkFooterBones reader />
     </>
   );
 }

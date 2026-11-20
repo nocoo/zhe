@@ -52,7 +52,11 @@ async function seedCollection(page: Page, owner: string, collection: Collection,
         `${owner}-${index}`,
         url,
         `Saved link ${index + 1}`,
-        "A useful reference.",
+        [
+          "A useful reference.",
+          "A longer description should not move the preview. ".repeat(12),
+          null,
+        ][index % 3] ?? null,
         "/logo-24.png",
         "/logo-80.png",
         now - index * 1000,
@@ -71,6 +75,125 @@ async function confirmDelete(page: Page, card: Locator) {
   await (await cardAction(page, card, "删除收藏")).click();
   await page.getByRole("alertdialog").getByRole("button", { name: "删除", exact: true }).click();
 }
+
+test("grid: mixed descriptions keep preview, title, description and footer aligned", async ({
+  page,
+  owner,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const cards = await seedCollection(page, owner, "grid", 3);
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    if (width === 390) await expect(page.getByRole("button", { name: "打开导航" })).toBeVisible();
+    const layout = await cards.evaluateAll((elements) =>
+      elements.map((card) => {
+        const bounds = card.getBoundingClientRect();
+        const media = card.querySelector('[aria-label="打开原链接"]');
+        const image = media?.querySelector("img");
+        const sources = card.querySelector("[data-bookmark-links]");
+        const sections = [
+          media,
+          sources?.previousElementSibling,
+          sources,
+          card.querySelector('[aria-label="查看收藏内容"]'),
+          card.querySelector("[data-bookmark-footer]"),
+        ].map((element) => {
+          if (!element) throw new Error("Missing bookmark grid section");
+          const box = element.getBoundingClientRect();
+          return [Math.round(box.top - bounds.top), Math.round(box.height)];
+        });
+        if (!image || !media) throw new Error("Missing bookmark preview");
+        return {
+          top: Math.round(bounds.top),
+          height: Math.round(bounds.height),
+          sections,
+          fillsFrame:
+            getComputedStyle(image).objectFit === "cover" &&
+            image.offsetWidth === media.clientWidth &&
+            image.offsetHeight === media.clientHeight,
+        };
+      }),
+    );
+    if (width === 1440) expect(new Set(layout.map(({ top }) => top)).size).toBe(1);
+    expect(
+      new Set(layout.map(({ height, sections }) => JSON.stringify([height, sections]))).size,
+    ).toBe(1);
+    expect(layout.every(({ fillsFrame }) => fillsFrame)).toBe(true);
+  }
+});
+
+test("list: screenshots cover their thumbnail frame", async ({ page, owner }) => {
+  const cards = await seedCollection(page, owner, "list", 1);
+  const frame = cards.getByRole("link", { name: "打开原链接" });
+  await expect(frame.getByRole("img")).toHaveCSS("object-fit", "cover");
+});
+
+test("ideas: unequal excerpts and tags keep grid sections aligned", async ({ page, owner }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  const excerpts = [null, "A short idea.", "A longer excerpt with several lines. ".repeat(8)];
+  for (const [index, excerpt] of excerpts.entries()) {
+    const timestamp = Math.floor(Date.now() / 1000) - index;
+    const [idea] = await queryD1<{ id: number }>(
+      "INSERT INTO ideas(user_id,title,content,excerpt,created_at,updated_at) VALUES(?,?,?,?,?,?) RETURNING id",
+      [owner, `Idea ${index + 1}`, "A complete idea", excerpt, timestamp, timestamp],
+    );
+    assert(idea);
+    if (index === 0) {
+      const tag = randomUUID();
+      await executeD1("INSERT INTO tags(id,user_id,name,color,created_at) VALUES(?,?,?,?,?)", [
+        tag,
+        owner,
+        "A deliberately long tag for an idea card ".repeat(2).trim(),
+        "blue",
+        timestamp,
+      ]);
+      await executeD1("INSERT INTO idea_tags(idea_id,tag_id) VALUES(?,?)", [idea.id, tag]);
+    }
+  }
+  await page.goto("/dashboard/ideas");
+  await page.getByRole("button", { name: "Grid view" }).click();
+  const cards = page.getByTestId("card-grid").locator("[data-card-actions-container]");
+  await expect(cards).toHaveCount(excerpts.length);
+  const layout = await cards.evaluateAll((elements) =>
+    elements.map((card) => {
+      const title = card.querySelector("h3");
+      const bounds = card.getBoundingClientRect();
+      const sections = [title, title?.nextElementSibling, title?.parentElement?.lastElementChild];
+      return {
+        overflow: card.scrollWidth > card.clientWidth,
+        slots: [
+          Math.round(bounds.top),
+          Math.round(bounds.height),
+          ...sections.flatMap((section) => {
+            if (!section) throw new Error("Missing idea grid section");
+            const box = section.getBoundingClientRect();
+            return [Math.round(box.top - bounds.top), Math.round(box.height)];
+          }),
+        ],
+      };
+    }),
+  );
+  expect(new Set(layout.map(({ slots }) => JSON.stringify(slots))).size).toBe(1);
+  expect(layout.every(({ overflow }) => !overflow)).toBe(true);
+});
+
+test("feature card headings stay inside narrow cards", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dashboard/xray");
+  await expect(page.getByRole("button", { name: "打开导航" })).toBeVisible();
+  const headings = page.getByRole("heading", { level: 3, name: /API 配置|接口测试/ });
+  await expect(headings).toHaveCount(2);
+  for (const heading of await headings.all()) {
+    expect(
+      await heading.evaluate((element) => {
+        const header = element.closest('[data-slot="card-header"]');
+        return !!header && header.scrollWidth <= header.clientWidth;
+      }),
+    ).toBe(true);
+  }
+});
 
 test("grid: deleting a card removes it from the list", async ({ page, owner }) => {
   const cards = await seedCollection(page, owner, "grid");

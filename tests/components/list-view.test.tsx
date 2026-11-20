@@ -46,6 +46,7 @@ describe("ListView", () => {
       <ListView {...props({ faviconUrl: "https://cdn.test/favicon.png" })} />,
     );
     expect(screen.getByAltText("链接预览")).toHaveAttribute("src", "https://cdn.test/favicon.png");
+    expect(screen.getByAltText("链接预览")).toHaveClass("object-contain");
     rerender(
       <ListView
         {...props({
@@ -55,5 +56,6 @@ describe("ListView", () => {
       />,
     );
     expect(screen.getByAltText("链接预览")).toHaveAttribute("src", "https://cdn.test/shot.png");
+    expect(screen.getByAltText("链接预览")).toHaveClass("object-cover", "object-top");
   });
 });

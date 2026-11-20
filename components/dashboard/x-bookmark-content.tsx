@@ -188,7 +188,7 @@ function PostMedia({
             alt=""
             loading="lazy"
             decoding="async"
-            className="block h-auto w-full object-contain"
+            className="block h-auto w-full object-cover"
             style={{ aspectRatio }}
             onError={() => setPosterFailed(true)}
           />
@@ -253,8 +253,8 @@ function PostMedia({
             alt={`帖子图片 ${index + 1}`}
             loading="lazy"
             decoding="async"
-            className="block h-auto w-full object-contain transition-opacity hover:opacity-90"
-            style={{ aspectRatio }}
+            className="block h-auto w-full object-cover transition-opacity hover:opacity-90"
+            style={{ aspectRatio: `auto ${aspectRatio}` }}
             onError={() => setFailed(true)}
           />
         </Button>

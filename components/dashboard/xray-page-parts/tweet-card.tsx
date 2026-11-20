@@ -15,6 +15,7 @@ import {
   Quote,
   Repeat2,
 } from "@nocoo/basalt/icons";
+import { cn } from "@/lib/utils";
 import {
   formatCount,
   formatTweetDate,
@@ -36,7 +37,7 @@ function AuthorRow({ tweet }: { tweet: XrayTweetData }) {
         <img
           src={tweet.author.profile_image_url}
           alt={tweet.author.name}
-          className="h-10 w-10 rounded-full transition-opacity hover:opacity-80 [dynamic-range-limit:standard]"
+          className="h-10 w-10 rounded-full object-cover transition-opacity hover:opacity-80 [dynamic-range-limit:standard]"
         />
       </a>
       <div className="flex-1 min-w-0">
@@ -181,46 +182,55 @@ function MetricsBar({ metrics }: { metrics: XrayTweetData["metrics"] }) {
 }
 
 function MediaGrid({ media }: { media: XrayTweetMedia[] }) {
+  const grouped = media.length > 1;
   return (
-    <div className={`grid gap-2 ${media.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-      {media.map((item) => (
-        <div key={item.id} className="relative overflow-hidden rounded-lg">
-          {item.type === "PHOTO" ? (
-            <a href={item.url} target="_blank" rel="noopener noreferrer">
+    <div className={cn("grid gap-2", grouped && "grid-cols-2")}>
+      {media.map((item) => {
+        const photo = item.type === "PHOTO";
+        const preview = photo ? item.url : item.thumbnail_url;
+        return (
+          <a
+            key={item.id}
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              "group relative block min-w-0 overflow-hidden rounded-basalt-widget border border-basalt-border/60",
+              (grouped || !preview) && "aspect-video",
+              !preview && "bg-basalt-control",
+            )}
+          >
+            {preview && (
               <img
-                src={item.url}
-                alt="Media"
-                className="w-full h-auto rounded-lg transition-opacity hover:opacity-90"
+                src={preview}
+                alt={photo ? "Media" : "Video thumbnail"}
+                className={cn(
+                  "block w-full object-cover",
+                  grouped ? "absolute inset-0 h-full" : "h-auto",
+                  photo && "transition-opacity group-hover:opacity-90",
+                )}
               />
-            </a>
-          ) : (
-            <a href={item.url} target="_blank" rel="noopener noreferrer">
-              <div className="relative">
-                <img
-                  src={item.thumbnail_url ?? item.url}
-                  alt="Video thumbnail"
-                  className="w-full h-auto rounded-lg"
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/60">
-                    <Play className="h-5 w-5 text-white" fill="white" />
-                  </div>
-                </div>
-                <div className="absolute top-2 left-2">
-                  <Badge variant="secondary" className="text-[10px]">
-                    {item.type === "VIDEO" ? (
-                      <Play className="mr-1 h-2.5 w-2.5" />
-                    ) : (
-                      <ImageIcon className="mr-1 h-2.5 w-2.5" />
-                    )}
-                    {item.type}
-                  </Badge>
-                </div>
-              </div>
-            </a>
-          )}
-        </div>
-      ))}
+            )}
+            {!photo && (
+              <>
+                <span className="absolute inset-0 flex items-center justify-center" aria-hidden>
+                  <span className="flex size-10 items-center justify-center rounded-full bg-black/60">
+                    <Play className="size-5 fill-current text-white" />
+                  </span>
+                </span>
+                <Badge variant="secondary" className="absolute top-2 left-2 text-[11px]">
+                  {item.type === "VIDEO" ? (
+                    <Play className="mr-1 size-2.5" aria-hidden />
+                  ) : (
+                    <ImageIcon className="mr-1 size-2.5" aria-hidden />
+                  )}
+                  {item.type}
+                </Badge>
+              </>
+            )}
+          </a>
+        );
+      })}
     </div>
   );
 }
