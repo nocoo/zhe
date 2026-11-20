@@ -37,10 +37,10 @@ export function BadgeHeader({ dateStr }: { dateStr: string }) {
 
 export function BadgeFooter() {
   return (
-    <div className="absolute right-0 bottom-0 left-0 flex items-center justify-center bg-basalt-secondary/50 py-2.5">
+    <div className="flex items-center justify-center bg-basalt-secondary/50 py-2.5">
       <div className="flex items-center gap-1.5">
         <div className="h-1.5 w-1.5 rounded-full bg-basalt-success animate-pulse" />
-        <span className="text-[10px] text-basalt-muted-foreground">Secure authentication</span>
+        <span className="text-basalt-xs text-basalt-muted-foreground">Secure authentication</span>
       </div>
     </div>
   );

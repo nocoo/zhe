@@ -47,20 +47,18 @@ export default async function Home() {
   const dateStr = todayDateStr();
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-basalt-background p-4">
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-basalt-background px-basalt-card py-16">
       <TopRightControls />
       <RadialGlow />
 
-      <div className="flex flex-col items-center">
-        <div
-          data-basalt-surface-root=""
-          className="relative flex aspect-[54/86] w-72 flex-col overflow-hidden rounded-2xl bg-basalt-card ring-1 ring-black/[0.08] dark:ring-white/[0.06]"
-          style={{ boxShadow: BADGE_SHADOW }}
-        >
-          <BadgeHeader dateStr={dateStr} />
-          <BadgeContent signInAction={signInWithGoogle} localIdentity={localIdentityEnabled()} />
-          <BadgeFooter />
-        </div>
+      <div
+        data-basalt-surface-root=""
+        className="relative flex w-full max-w-xs flex-col overflow-hidden rounded-2xl bg-basalt-card ring-1 ring-black/[0.08] dark:ring-white/[0.06]"
+        style={{ boxShadow: BADGE_SHADOW }}
+      >
+        <BadgeHeader dateStr={dateStr} />
+        <BadgeContent signInAction={signInWithGoogle} localIdentity={localIdentityEnabled()} />
+        <BadgeFooter />
       </div>
     </div>
   );

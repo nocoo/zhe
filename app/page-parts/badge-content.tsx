@@ -39,7 +39,7 @@ export function BadgeContent({
   localIdentity?: boolean;
 }) {
   return (
-    <div className="flex flex-1 flex-col items-center px-6 pt-6 pb-14">
+    <div className="flex flex-col items-center p-basalt-card-lg">
       <div className="h-24 w-24 overflow-hidden rounded-full bg-basalt-secondary p-2.5 ring-1 ring-basalt-border">
         <img
           src="/logo-80.png"
@@ -55,20 +55,13 @@ export function BadgeContent({
 
       <div className="mt-5 h-px w-full bg-basalt-border" />
 
-      <div className="flex-1" />
-
-      <form action={signInAction}>
-        <Button
-          type="submit"
-          variant="secondary"
-          className="w-full whitespace-nowrap"
-          icon={<GoogleIcon />}
-        >
+      <form action={signInAction} className="mt-basalt-card-lg w-full">
+        <Button type="submit" size="lg" className="w-full" icon={<GoogleIcon />}>
           {localIdentity ? "Local sign in" : "Continue with Google"}
         </Button>
       </form>
 
-      <p className="mt-3 text-center text-[10px] leading-relaxed text-basalt-muted-foreground/60">
+      <p className="mt-3 text-center text-basalt-xs text-basalt-muted-foreground">
         点击登录即表示您同意服务条款
       </p>
     </div>
