@@ -449,3 +449,10 @@ but missed the control-contrast rule in `ai/DESIGN.md`. The full browser suite
 caught a tag-form assertion that still required input and card fills to match.
 Check the selected package's design contract and token changes, then assert its
 specific semantic color in both themes instead of restoring an obsolete style.
+
+## 2026-11-20: Validate asset readiness before reseeding Demo
+
+The initial capture checked images before the X gallery mounted, and the scoped
+lint command omitted the new SVGs, so pre-commit caught their missing titles
+after Demo had already been rebuilt. Wait for the expected gallery and decoded
+dimensions, and lint the fixture files themselves before replacing Demo storage.

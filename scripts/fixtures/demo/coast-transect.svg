@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="500" viewBox="0 0 1500 500">
+  <title>Coast transect — panoramic survey line</title>
+  <rect width="1500" height="500" fill="#e7deca"/>
+  <circle cx="1230" cy="132" r="83" fill="#d49863"/>
+  <path fill="#80a298" d="M0 313c159-42 295 30 462-10 153-37 270-110 448-60 189 54 348 49 590-9v266H0Z"/>
+  <path fill="#335d57" d="M0 367c172 65 409 25 581-22 119-32 233-37 373 14 178 65 357 55 546-45v186H0Z"/>
+  <path fill="none" stroke="#e7deca" stroke-width="3" stroke-dasharray="10 13" d="M80 419c338 11 533-108 778-44 168 44 311 101 552 39"/>
+  <text x="64" y="102" font-family="sans-serif" font-size="55" fill="#335d57">Coast Transect</text>
+  <text x="68" y="145" font-family="monospace" font-size="22" fill="#335d57">OBSERVATION LINE / 04</text>
+</svg>

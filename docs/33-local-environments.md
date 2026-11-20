@@ -127,9 +127,11 @@ transport-delay tests still forward real requests.
 ## Catalog and evidence
 
 `fixtures-catalog.ts` owns catalog version and UTC time anchor. Identity, prose,
-repository/post data and SVG artwork are synthetic and authored for this task.
-The Markdown document and SVG are stored through native R2 and referenced by
-normal upload records. No production export was used. Demo media URLs survive
+repository/post data, and the illustrations in `scripts/fixtures/demo/` are synthetic.
+Landscape, portrait, square, and panoramic artwork and the Markdown document are
+stored through native R2 and referenced by normal upload records. The same seed
+includes missing and long link descriptions, a mixed-ratio X gallery, an archived
+repository without a README, and an untagged idea. Demo media URLs survive
 restarts; E2E media URLs identify their disposable instance. API-key timestamps
 use seconds; ordinary records use milliseconds, matching the real mappers.
 
@@ -145,12 +147,12 @@ creation is not equivalent to completing every action on that page.
 | Search / filters / bulk actions  | Matching labels, distinct sources, empty results                       | Existing search API/browser and bulk tests; error handling in unit tests           | Search browser captures; list capture        |
 | Ideas / editor                   | Markdown, image, checklist, table, tags                                | Existing ideas CRUD/browser tests; manual draft cancellation                       | Capture `ideas`                              |
 | Todos                            | Parent/child, complete/open, due/overdue, emoji, tags                  | Existing todo workflows                                                            | Capture `todos`                              |
-| X bookmarks / media              | Published image, pending and failed capture                            | Connector real HTTP, digest/ownership, 100 MB video, Range and cleanup             | Capture `x`                                  |
-| GitHub / README                  | Synthetic repo, topics, metrics, license, README                       | Existing GitHub/enrichment browser tests                                           | Capture `github`                             |
+| X bookmarks / media              | Text, article, single photo, four photo ratios, pending and failed     | Connector real HTTP, digest/ownership, 100 MB video, Range and cleanup             | Capture `x`                                  |
+| GitHub / README                  | Active, archived and pending repos; rich and missing metadata          | Existing GitHub/enrichment browser tests                                           | Capture `github`                             |
 | Webpage previews                 | Owned covers; focused capture success/failure scenarios                | Existing screenshot/connector tests                                                | Links and enrichment captures                |
-| Folders / tags                   | Three categories, empty category, three colored labels                 | Existing folders/tags CRUD tests                                                   | Capture `tags`                               |
+| Folders / tags                   | Three populated categories, an empty category, five colored labels     | Existing folders/tags CRUD tests                                                   | Capture `tags`                               |
 | Overview / charts                | Seven-day analytics with matching click totals                         | Existing overview and analytics tests                                              | Capture `overview`                           |
-| Uploads / storage                | Owned SVG and Markdown; matching sizes and metadata                    | Native real HTTP and upload browser workflows                                      | Captures `uploads`, `storage`                |
+| Uploads / storage                | Five SVGs and Markdown; matching sizes and metadata                    | Native real HTTP and upload browser workflows                                      | Captures `uploads`, `storage`                |
 | API keys / permissions / audit   | Read-only and revoked keys, separate owner                             | Existing scoped API tests and API-key browser workflows                            | Capture `api-keys`                           |
 | Webhook / rate limits            | Local-only webhook token and rate                                      | Existing webhook and rate-limit HTTP tests                                         | Capture `webhook`                            |
 | Backy / export / import          | Empty integration configuration; local success/error boundary          | Existing Backy and data-management workflows                                       | Captures `backy`, `data-management`          |

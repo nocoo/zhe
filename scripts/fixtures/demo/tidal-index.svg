@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900">
+  <title>Tidal index — a square reference plate</title>
+  <rect width="900" height="900" fill="#2a4d49"/>
+  <path fill="none" stroke="#bacaab" stroke-width="32" d="M154 637V263h592v374Z"/>
+  <circle cx="450" cy="450" r="142" fill="#e4c884"/>
+  <path d="M309 450c124-136 161 136 282 0v100H309Z" fill="#ba663d"/>
+  <path d="M309 550h282v30H309Z" fill="#2a4d49"/>
+  <text x="64" y="122" font-family="sans-serif" font-size="61" fill="#efdcb7">Tidal Index</text>
+  <text x="68" y="817" font-family="monospace" font-size="23" fill="#efdcb7">REFERENCE PLATE / 03</text>
+</svg>

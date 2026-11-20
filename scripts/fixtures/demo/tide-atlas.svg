@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900">
+  <title>Tide atlas — layered coastal map</title>
+  <rect width="1200" height="900" fill="#efe9d8"/>
+  <path fill="#204950" d="M0 164c170 4 269 135 426 128 90-4 156-58 241-57 167 2 234 138 533 98v567H0Z"/>
+  <path fill="#467b77" d="M0 344c147-36 237 88 414 54 124-24 150-87 266-77 176 15 265 140 520 83v496H0Z"/>
+  <path fill="#76a298" d="M0 510c187-63 276 65 437 19 123-35 180-81 278-57 150 37 219 117 485 67v361H0Z"/>
+  <path fill="none" stroke="#d5d9bb" stroke-width="3" stroke-dasharray="12 14" d="M35 626c172-60 282 77 465 4 137-55 201-67 330-9 111 50 217 50 332 18"/>
+  <circle cx="954" cy="183" r="53" fill="#d48d56"/>
+  <text x="64" y="98" font-family="sans-serif" font-size="50" fill="#204950">Tide Atlas</text>
+  <text x="67" y="141" font-family="monospace" font-size="20" fill="#204950">COASTAL FIELD STUDIES / 01</text>
+</svg>

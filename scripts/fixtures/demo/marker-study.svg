@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1200" viewBox="0 0 800 1200">
+  <title>Marker study — a lighthouse against coastal hills</title>
+  <rect width="800" height="1200" fill="#eee5ca"/>
+  <circle cx="552" cy="370" r="142" fill="#d8984f"/>
+  <path fill="#76928a" d="M0 708 236 483 466 723 800 545v655H0Z"/>
+  <path fill="#355952" d="M0 880 328 722 563 892 800 716v484H0Z"/>
+  <path fill="#203c3a" d="M185 1021h171L322 583h-99Z"/>
+  <path fill="#e6cab0" d="M225 590h96l-5-80h-85Z"/>
+  <path fill="#ba563e" d="m214 520 57-63 59 63Z"/>
+  <circle cx="273" cy="548" r="19" fill="#f1d27b"/>
+  <text x="61" y="106" font-family="sans-serif" font-size="57" fill="#203c3a">Marker Study</text>
+  <text x="65" y="150" font-family="monospace" font-size="21" fill="#203c3a">NORTH BEACON / 02</text>
+</svg>

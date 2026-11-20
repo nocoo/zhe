@@ -35,6 +35,19 @@ test("reviewable demo catalog in disposable native E2E storage", async ({ page }
     await page.goto(`/dashboard${route ? `/${route}` : ""}`);
     await expect(page.locator("main")).toBeVisible();
     await expect(page.locator(".animate-pulse:visible, .animate-spin:visible")).toHaveCount(0);
+    if (route === "") {
+      await page.getByRole("button", { name: "Grid view", exact: true }).click();
+      await expect(
+        page.getByTestId("link-card").filter({ hasText: "Coast transect" }),
+      ).toBeVisible();
+      await expect(
+        page.getByTestId("link-card").filter({ hasText: "/plain-address" }),
+      ).toContainText("暂无描述");
+    }
+    if (route === "github") {
+      await expect(page.getByTestId("github-repository")).toHaveCount(4);
+      await expect(page.getByText("已归档", { exact: true })).toBeVisible();
+    }
     if (route === "xray") {
       await page
         .getByTestId("xray-tweet-input")
@@ -49,6 +62,9 @@ test("reviewable demo catalog in disposable native E2E storage", async ({ page }
     if (route === "settings/ai")
       await expect(page.getByRole("button", { name: /保存/ })).toBeVisible();
     await expect(page.locator("main")).not.toContainText("Application error");
+    await page.locator('img[loading="lazy"]').evaluateAll((images) => {
+      for (const image of images) if (image instanceof HTMLImageElement) image.loading = "eager";
+    });
     await expect(async () => {
       const unloaded = await page
         .locator("img")
@@ -62,6 +78,27 @@ test("reviewable demo catalog in disposable native E2E storage", async ({ page }
         );
       expect(unloaded).toEqual([]);
     }).toPass({ timeout: 10_000 });
+    if (route === "x") {
+      const gallery = page.getByTestId("link-card").filter({ hasText: "Four walks, four frames" });
+      const photos = gallery.getByTestId("x-media-grid").locator("img");
+      await expect(photos).toHaveCount(4);
+      await expect
+        .poll(() =>
+          photos.evaluateAll((images) =>
+            images.map((image) => {
+              const photo = image as HTMLImageElement;
+              photo.loading = "eager";
+              return [photo.naturalWidth, photo.naturalHeight];
+            }),
+          ),
+        )
+        .toEqual([
+          [1200, 900],
+          [800, 1200],
+          [900, 900],
+          [1500, 500],
+        ]);
+    }
     await page.clock.runFor(2000);
     if (route === "overview")
       await expect(page.locator(".recharts-area-area").first()).toBeVisible();
