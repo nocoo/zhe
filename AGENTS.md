@@ -1,102 +1,77 @@
 # Zhe
 
-Short links, bookmarks, ideas, tasks and personal integrations, with a web app, edge Worker and CLI.
-Profile: `ts-worker-web` with a `cli-library` lane.
-Human overview: [README.md](README.md). Direction: [architecture](docs/01-architecture.md), [maintainer operations](docs/29-maintainer-operations.md). Frameworks must preserve this handbook. Maintain this root `AGENTS.md` as the only project handbook; do not create a `CLAUDE.md` alias, copy or import.
+Short links, bookmarks, ideas, tasks, and personal integrations across a Next.js web app, Cloudflare edge Worker, and Node/Python CLI (`@nocoo/zhe`).
+Docs: [README.md](README.md) · [Docs Index](docs/README.md) · [Architecture](docs/01-architecture.md) · [Design Tokens](docs/22-design-tokens.md) · [Operations](docs/29-maintainer-operations.md) · [Local Envs](docs/33-local-environments.md) · [jp4 Topology](docs/34-jp4-migration.md) · [Retrospective](Retrospective.md)
 
-## Sources of Truth
+## Layout
 
-This file is the contract; hooks, CI and config are enforcement. Raise weaker enforcement instead of lowering the contract.
-
-| Fact                      | Where                                                                                                 |
-| ------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Human docs / design       | [README.md](README.md), [docs index](docs/README.md), [design tokens](docs/22-design-tokens.md)       |
-| Version                   | Root `package.json`; `lib/version.ts` exports `APP_VERSION`; CLI version synchronizes only on release |
-| Enforcement               | `.husky/`, `.github/workflows/ci.yml`, root/CLI/Worker Vitest configs                                 |
-| Env                       | Ignored `.env.local`; variable names and production setup in [deployment](docs/06-deployment.md)      |
-| Machine rules / accidents | Global `AGENTS.md` and `rules/`; [Retrospective.md](Retrospective.md)                                 |
-
-## Project Invariants
-
-- Preserve authentication, tenant ownership and server-only credentials across Next.js, Worker and CLI boundaries. No production auth bypass or client-controlled ownership.
-- `zhe-edge` proxies `zhe.to` to `origin.zhe.to` (Caddy → `zhe-app` container on jp4), resolves KV short links and authenticates analytics/cleanup calls. Keep reserved paths synchronized in `lib/constants.ts` and `worker/src/index.ts`.
-- Set cache invalidation/dirty state at D1 mutation sites. Apply schema migrations before dependent release; mirror exceptional schema fixups into a real migration and the local test stack.
-- Use Google Chrome through Caddy at `https://zhe.dev.hexly.ai` for manual previews, including `/dashboard/x`; verify HTTPS first. Keep the user's dev server running. Automated tests use dedicated loopback ports.
-- Reuse Basalt 3 density/radius/surface controls from [design tokens](docs/22-design-tokens.md): native `sm` 28px, `default` 34px or `lg` 40px at default typography; shared card icon actions retain 32px desktop / 44px touch targets, while `IconAction density="toolbar"` is 28px. No invented xs/icon-sm or raw checkbox. Content-area page chrome uses Basalt `PageHeader` (`title`, `description` below, `actions` top-right; long filter bars in `filters`). Loading states may use local `PageHeaderSkeleton` only. Dialogs and their nested controls use the top bright theme surface, with 18px headings, 14px body and 12px field labels. Primitive changes update contract tests and docs together.
-- Preserve Basalt card surfaces with `ring-1 ring-basalt-border/80 shadow-basalt-card` and border-only nested media; keep menu wrappers and same-row density, with business logic in ViewModels/models and routes thin. Bookmark list/grid/GitHub/X share descriptor-driven actions and bottom footers; ordinary grid/GitHub previews stay equal-height. X uses natural-height masonry with multi-image previews and no card-level folder/tag row. Never restore hover-only actions. Detailed UI rules remain in [design tokens](docs/22-design-tokens.md) and [maintainer notes](docs/29-maintainer-operations.md).
-- Store only bare SemVer in root `package.json`, display `v` prefix and import `APP_VERSION`; no hardcoded runtime/test versions. Synchronize `cli/package.json` when publishing `@nocoo/zhe`, not during routine docs edits.
-
-## Stack / Layout
-
-| Component | Choice / location                                                                             |
-| --------- | --------------------------------------------------------------------------------------------- |
-| Web       | Next.js/React, TypeScript 7, Tailwind/Basalt; `app/`, `components/`, `viewmodels/`, `models/` |
-| Data      | `lib/`, `actions/`, `drizzle/migrations/`; D1 proxy, KV and R2                                |
-| Edge      | `worker/`; independent package, Wrangler config and Vitest suite                              |
-| CLI       | `cli/`; Node ≥26.12.1, TypeScript + Python Eagle helper, separate build/lockfile              |
+| Surface | Stack & Paths                                                                                                                  |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Web     | Next.js/React, TypeScript 7 (`@typescript/native-preview`), Tailwind/Basalt 3; `app/`, `components/`, `viewmodels/`, `models/` |
+| Data    | `lib/`, `actions/`, `drizzle/migrations/`; D1 Worker proxy, KV, and R2                                                         |
+| Edge    | `worker/` (`zhe-edge`); standalone package, Wrangler config, and Vitest suite                                                  |
+| CLI     | `cli/` (`@nocoo/zhe`); Node >=26.12.1, TypeScript + Python Eagle helper, separate build/lockfile                               |
 
 ## Commands
 
-Run from root with Bun (CI 1.3.11), Node, Python 3, gitleaks, osv-scanner and Wrangler on PATH. Install each lane with its frozen lockfile.
+Run from root with Bun (CI 1.3.11), Node (CI 26.13.1), Python 3, `gitleaks`, `osv-scanner`, and `worker/`'s locked Wrangler on PATH. Env names live in `.env.example` (local overrides in ignored `.env.local`; prod in [deployment](docs/06-deployment.md)).
 
-```bash
+```sh
 bun install --frozen-lockfile
 (cd worker && bun install --frozen-lockfile)
 (cd cli && bun install --frozen-lockfile)
-bun run typecheck
-bun run lint
-bun run build
-bun run test:unit:coverage
-bun run test:integration
-bun run test:api
+bun run dev                       # https://zhe.dev.hexly.ai -> 127.0.0.1:7006 (Demo default; --mode demo|e2e|prod, --build)
+bun run demo:reset                # resets owned, stopped Demo storage only
+bun run typecheck                 # S1 (regenerates .next/types if stale, then tsc --noEmit)
+bun run lint                      # S2 check-only Biome, 0 warnings
+bun run build                     # B1 Next.js production bundle
+bun run test:unit:coverage        # L1 web unit coverage (>=95%; --pool=forks avoids VM-thread V8 miscounting)
+bun run test:integration          # L1 in-process integration tests
+bun run test:api                  # L2 real HTTP API suite against isolated local Wrangler D1/KV/R2
 bunx playwright install chromium webkit
-bun run test:e2e:pw
-(cd worker && bun run test)
-(cd worker && bun x tsc --noEmit)
+bun run test:e2e:pw               # L4 Playwright Chromium/WebKit journeys on isolated local stack
+(cd worker && bun run lint && bun run test:coverage)
 (cd cli && bun run build && bun run lint && bun run test:coverage)
 ```
 
-L1 coverage deliberately uses `--pool=forks` to avoid VM-thread V8 miscounting. In-process integration tests are L1; `test:api` is real HTTP L2.
-The test runners own local env overrides, migrations, readiness and cleanup; no Cloudflare token or remote `D1_TEST_*`/`R2_TEST_*`/`KV_TEST_*` values are required.
+Test runners own local env overrides, migrations, readiness, and cleanup; no Cloudflare token or remote `D1_TEST_*` / `R2_TEST_*` / `KV_TEST_*` values are required.
 
-## Verification
+## Invariants
 
-Quality contract follows System1 slots (L1/L2/L3 + G2 + D1 isolation, per lane). Status: `enforced`, `planned`, `manual`, `N/A`; no skipped/focused tests.
+- Preserve authentication, tenant ownership, and server-only credentials across Next.js, Worker, and CLI boundaries; never bypass production auth or allow client-controlled ownership.
+- `zhe-edge` proxies `zhe.to` to `origin.zhe.to` (Caddy -> `zhe-app` on jp4), resolves KV redirects, and authenticates analytics/cleanup; sync `RESERVED_PATHS` in `lib/constants.ts` and `worker/src/index.ts`.
+- Set cache invalidation/dirty flags at D1 mutation sites and test new columns with real migrations; apply schema migrations before dependent releases and mirror fixups into migrations and the test stack.
+- Keep routes thin and logic in `viewmodels/`/`models/`; preserve `LayerCard` surfaces, non-hover descriptor actions, equal-height grid/GitHub cards, and X masonry ([design tokens](docs/22-design-tokens.md)).
+- Reuse Basalt 3 primitives (`sm` 28px / `default` 34px / `lg` 40px, `PageHeader`, bright dialogs; no `xs`/`icon-sm` or raw checkbox) and update contract tests with [design tokens](docs/22-design-tokens.md).
+- Store bare SemVer only in root `package.json`, display `v` prefix, and import `APP_VERSION` (no hardcoded versions); sync `cli/package.json` only when releasing `@nocoo/zhe`, never on routine docs edits.
+- Manual previews use Chrome via Caddy at `https://zhe.dev.hexly.ai` (verify HTTPS first, incl. `/dashboard/x`); keep the user's dev server running, and run automated tests on isolated loopback ports.
+- Releases require approval via `bun run release` (patch default, Playwright preflight, Worker/schema parity); CD deploys digests to jp4, and tags are not deploy proof ([runbook](docs/29-maintainer-operations.md)).
+- Preserve `origin.zhe.to` (Worker forwarding, lookup, analytics, cron). Never alter DNS, TLS, or shared Caddy without approval; validate and hot-reload Caddy, never restart ([jp4 topology](docs/34-jp4-migration.md)).
 
-| Piece                                               | Required proof and current reality                                                                                                    | Status   | Evidence / gap                                                                                                                                                                                       |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| L1 web (incl. former G1 web static)                 | Statements/branches/functions/lines each ≥95%; strict types and lint/format with zero errors/warnings                                 | enforced | Pre-commit exports the staged tree and runs `test:unit:coverage`, `test:integration`, `tsc --noEmit` and Biome in parallel with the cli/worker lanes; gitleaks remains staged on the worktree        |
-| L1 CLI / Worker (incl. former G1 CLI/Worker static) | Four metrics each ≥95% in both lanes, including Python helper behavior; all executable lanes have strict types/lint and zero warnings | enforced | Pre-commit and CI invoke `cli`/`worker` lint, `tsc --noEmit` and `test:coverage`; Vitest thresholds are 95% on all four metrics (worker excludes the local-only `local-resources.ts` shim by design) |
-| L2                                                  | Real HTTP for every endpoint/method, SQL and tenant behavior                                                                          | planned  | `test:api` enforced by pre-push/CI; completeness of endpoint/method inventory still needs a gate                                                                                                     |
-| L3                                                  | Real browser journeys and isolated CLI process workflows                                                                              | planned  | Browser suite runs in CI/release preflight; CLI command workflow coverage is incomplete                                                                                                              |
-| G2                                                  | Required dependency + secret scanners across all lockfiles and pushed commits                                                         | planned  | Root staged gitleaks + root OSV and CI exist; CLI/Worker lockfile and push-ref coverage remain gaps                                                                                                  |
-| D1                                                  | Per-run local persistence; guards/marker before fixtures and cleanup                                                                  | planned  | Per-run ownership-checked storage and native bindings replace the shared reset path; runtime isolation evidence is tracked in docs/33-local-environments.md                                          |
-| Build                                               | Web and CLI bundles                                                                                                                   | enforced | CI builds both; `typecheck` is not a build                                                                                                                                                           |
-| Docs                                                | Current tests, design contracts and migrations documented                                                                             | manual   | [Testing](docs/05-testing.md), full diff review                                                                                                                                                      |
+## Quality & Local Gates
 
-Pre-commit exports the index with `git checkout-index`, verifies root/cli/worker manifests against installed lockfiles, symlinks lane `node_modules`, runs `next typegen`, then runs web + cli + worker coverage/types/lint in parallel on the snapshot before staged gitleaks. Failures cancel sibling stages and remove the snapshot. Target: unified per-lane L1 on the index snapshot, <30s (measured wall time may exceed this while web unit coverage dominates).
-Pre-push runs local L2 and root OSV in parallel; it does not use stdin push refs for secret scanning. Target: L2/G2 over exact pushed refs, <3min.
-Hooks are check-only; never use `--no-verify`, disable gates or run autofix as a gate.
+Follows `system1-quality`; CI slot definitions and pinned `base-ci` revision live in `.github/workflows/quality-slots.yml` (`quality / Z1: Gate` required on `main` and by `.github/workflows/release.yml`), alongside `Linux standalone container` smoke in `.github/workflows/ci.yml`. Raise weaker enforcement rather than lowering this contract. Status vocabulary: `enforced`, `planned`, `manual`, `N/A`; no skipped or focused tests.
 
-## Resources / Isolation
+- **Coverage**: L1 enforces >=95% statements/branches/functions/lines across web, CLI (incl. Python helper), and Worker; Worker excludes `src/local-resources.ts`, CLI excludes `src/index.ts` and `src/commands/**`.
+- **Exceptions**: `L3 Integration` is `N/A` in CI (covered by `L1: Unit` `test:integration` and `L2: Runtime` `test:api`); `P1 Package` is `N/A` in CI for the private root app (`@nocoo/zhe` consumer check is `planned`).
+- **Gaps / manual**: `L2` endpoint inventory, `L4` CLI workflows, and `G2` CLI/Worker lockfile + push-ref scans are `planned`; docs/migration review is `manual` ([testing](docs/05-testing.md)).
+- **Local pre-commit**: installed via `bun run prepare` (`.husky/`); checks index snapshot via `git checkout-index`, verifies lockfiles, runs `next typegen`, parallel web/cli/worker `S1/S2/L1`, then staged `gitleaks`.
+- **Local pre-push**: runs `bun run test:api` and root `osv-scanner` in parallel. Hooks are check-only; never use `--no-verify`, disable gates, or autofix as a gate.
 
-Dev: `bun run dev` starts the local environment launcher on 7006 behind Caddy; Demo is the default. Use `--mode demo|e2e|prod` for an explicit interactive initial mode and `--build` for a local built bundle. `bun run demo:reset` resets only owned, stopped Demo storage. See [local environments](docs/33-local-environments.md) for lifecycle, fixtures, captures and limitations.
-Demo persists in `.demo-storage`; manual/automated E2E uses `.test-storage/runs/<uuid>` with ownership checks. Historical `.test-storage` is preserved. Local D1, KV and R2 use native Wrangler bindings and the production SQL migrations. The filesystem R2 shim is removed.
-L2 defaults to 17006, L3 to 27006; `ZHE_TEST_APP_PORT` selects another test app port. Automated launchers allocate the Worker port and use per-run `.next-test/<uuid>` builds, TypeScript config and `.artifacts/e2e/<uuid>` evidence. Browser mutations run serially; do not run competing builds during motion tests. Daily local UI uses `.next-local`; hosted Production uses `.next`.
-Automation locks by launch intent, never by `mode === "e2e"`, strips production credentials and ignores interactive preferences. Do not point automated tests at real Production. Preserve the user's running development instance.
+## Resources & Isolation
 
-## Operations / Release
+| Lane  | Endpoint / State                                                                                                                   | Boundary                                                                                                                    |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Dev   | `https://zhe.dev.hexly.ai` -> `127.0.0.1:7006`, `.next-local`, `.demo-storage`                                                     | Daily local UI (Demo default); `demo:reset` only on owned stopped storage; preserve running server                          |
+| Tests | L2 `127.0.0.1:17006`, L4 `127.0.0.1:27006` (`ZHE_TEST_APP_PORT`), `.next-test/<uuid>`, `.test-storage/runs/<uuid>`                 | Native Wrangler D1/KV/R2 + prod migrations, allocated Worker port, `.artifacts/e2e/<uuid>`; historical `.test-storage` kept |
+| Prod  | `https://zhe.to` -> `zhe-edge` -> `origin.zhe.to` -> Caddy -> `zhe-app` (`/data/zhe` on jp4, `127.0.0.1:17006` -> `7005`, `.next`) | Read-only checks unless deployment is authorized; secrets in `/data/zhe/.env.runtime`                                       |
 
-Only a requested release runs `bun run release`: patch by default, L3 preflight, version/lock/changelog and normal commit/push/tag/release. Successful main CI triggers the pinned Docker CD workflow; a published tag is not deployment proof. Details: [runbook](docs/29-maintainer-operations.md).
-Worker/schema changes need their corresponding deployment/migration under that release authorization; routine documentation changes do not bump versions.
-
-The [origin migration](docs/34-jp4-migration.md) is complete: `zhe-app` runs from `/data/zhe` on jp4, published on `127.0.0.1:17006` (container port 7005) and reachable only through `origin.zhe.to`. Successful main CI triggers the pinned Docker CD workflow, which deploys a verified image digest and checks exact revision plus private-origin health. Preserve `origin.zhe.to`, which the Worker uses for forwarding, lookup, analytics and cron. Do not change DNS, TLS or shared Caddy without approval; shared Caddy must be validated and hot-reloaded, not restarted.
+- Automation locks by launch intent (never `mode === "e2e"`), strips prod credentials, and ignores interactive preferences; never target Production ([local envs](docs/33-local-environments.md)).
+- Browser mutations run serially; do not run competing builds during motion tests.
 
 ## Retrospective
 
-Narratives: [Retrospective.md](Retrospective.md); cross-project lessons: global rules/nmem; deterministic rules: hooks/tests.
-
-- Cache invalidation belongs at the D1 mutation source; test new columns through write/read, including real migrations.
+Record incident narratives in [Retrospective.md](Retrospective.md); promote recurring project constraints to `Invariants` above and enforceable safeguards to tests/hooks.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

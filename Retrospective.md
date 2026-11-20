@@ -1,6 +1,6 @@
 # Retrospective
 
-Historical accident narratives and project lessons. Current requirements live in [AGENTS.md](AGENTS.md). Preserve original dates and wording; deterministic follow-ups belong in tests/hooks and cross-project lessons in global rules/nmem.
+Historical accident narratives and project lessons. Current requirements live in [AGENTS.md](AGENTS.md). Preserve original dates and wording; deterministic follow-ups belong in tests/hooks and cross-project lessons in global rules.
 
 ## 2026-10-22 - Separate API and session deployment acceptance
 
