@@ -37,11 +37,11 @@ function R2Header({ connected }: { connected: boolean }) {
       <HardDrive className="h-4 w-4 text-basalt-muted-foreground" strokeWidth={1.5} />
       <h3 className="text-sm font-medium">Cloudflare R2</h3>
       {connected ? (
-        <Badge variant="success" className="text-[10px]">
+        <Badge tone="success" className="text-[10px]">
           connected
         </Badge>
       ) : (
-        <Badge variant="destructive" className="text-[10px]">
+        <Badge tone="danger" className="text-[10px]">
           disconnected
         </Badge>
       )}
@@ -87,7 +87,7 @@ function SortControls({
           <Button
             key={field}
             variant={sortField === field ? "secondary" : "ghost"}
-            size="default"
+            size="md"
             onClick={() => toggleSort(field)}
             className="gap-1 text-xs h-7 px-2"
             aria-pressed={sortField === field}
@@ -134,17 +134,12 @@ function ActionBar(props: ActionBarProps) {
       <div className="flex items-center gap-2">
         {hasOrphans && (
           <Fragment>
-            <Button
-              variant="outline"
-              size="default"
-              onClick={onSelectAllOrphans}
-              className="gap-1.5"
-            >
+            <Button variant="outline" size="md" onClick={onSelectAllOrphans} className="gap-1.5">
               <AlertTriangle className="h-3.5 w-3.5 text-basalt-warning" strokeWidth={1.5} />
               选择全部孤儿文件
             </Button>
             {selectedKeys.size > 0 && (
-              <Button variant="ghost" size="default" onClick={onClearSelection}>
+              <Button variant="ghost" size="md" onClick={onClearSelection}>
                 清除选择
               </Button>
             )}
@@ -162,7 +157,7 @@ function ActionBar(props: ActionBarProps) {
             </span>
             <Button
               variant="destructive"
-              size="default"
+              size="md"
               onClick={onDeleteSelected}
               disabled={cleaning}
               className="gap-1.5"

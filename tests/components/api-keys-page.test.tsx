@@ -16,7 +16,7 @@ const mockToastError = vi.fn();
 vi.mock("@nocoo/basalt/components/toast", () => ({
   toast: {
     success: (...args: unknown[]) => mockToastSuccess(...args),
-    error: (...args: unknown[]) => mockToastError(...args),
+    danger: (...args: unknown[]) => mockToastError(...args),
   },
 }));
 

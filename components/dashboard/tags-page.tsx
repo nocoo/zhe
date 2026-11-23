@@ -72,7 +72,7 @@ export function TagsPage() {
           />
           <div className="flex items-center gap-2 md:ml-auto">
             <Button
-              size="default"
+              size="md"
               variant="outline"
               onClick={resetCreate}
               disabled={vm.savingId === "new"}
@@ -80,7 +80,7 @@ export function TagsPage() {
               取消
             </Button>
             <Button
-              size="default"
+              size="md"
               onClick={() => void submitCreate()}
               disabled={vm.savingId === "new"}
               data-testid="tag-create-submit"

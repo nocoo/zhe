@@ -18,7 +18,7 @@ import { WebhookUsageDocs } from "./webhook-page-parts/webhook-usage-docs";
 async function handleCopy(text: string) {
   const ok = await copyToClipboard(text);
   if (ok) toast.success("已复制到剪贴板");
-  else toast.error("复制失败");
+  else toast.danger("复制失败");
 }
 
 interface ConfiguredViewProps {

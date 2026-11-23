@@ -204,7 +204,7 @@ export function AgentPromptSection({
         <p className="text-xs font-medium text-basalt-foreground">AI Agent Prompt</p>
         <Button
           variant="ghost"
-          size="default"
+          size="md"
           className="h-7 gap-1 px-2 text-xs"
           onClick={() => copyToClipboard(agentPrompt)}
           aria-label="复制 Prompt"

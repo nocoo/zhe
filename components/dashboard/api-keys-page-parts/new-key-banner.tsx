@@ -8,7 +8,7 @@ import { copyToClipboard } from "@/lib/utils";
 async function handleCopy(text: string) {
   const ok = await copyToClipboard(text);
   if (ok) toast.success("已复制到剪贴板");
-  else toast.error("复制失败");
+  else toast.danger("复制失败");
 }
 
 /** One-time banner shown immediately after a key is created. */
@@ -27,7 +27,7 @@ export function NewKeyBanner({ newKey, onDismiss }: { newKey: string; onDismiss:
         </code>
         <Button
           variant="outline"
-          size="default"
+          size="md"
           className="shrink-0 gap-1"
           onClick={() => handleCopy(newKey)}
           data-testid="copy-new-key-btn"
@@ -35,12 +35,7 @@ export function NewKeyBanner({ newKey, onDismiss }: { newKey: string; onDismiss:
           <Copy className="h-3.5 w-3.5" />
           复制
         </Button>
-        <Button
-          variant="ghost"
-          size="default"
-          onClick={onDismiss}
-          data-testid="dismiss-new-key-btn"
-        >
+        <Button variant="ghost" size="md" onClick={onDismiss} data-testid="dismiss-new-key-btn">
           关闭
         </Button>
       </div>

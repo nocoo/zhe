@@ -17,17 +17,13 @@ export function BookmarksSection({ vm }: { vm: XrayViewModel }) {
               <BookmarkIcon className="h-4 w-4 text-basalt-warning" strokeWidth={1.5} />
             </div>
             <span>我的书签</span>
-            {vm.bookmarks.length > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {vm.bookmarks.length}
-              </Badge>
-            )}
+            {vm.bookmarks.length > 0 && <Badge className="text-xs">{vm.bookmarks.length}</Badge>}
           </div>
           <Button
             onClick={vm.handleFetchBookmarks}
             disabled={!vm.isConfigured || vm.isFetchingBookmarks}
             variant="outline"
-            size="default"
+            size="md"
           >
             {vm.isFetchingBookmarks ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -96,7 +92,7 @@ function BookmarkAddButton({
 }) {
   if (isAdded) {
     return (
-      <Button variant="ghost" size="default" disabled className="text-basalt-success">
+      <Button variant="ghost" size="md" disabled className="text-basalt-success">
         <Check className="mr-1.5 h-4 w-4" />
         已收录
       </Button>
@@ -106,7 +102,7 @@ function BookmarkAddButton({
   return (
     <Button
       variant="outline"
-      size="default"
+      size="md"
       disabled={isAdding}
       onClick={() => onAdd(tweetUrl, tweetId)}
     >

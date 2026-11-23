@@ -12,7 +12,7 @@ import { makeLink } from "../fixtures";
 const mockToast = vi.hoisted(() => ({
   info: vi.fn(),
   success: vi.fn(),
-  error: vi.fn(),
+  danger: vi.fn(),
 }));
 
 vi.mock("@/actions/links", () => ({
@@ -102,7 +102,7 @@ describe("useLinkCardViewModel", () => {
     mockOnUpdate.mockClear();
     mockToast.info.mockClear();
     mockToast.success.mockClear();
-    mockToast.error.mockClear();
+    mockToast.danger.mockClear();
     vi.mocked(copyToClipboard).mockReset();
     vi.mocked(deleteLink).mockReset();
     vi.mocked(getAnalyticsStats).mockReset();
@@ -207,7 +207,7 @@ describe("useLinkCardViewModel", () => {
     });
 
     expect(mockOnDelete).not.toHaveBeenCalled();
-    expect(mockToast.error).toHaveBeenCalledWith("删除失败", { description: "Not found" });
+    expect(mockToast.danger).toHaveBeenCalledWith("删除失败", { description: "Not found" });
     expect(result.current.isDeleting).toBe(false);
   });
 
@@ -221,7 +221,7 @@ describe("useLinkCardViewModel", () => {
     });
     expect(mockOnDelete).not.toHaveBeenCalled();
     expect(result.current.isDeleting).toBe(false);
-    expect(mockToast.error).toHaveBeenCalledWith("删除失败", { description: "请稍后重试" });
+    expect(mockToast.danger).toHaveBeenCalledWith("删除失败", { description: "请稍后重试" });
   });
 
   it("handleDelete shows default error message when error is empty", async () => {
@@ -235,7 +235,7 @@ describe("useLinkCardViewModel", () => {
       await result.current.handleDelete();
     });
 
-    expect(mockToast.error).toHaveBeenCalledWith("删除失败", {
+    expect(mockToast.danger).toHaveBeenCalledWith("删除失败", {
       description: "Failed to delete link",
     });
   });
@@ -1122,7 +1122,7 @@ describe("link visibility", () => {
       await result.current.handleToggleHidden();
     });
     expect(onUpdate).not.toHaveBeenCalled();
-    expect(mockToast.error).toHaveBeenCalledWith("保存隐藏状态失败，请稍后重试");
+    expect(mockToast.danger).toHaveBeenCalledWith("保存隐藏状态失败，请稍后重试");
     expect(result.current.isSavingVisibility).toBe(false);
   });
 });
@@ -1136,7 +1136,7 @@ it("reports rejected visibility saves and supports unhiding", async () => {
     await result.current.handleToggleHidden();
   });
   expect(onUpdate).not.toHaveBeenCalled();
-  expect(mockToast.error).toHaveBeenCalledWith("Not allowed");
+  expect(mockToast.danger).toHaveBeenCalledWith("Not allowed");
   vi.mocked(setLinkHidden).mockResolvedValueOnce({
     success: true,
     data: { ...hidden, isHidden: false },

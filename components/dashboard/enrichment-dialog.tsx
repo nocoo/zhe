@@ -44,7 +44,7 @@ import { EnrichmentDetails } from "./enrichment-details";
 export function EnrichmentTaskStatus({ task }: { task: EnrichmentTask }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs">
-      <Badge variant="secondary">{ENRICHMENT_STATES[task.state]}</Badge>
+      <Badge>{ENRICHMENT_STATES[task.state]}</Badge>
       <span className="text-basalt-muted-foreground">
         本轮尝试 {task.attempts} 次 · 重试 {Math.max(0, task.attempts - 1)} 次
         {task.recordedFailures > 0 && ` · 已记录失败 ${task.recordedFailures} 次`}

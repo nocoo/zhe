@@ -72,10 +72,7 @@ function StaticNavGroupBlock({
           <item.icon className="size-4" strokeWidth={1.5} aria-hidden />
           <span className="min-w-0 flex-1 truncate text-left">{item.title}</span>
           {item.badge && (
-            <Badge
-              variant="secondary"
-              className="shrink-0 px-basalt-space-md py-basalt-space-xs text-basalt-sm font-medium leading-basalt-tight text-basalt-muted-foreground"
-            >
+            <Badge className="shrink-0 px-basalt-space-md py-basalt-space-xs text-basalt-sm font-medium leading-basalt-tight text-basalt-muted-foreground">
               {item.badge}
             </Badge>
           )}

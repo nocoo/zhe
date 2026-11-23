@@ -237,7 +237,7 @@ function BulkDeleteDialog({
     >
       <AlertDialogContent
         className="flex flex-col gap-4"
-        size="base"
+        size="md"
         onEscapeKeyDown={(event) => {
           if (running) event.preventDefault();
         }}

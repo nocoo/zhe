@@ -52,11 +52,11 @@ export function useTagsViewModel() {
     async (name: string, color?: TagPaletteColor) => {
       const validName = validateTagName(name);
       if (!validName) {
-        toast.error("标签名无效");
+        toast.danger("标签名无效");
         return { success: false as const };
       }
       if (isDuplicateTagName(validName, tags)) {
-        toast.error("标签名已存在");
+        toast.danger("标签名已存在");
         return { success: false as const };
       }
 
@@ -72,7 +72,7 @@ export function useTagsViewModel() {
           toast.success("已创建标签");
           return { success: true as const };
         }
-        toast.error(result.error || "创建标签失败");
+        toast.danger(result.error || "创建标签失败");
         return { success: false as const };
       } finally {
         setSavingId(null);
@@ -85,11 +85,11 @@ export function useTagsViewModel() {
     async (id: string, name: string) => {
       const validName = validateTagName(name);
       if (!validName) {
-        toast.error("标签名无效");
+        toast.danger("标签名无效");
         return { success: false as const };
       }
       if (isDuplicateTagName(validName, tags, id)) {
-        toast.error("标签名已存在");
+        toast.danger("标签名已存在");
         return { success: false as const };
       }
 
@@ -101,7 +101,7 @@ export function useTagsViewModel() {
           toast.success("已重命名");
           return { success: true as const };
         }
-        toast.error(result.error || "重命名失败");
+        toast.danger(result.error || "重命名失败");
         return { success: false as const };
       } finally {
         setSavingId(null);
@@ -119,7 +119,7 @@ export function useTagsViewModel() {
           handleTagUpdated(result.data);
           return { success: true as const };
         }
-        toast.error(result.error || "更新颜色失败");
+        toast.danger(result.error || "更新颜色失败");
         return { success: false as const };
       } finally {
         setSavingId(null);
@@ -138,7 +138,7 @@ export function useTagsViewModel() {
           toast.success("已删除标签");
           return { success: true as const };
         }
-        toast.error(result.error || "删除标签失败");
+        toast.danger(result.error || "删除标签失败");
         return { success: false as const };
       } finally {
         setSavingId(null);

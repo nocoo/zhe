@@ -9,8 +9,8 @@ import {
   DialogTrigger,
 } from "@nocoo/basalt/components/dialog";
 import { Input } from "@nocoo/basalt/components/input";
-import { InputArea as Textarea } from "@nocoo/basalt/components/input-area";
 import { Label } from "@nocoo/basalt/components/label";
+import { Textarea } from "@nocoo/basalt/components/textarea";
 import { Loader2 } from "@nocoo/basalt/icons";
 import { type ReactNode, type Ref, useCallback, useRef } from "react";
 import { createTag } from "@/actions/tags";
@@ -54,7 +54,7 @@ function LabelledInput({
       <Input
         ref={inputRef}
         id={id}
-        size="default"
+        size="md"
         type={type}
         placeholder={placeholder}
         value={value}

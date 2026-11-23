@@ -42,7 +42,7 @@ export function CredentialRow({
         </code>
         <Button
           variant="ghost"
-          size="default"
+          size="md"
           className={`h-7 w-7 p-0 ${breakAll ? "shrink-0" : ""}`}
           onClick={() => onCopy(value)}
           aria-label={ids.ariaLabel}
@@ -74,7 +74,7 @@ export function WebhookActions({
         onClick={onGenerate}
         disabled={isGenerating}
         variant="outline"
-        size="default"
+        size="md"
         data-testid="regenerate-token-btn"
       >
         {isGenerating ? "生成中..." : "重新生成"}
@@ -83,7 +83,7 @@ export function WebhookActions({
         onClick={onRevoke}
         disabled={isRevoking}
         variant="outline"
-        size="default"
+        size="md"
         data-testid="revoke-token-btn"
       >
         {isRevoking ? "撤销中..." : "撤销令牌"}

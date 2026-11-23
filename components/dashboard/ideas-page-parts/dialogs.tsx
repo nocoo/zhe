@@ -11,8 +11,8 @@ import {
   DialogTitle,
 } from "@nocoo/basalt/components/dialog";
 import { Input } from "@nocoo/basalt/components/input";
-import { InputArea as Textarea } from "@nocoo/basalt/components/input-area";
 import { Label } from "@nocoo/basalt/components/label";
+import { Textarea } from "@nocoo/basalt/components/textarea";
 import { Loader2, X } from "@nocoo/basalt/icons";
 import { useDialogReturnFocus } from "@/hooks/use-dialog-return-focus";
 import { getTagStyles } from "@/models/tags";
@@ -80,7 +80,7 @@ export function CreateIdeaModal({
                   return (
                     <Badge
                       key={tag.id}
-                      variant={isSelected ? "default" : "outline"}
+                      variant={isSelected ? "solid" : "outline"}
                       className="cursor-pointer"
                       style={isSelected ? styles.badge : undefined}
                       onClick={() => toggleTag(tag.id)}

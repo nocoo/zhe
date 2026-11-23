@@ -3,7 +3,6 @@
 import { Button } from "@nocoo/basalt/components/button";
 import { DialogTitle } from "@nocoo/basalt/components/dialog";
 import { Input } from "@nocoo/basalt/components/input";
-import { InputArea as Textarea } from "@nocoo/basalt/components/input-area";
 import { Label } from "@nocoo/basalt/components/label";
 import {
   Select,
@@ -12,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@nocoo/basalt/components/select";
+import { Textarea } from "@nocoo/basalt/components/textarea";
 import { Pencil } from "@nocoo/basalt/icons";
 import { useContext, useState } from "react";
 import { updateXMediaDimensionsAction } from "@/actions/connector";
@@ -178,7 +178,7 @@ export function InlineEditArea({
         <LabelledField id={`edit-url-${link.id}`} label="目标链接" className="@xs/edit:col-span-2">
           <Input
             id={`edit-url-${link.id}`}
-            size="default"
+            size="md"
             type="url"
             value={editVm.editUrl}
             onChange={(e) => editVm.setEditUrl(e.target.value)}
@@ -188,7 +188,7 @@ export function InlineEditArea({
         <LabelledField id={`edit-slug-${link.id}`} label="短链接">
           <Input
             id={`edit-slug-${link.id}`}
-            size="default"
+            size="md"
             type="text"
             value={editVm.editSlug}
             onChange={(e) => editVm.setEditSlug(e.target.value)}
@@ -202,7 +202,7 @@ export function InlineEditArea({
           >
             <SelectTrigger
               id={`edit-folder-${link.id}`}
-              size="default"
+              size="md"
               className="w-full min-w-0 gap-2 text-left [&>span]:truncate [&>svg]:shrink-0"
             >
               <SelectValue />
@@ -220,7 +220,7 @@ export function InlineEditArea({
         <LabelledField id={`edit-title-${link.id}`} label="标题" className="@xs/edit:col-span-2">
           <Input
             id={`edit-title-${link.id}`}
-            size="default"
+            size="md"
             value={editVm.editTitle}
             onChange={(e) => editVm.setEditTitle(e.target.value)}
             placeholder="标题（可选）"
@@ -242,7 +242,7 @@ export function InlineEditArea({
         >
           <Input
             id={`edit-screenshot-${link.id}`}
-            size="default"
+            size="md"
             type="url"
             value={editVm.editScreenshotUrl}
             onChange={(e) => editVm.setEditScreenshotUrl(e.target.value)}
@@ -276,7 +276,7 @@ export function InlineEditArea({
             >
               <Input
                 id={`edit-media-${link.id}-${media.id}`}
-                size="default"
+                size="md"
                 value={
                   mediaRatios[media.id] ??
                   (media.width && media.height ? `${media.width}:${media.height}` : "16:9")

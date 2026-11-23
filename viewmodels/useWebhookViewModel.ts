@@ -85,7 +85,7 @@ export function useWebhookViewModel(initialData?: WebhookInitialData) {
         setRateLimit(result.data.rateLimit ?? RATE_LIMIT_DEFAULT_MAX);
         toast.success("已生成 Webhook 令牌");
       } else {
-        toast.error(result.error || "生成失败");
+        toast.danger(result.error || "生成失败");
       }
     } finally {
       setIsGenerating(false);
@@ -102,7 +102,7 @@ export function useWebhookViewModel(initialData?: WebhookInitialData) {
         setRateLimit(RATE_LIMIT_DEFAULT_MAX);
         toast.success("已撤销 Webhook 令牌");
       } else {
-        toast.error(result.error || "撤销失败");
+        toast.danger(result.error || "撤销失败");
       }
     } finally {
       setIsRevoking(false);
@@ -116,7 +116,7 @@ export function useWebhookViewModel(initialData?: WebhookInitialData) {
     if (result.success && result.data) {
       setRateLimit(result.data.rateLimit);
     } else if (!result.success) {
-      toast.error(result.error || "更新速率限制失败");
+      toast.danger(result.error || "更新速率限制失败");
     }
   }, []);
 
@@ -128,7 +128,7 @@ export function useWebhookViewModel(initialData?: WebhookInitialData) {
         setMigratedApiKey(result.data.fullKey);
         toast.success("已迁移到 API Key");
       } else if (!result.success) {
-        toast.error(result.error || "迁移失败");
+        toast.danger(result.error || "迁移失败");
       }
     } finally {
       setIsMigrating(false);

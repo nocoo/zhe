@@ -148,7 +148,7 @@ export function useAiSettingsViewModel() {
       });
       const data = (await res.json()) as AiSettingsPublic & { error?: string };
       if (!res.ok) {
-        toast.error(data.error || "保存失败");
+        toast.danger(data.error || "保存失败");
         return false;
       }
       setSettings(data);
@@ -157,7 +157,7 @@ export function useAiSettingsViewModel() {
       toast.success("已保存");
       return true;
     } catch {
-      toast.error("保存失败");
+      toast.danger("保存失败");
       return false;
     } finally {
       setSaving(false);

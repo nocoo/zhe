@@ -42,7 +42,7 @@ const { vm, openEnrichment, deleted, destroy } = vi.hoisted(() => ({
   destroy: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("@/contexts/enrichment", () => ({ useOpenEnrichment: () => openEnrichment }));
-vi.mock("@nocoo/basalt/components/toast", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@nocoo/basalt/components/toast", () => ({ toast: { success: vi.fn(), danger: vi.fn() } }));
 vi.mock("@/lib/utils", async (original) => ({
   ...(await original<typeof import("@/lib/utils")>()),
   copyToClipboard: vi.fn().mockResolvedValue(true),
@@ -219,7 +219,7 @@ describe("unified bookmark action contract", () => {
     expect(toast.success).toHaveBeenCalledWith("已复制收藏时间");
     vi.mocked(copyToClipboard).mockResolvedValueOnce(false);
     await user.click(button);
-    expect(toast.error).toHaveBeenCalledWith("复制失败，请重试");
+    expect(toast.danger).toHaveBeenCalledWith("复制失败，请重试");
     vi.restoreAllMocks();
   });
 

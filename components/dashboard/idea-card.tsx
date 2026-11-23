@@ -117,12 +117,7 @@ export const IdeaCard = memo(function IdeaCard({
             {ideaTags.slice(0, 3).map((tag) => {
               const styles = getTagStyles(tag.name, tag.color);
               return (
-                <Badge
-                  key={tag.id}
-                  variant="secondary"
-                  className="max-w-full text-xs"
-                  style={styles.badge}
-                >
+                <Badge key={tag.id} className="max-w-full text-xs" style={styles.badge}>
                   <span className="truncate" title={tag.name}>
                     {tag.name}
                   </span>

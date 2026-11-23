@@ -21,7 +21,7 @@ vi.mock("@/actions/storage", () => ({
 vi.mock("@nocoo/basalt/components/toast", () => ({
   toast: {
     success: vi.fn(),
-    error: vi.fn(),
+    danger: vi.fn(),
   },
 }));
 
@@ -299,7 +299,7 @@ describe("StoragePage", () => {
 
     await waitFor(
       () => {
-        expect(toast.error).toHaveBeenCalledWith("权限不足");
+        expect(toast.danger).toHaveBeenCalledWith("权限不足");
       },
       { interval: 5 },
     );
@@ -313,7 +313,7 @@ describe("StoragePage", () => {
 
     await waitFor(
       () => {
-        expect(toast.error).toHaveBeenCalledWith("扫描存储失败");
+        expect(toast.danger).toHaveBeenCalledWith("扫描存储失败");
       },
       { interval: 5 },
     );
@@ -327,7 +327,7 @@ describe("StoragePage", () => {
 
     await waitFor(
       () => {
-        expect(toast.error).toHaveBeenCalledWith("扫描存储失败");
+        expect(toast.danger).toHaveBeenCalledWith("扫描存储失败");
       },
       { interval: 5 },
     );
@@ -536,7 +536,7 @@ describe("StoragePage", () => {
 
     await waitFor(
       () => {
-        expect(toast.error).toHaveBeenCalledWith("清理失败了");
+        expect(toast.danger).toHaveBeenCalledWith("清理失败了");
       },
       { interval: 5 },
     );
@@ -561,7 +561,7 @@ describe("StoragePage", () => {
 
     await waitFor(
       () => {
-        expect(toast.error).toHaveBeenCalledWith("清理失败");
+        expect(toast.danger).toHaveBeenCalledWith("清理失败");
       },
       { interval: 5 },
     );
@@ -586,7 +586,7 @@ describe("StoragePage", () => {
 
     await waitFor(
       () => {
-        expect(toast.error).toHaveBeenCalledWith("清理孤儿文件失败");
+        expect(toast.danger).toHaveBeenCalledWith("清理孤儿文件失败");
       },
       { interval: 5 },
     );

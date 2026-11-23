@@ -16,7 +16,7 @@
 
 import { Button } from "@nocoo/basalt/components/button";
 import { Input } from "@nocoo/basalt/components/input";
-import { InputArea as Textarea } from "@nocoo/basalt/components/input-area";
+import { Textarea } from "@nocoo/basalt/components/textarea";
 import { useEffect, useMemo, useState } from "react";
 import { TodoDueChip } from "@/components/dashboard/todo-due-chip";
 import { TodoTagChip } from "@/components/dashboard/todo-tag-chip";

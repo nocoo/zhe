@@ -91,9 +91,9 @@ export function useLinkCardViewModel(
       if (result.success && result.data) {
         onUpdate(result.data);
         toast.success(result.data.isHidden ? "帖子已隐藏" : "已取消隐藏");
-      } else toast.error(result.error || "保存隐藏状态失败");
+      } else toast.danger(result.error || "保存隐藏状态失败");
     } catch {
-      toast.error("保存隐藏状态失败，请稍后重试");
+      toast.danger("保存隐藏状态失败，请稍后重试");
     } finally {
       setIsSavingVisibility(false);
     }
@@ -106,9 +106,9 @@ export function useLinkCardViewModel(
     try {
       const result = await deleteLink(link.id);
       if (result.success) await onDelete(link.id);
-      else toast.error("删除失败", { description: result.error || "Failed to delete link" });
+      else toast.danger("删除失败", { description: result.error || "Failed to delete link" });
     } catch {
-      toast.error("删除失败", { description: "请稍后重试" });
+      toast.danger("删除失败", { description: "请稍后重试" });
     } finally {
       setIsDeleting(false);
     }

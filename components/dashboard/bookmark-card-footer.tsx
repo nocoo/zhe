@@ -105,7 +105,7 @@ export function BookmarkCardFooter({
                 aria-label="复制收藏时间"
                 onClick={async () => {
                   if (await copyToClipboard(timestamp)) toast.success("已复制收藏时间");
-                  else toast.error("复制失败，请重试");
+                  else toast.danger("复制失败，请重试");
                 }}
               >
                 <time dateTime={date.toISOString()} suppressHydrationWarning>

@@ -165,7 +165,7 @@ export function LinksList() {
       if (result.success) {
         toast.success("已刷新");
       } else {
-        toast.error(result.error || "刷新失败");
+        toast.danger(result.error || "刷新失败");
       }
     } finally {
       setIsRefreshing(false);

@@ -27,7 +27,7 @@ const { createdAt, mocks } = vi.hoisted(() => ({
   createdAt: new Date("2026-03-04T12:34:56.000Z"),
   mocks: {
     success: vi.fn(),
-    error: vi.fn(),
+    danger: vi.fn(),
     info: vi.fn(),
     open: vi.fn(),
     handleLinkUpdated: vi.fn(),
@@ -442,11 +442,11 @@ describe("enrichment operations dialog", () => {
     vi.mocked(refreshLinkMetadata).mockResolvedValue({ success: false, error: "Unauthorized" });
     render(<EnrichmentDialog scope={{ linkId: 99 }} onClose={vi.fn()} />);
     fireEvent.click(await screen.findByRole("button", { name: "采集" }));
-    await waitFor(() => expect(mocks.error).toHaveBeenCalledWith("采集失败，请稍后重试"));
+    await waitFor(() => expect(mocks.danger).toHaveBeenCalledWith("采集失败，请稍后重试"));
     expect(mocks.handleLinkUpdated).not.toHaveBeenCalled();
     vi.mocked(refreshLinkMetadata).mockRejectedValueOnce(new Error("offline"));
     fireEvent.click(screen.getByRole("button", { name: "采集" }));
-    await waitFor(() => expect(mocks.error).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mocks.danger).toHaveBeenCalledTimes(2));
     expect(mocks.handleLinkUpdated).not.toHaveBeenCalled();
   });
 
@@ -460,7 +460,7 @@ describe("enrichment operations dialog", () => {
     vi.mocked(refreshLinkMetadata).mockResolvedValue({ success: false });
     render(<EnrichmentDialog scope={{ linkId: 2 }} onClose={vi.fn()} />);
     fireEvent.click(await screen.findByRole("button", { name: "刷新" }));
-    await waitFor(() => expect(mocks.error).toHaveBeenCalledWith("刷新失败，请稍后重试"));
+    await waitFor(() => expect(mocks.danger).toHaveBeenCalledWith("刷新失败，请稍后重试"));
     expect(mocks.handleLinkUpdated).not.toHaveBeenCalled();
   });
 
@@ -550,7 +550,7 @@ describe("enrichment selection and refresh", () => {
     expect(mocks.info).toHaveBeenCalledWith(expect.stringContaining("已跳过"));
     vi.mocked(retryEnrichmentTasksAction).mockResolvedValueOnce({ success: false });
     await act(async () => result.current.retry([1]));
-    expect(mocks.error).toHaveBeenCalledWith(expect.stringContaining("重新排队失败"));
+    expect(mocks.danger).toHaveBeenCalledWith(expect.stringContaining("重新排队失败"));
   });
 
   it("does not replace fresh data with an older request or update after unmount", async () => {

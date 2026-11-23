@@ -65,7 +65,7 @@ export function ApiKeyShortcut({
   return (
     <Banner
       size="sm"
-      variant="secondary"
+      tone="neutral"
       title="使用 API Key"
       icon={<KeyRound strokeWidth={1.5} aria-hidden />}
       description={

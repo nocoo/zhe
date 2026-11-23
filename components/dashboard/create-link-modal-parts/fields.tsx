@@ -63,7 +63,7 @@ export function SlugInput({
         </span>
         <Input
           id="slug"
-          size="default"
+          size="md"
           type="text"
           placeholder="my-custom-link"
           value={customSlug}

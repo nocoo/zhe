@@ -92,7 +92,7 @@ export function ConnectorPanel() {
                   : "尚未连接"}
               </span>
               {summary?.states.map(({ state, count }) => (
-                <Badge key={state} variant="secondary">
+                <Badge key={state}>
                   {labels[state] ?? state} {count}
                 </Badge>
               ))}

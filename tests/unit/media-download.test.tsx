@@ -5,7 +5,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { useMediaDownload } from "@/viewmodels/useMediaDownload";
 
-vi.mock("@nocoo/basalt/components/toast", () => ({ toast: { error: vi.fn() } }));
+vi.mock("@nocoo/basalt/components/toast", () => ({ toast: { danger: vi.fn() } }));
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -56,7 +56,7 @@ it.each([false, true])(
       useMediaDownload({ id: "123", type: "VIDEO", url: "/video.mp4" }),
     );
     await act(() => result.current.download());
-    expect(toast.error).toHaveBeenCalledWith("下载失败，请稍后重试");
+    expect(toast.danger).toHaveBeenCalledWith("下载失败，请稍后重试");
     expect(result.current.pending).toBe(false);
   },
 );

@@ -77,11 +77,11 @@ export function R2FileRow({ file, selected, onToggle }: R2FileRowProps) {
       </span>
 
       {isOrphan ? (
-        <Badge variant="warning" className="text-[10px] shrink-0">
+        <Badge tone="warning" className="text-[10px] shrink-0">
           orphan
         </Badge>
       ) : (
-        <Badge variant="success" className="text-[10px] shrink-0">
+        <Badge tone="success" className="text-[10px] shrink-0">
           linked
         </Badge>
       )}

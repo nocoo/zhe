@@ -33,7 +33,7 @@ describe("dialog typography", () => {
     );
     expect(screen.getByRole("heading", { name: "删除收藏？" })).toHaveClass(
       "text-basalt-xl",
-      "leading-basalt-tight",
+      "font-semibold",
     );
     expect(screen.getByText("此操作不可撤销")).toHaveClass(
       "text-basalt-base",
@@ -51,7 +51,7 @@ describe("dialog typography", () => {
     );
     const heading = screen.getByRole("heading", { name: "编辑收藏" });
     expect(heading.className).toMatch(/\btext-basalt-xl\b/);
-    expect(heading.className).toMatch(/\bleading-basalt-tight\b/);
+    expect(heading.className).toMatch(/\bfont-semibold\b/);
     const description = screen.getByText("修改标题和备注");
     expect(description.className).toMatch(/\btext-basalt-base\b/);
     expect(description.className).toContain("leading-[var(--basalt-line-relaxed)]");
@@ -96,7 +96,7 @@ describe("control density — Button", () => {
   });
 
   it("default uses the standard action role", () => {
-    render(<Button size="default">保存</Button>);
+    render(<Button size="md">保存</Button>);
     const el = screen.getByRole("button", { name: "保存" });
     expect(el).toHaveClass("basalt-action");
     expect(el).not.toHaveClass("basalt-action-sm", "basalt-action-lg");

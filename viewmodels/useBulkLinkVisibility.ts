@@ -34,7 +34,7 @@ export function useBulkLinkVisibility(
     }
     running.current = false;
     setPending(false);
-    if (failures) toast.error(`${failures} 项更新失败，请重试`);
+    if (failures) toast.danger(`${failures} 项更新失败，请重试`);
     else toast.success(hidden ? `已隐藏 ${items.length} 项` : `已解除隐藏 ${items.length} 项`);
   };
   return { pending, update };

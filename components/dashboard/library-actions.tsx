@@ -25,9 +25,9 @@ export function LibraryActions({
       if (result.success) {
         onRefresh();
         toast.success("已刷新");
-      } else toast.error(result.error || "刷新失败");
+      } else toast.danger(result.error || "刷新失败");
     } catch {
-      toast.error("刷新失败，请稍后重试");
+      toast.danger("刷新失败，请稍后重试");
     } finally {
       setRefreshing(false);
     }

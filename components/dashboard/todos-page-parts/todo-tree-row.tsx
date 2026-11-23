@@ -27,7 +27,7 @@ import { Button } from "@nocoo/basalt/components/button";
 import { Checkbox } from "@nocoo/basalt/components/checkbox";
 import {
   ContextMenu,
-  ContextMenuPanel as ContextMenuContent,
+  ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@nocoo/basalt/components/context-menu";

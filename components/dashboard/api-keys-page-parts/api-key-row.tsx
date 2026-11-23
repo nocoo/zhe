@@ -43,7 +43,7 @@ function RevokeButton({
       <AlertDialogTrigger asChild>
         <Button
           variant="ghost"
-          size="default"
+          size="md"
           className="text-basalt-destructive hover:text-basalt-destructive hover:bg-basalt-destructive/10"
           data-testid={`revoke-key-${id}`}
         >
@@ -90,7 +90,7 @@ export function ApiKeyRow({ apiKey, onRevoke }: ApiKeyRowProps) {
         </div>
         <div className="flex flex-wrap gap-1 mt-1.5">
           {apiKey.scopes.split(",").map((scope) => (
-            <Badge key={scope} variant="secondary" className="text-[10px]">
+            <Badge key={scope} className="text-[10px]">
               {scope}
             </Badge>
           ))}

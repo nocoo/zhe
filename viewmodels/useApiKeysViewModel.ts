@@ -52,7 +52,7 @@ export function useApiKeysViewModel() {
           const listResult = await listApiKeys();
           if (listResult.success) setKeys(listResult.data);
         } else {
-          toast.error(result.error || "创建 API Key 失败");
+          toast.danger(result.error || "创建 API Key 失败");
         }
         return result;
       } finally {
@@ -68,7 +68,7 @@ export function useApiKeysViewModel() {
       setKeys((prev) => prev.filter((k) => k.id !== id));
       toast.success("已撤销 API Key");
     } else {
-      toast.error(result.error || "撤销 API Key 失败");
+      toast.danger(result.error || "撤销 API Key 失败");
     }
     return result;
   }, []);

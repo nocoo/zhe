@@ -40,7 +40,7 @@ function TestInputArea({ vm }: { vm: XrayViewModel }) {
             onClick={vm.handleFetchTweet}
             disabled={!vm.extractedId || vm.isFetching}
             variant="outline"
-            size="default"
+            size="md"
             className="h-9"
           >
             {vm.isFetching && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -86,7 +86,7 @@ function TweetResultBlock({ vm }: { vm: XrayViewModel }) {
       <Button
         onClick={vm.toggleRawJson}
         variant="ghost"
-        size="default"
+        size="md"
         className="text-xs text-basalt-muted-foreground"
       >
         {vm.showRawJson ? (

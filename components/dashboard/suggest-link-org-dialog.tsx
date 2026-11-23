@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from "@nocoo/basalt/components/dialog";
 import { Input } from "@nocoo/basalt/components/input";
-import { InputArea as Textarea } from "@nocoo/basalt/components/input-area";
 import { Label } from "@nocoo/basalt/components/label";
 import {
   Select,
@@ -20,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@nocoo/basalt/components/select";
+import { Textarea } from "@nocoo/basalt/components/textarea";
 import { Check, ChevronRight, Loader2, Plus, Sparkles, X } from "@nocoo/basalt/icons";
 import Link from "next/link";
 import { useEffect, useState } from "react";

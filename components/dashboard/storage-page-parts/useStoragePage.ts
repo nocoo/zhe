@@ -22,10 +22,10 @@ export function useStoragePage(initialData?: StorageScanResult) {
       if (result.success && result.data) {
         setData(result.data);
       } else {
-        toast.error(result.error ?? "扫描存储失败");
+        toast.danger(result.error ?? "扫描存储失败");
       }
     } catch {
-      toast.error("扫描存储失败");
+      toast.danger("扫描存储失败");
     } finally {
       setLoading(false);
     }
@@ -75,10 +75,10 @@ export function useStoragePage(initialData?: StorageScanResult) {
         }
         setSelectedKeys(new Set());
       } else {
-        toast.error(result.error ?? "清理失败");
+        toast.danger(result.error ?? "清理失败");
       }
     } catch {
-      toast.error("清理孤儿文件失败");
+      toast.danger("清理孤儿文件失败");
     } finally {
       setCleaning(false);
     }

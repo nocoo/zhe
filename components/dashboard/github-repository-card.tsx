@@ -329,11 +329,7 @@ export function GitHubRepositoryCard({
                 <CardTitleText title={display.title} original={display.originalTitle} />
               </a>
             </h2>
-            {repository?.archived && (
-              <Badge variant="secondary" className="shrink-0 text-[11px]">
-                已归档
-              </Badge>
-            )}
+            {repository?.archived && <Badge className="shrink-0 text-[11px]">已归档</Badge>}
             <span
               title="来源：GitHub"
               className="inline-flex shrink-0 items-center rounded-basalt-widget bg-basalt-foreground p-1.5 text-basalt-background"

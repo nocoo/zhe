@@ -25,7 +25,7 @@ export function useMediaDownload(media: XMedia) {
       anchor.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch {
-      toast.error("下载失败，请稍后重试");
+      toast.danger("下载失败，请稍后重试");
     } finally {
       running.current = false;
       setPending(false);

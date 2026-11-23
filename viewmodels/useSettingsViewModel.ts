@@ -21,7 +21,7 @@ export function useSettingsViewModel() {
     try {
       const result = await exportLinks();
       if (!result.success || !result.data) {
-        toast.error(result.error || "导出失败");
+        toast.danger(result.error || "导出失败");
         return;
       }
 
@@ -49,13 +49,13 @@ export function useSettingsViewModel() {
       try {
         parsed = JSON.parse(text);
       } catch {
-        toast.error("文件不是有效的 JSON 格式");
+        toast.danger("文件不是有效的 JSON 格式");
         return;
       }
 
       const result = await importLinks(parsed as Parameters<typeof importLinks>[0]);
       if (!result.success) {
-        toast.error(result.error || "导入失败");
+        toast.danger(result.error || "导入失败");
         return;
       }
 

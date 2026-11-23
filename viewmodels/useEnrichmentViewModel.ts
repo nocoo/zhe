@@ -82,7 +82,7 @@ export function useEnrichmentViewModel(scope: EnrichmentScope) {
       setSelected(new Set());
       await refresh();
     } catch {
-      toast.error("重新排队失败，请稍后重试");
+      toast.danger("重新排队失败，请稍后重试");
     } finally {
       setRetrying(false);
     }
@@ -100,7 +100,7 @@ export function useEnrichmentViewModel(scope: EnrichmentScope) {
       toast.success(task ? "已提交刷新" : "已提交采集");
       await refresh();
     } catch {
-      toast.error(task ? "刷新失败，请稍后重试" : "采集失败，请稍后重试");
+      toast.danger(task ? "刷新失败，请稍后重试" : "采集失败，请稍后重试");
     } finally {
       setCollecting(false);
     }

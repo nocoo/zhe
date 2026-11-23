@@ -90,7 +90,7 @@ function EntitiesBlock({ entities }: { entities: XrayTweetData["entities"] }) {
       {entities.hashtags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {entities.hashtags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-xs">
+            <Badge key={tag} className="text-xs">
               #{tag}
             </Badge>
           ))}
@@ -121,21 +121,9 @@ function MetadataRow({ tweet }: { tweet: XrayTweetData }) {
       <span>{formatTweetDate(tweet.created_at)}</span>
       <span>·</span>
       <span className="uppercase">{tweet.lang}</span>
-      {tweet.is_retweet && (
-        <Badge variant="secondary" className="text-[10px]">
-          转推
-        </Badge>
-      )}
-      {tweet.is_quote && (
-        <Badge variant="secondary" className="text-[10px]">
-          引用
-        </Badge>
-      )}
-      {tweet.is_reply && (
-        <Badge variant="secondary" className="text-[10px]">
-          回复
-        </Badge>
-      )}
+      {tweet.is_retweet && <Badge className="text-[10px]">转推</Badge>}
+      {tweet.is_quote && <Badge className="text-[10px]">引用</Badge>}
+      {tweet.is_reply && <Badge className="text-[10px]">回复</Badge>}
       <span>·</span>
       <a
         href={tweet.url}
@@ -218,7 +206,7 @@ function MediaGrid({ media }: { media: XrayTweetMedia[] }) {
                     <Play className="size-5 fill-current text-white" />
                   </span>
                 </span>
-                <Badge variant="secondary" className="absolute top-2 left-2 text-[11px]">
+                <Badge className="absolute top-2 left-2 text-[11px]">
                   {item.type === "VIDEO" ? (
                     <Play className="mr-1 size-2.5" aria-hidden />
                   ) : (

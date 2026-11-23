@@ -25,7 +25,7 @@ function TagBadges({
         return (
           <Badge
             key={tag.id}
-            variant={isSelected ? "default" : "outline"}
+            variant={isSelected ? "solid" : "outline"}
             className="cursor-pointer text-xs"
             style={isSelected ? styles.badge : undefined}
             onClick={() => onToggle(tag.id)}
