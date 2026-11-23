@@ -5,7 +5,6 @@ import { Badge } from "@nocoo/basalt/components/badge";
 import { Button } from "@nocoo/basalt/components/button";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -23,7 +22,6 @@ import {
   RefreshCw,
   Scale,
   Star,
-  X,
 } from "@nocoo/basalt/icons";
 import { useEffect, useState } from "react";
 import { loadGitHubReadme } from "@/actions/github-connector";
@@ -400,20 +398,17 @@ export function GitHubRepositoryCard({
         editCallbacks={editCallbacks}
       />
       <Dialog open={reading} onOpenChange={setReading}>
-        <DialogContent size="xl" className="flex max-h-[90dvh] flex-col gap-4 overflow-hidden">
-          <div className="flex items-start gap-3">
-            <DialogHeader className="min-w-0 flex-1">
-              <DialogTitle className="break-all">{name}</DialogTitle>
-              <DialogDescription>
-                README 全文 · 默认分支 {repository?.defaultBranch}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogClose asChild>
-              <Button variant="ghost" size="icon" aria-label="关闭 README">
-                <X strokeWidth={1.5} />
-              </Button>
-            </DialogClose>
-          </div>
+        <DialogContent
+          size="xl"
+          closeLabel="关闭 README"
+          className="flex max-h-[90dvh] flex-col gap-4 overflow-hidden"
+        >
+          <DialogHeader>
+            <DialogTitle className="break-all">{name}</DialogTitle>
+            <DialogDescription>
+              README 全文 · 默认分支 {repository?.defaultBranch}
+            </DialogDescription>
+          </DialogHeader>
           <div className="min-h-0 overflow-y-auto">
             <div className="mb-5 space-y-3 border-b border-basalt-border/60 pb-4 text-sm leading-6">
               <p className="break-words">{repository?.description || link.metaDescription}</p>

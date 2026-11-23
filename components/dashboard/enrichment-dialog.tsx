@@ -5,7 +5,6 @@ import { Button } from "@nocoo/basalt/components/button";
 import { Checkbox } from "@nocoo/basalt/components/checkbox";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -26,7 +25,6 @@ import {
   ExternalLink,
   Loader2,
   RefreshCw,
-  X,
 } from "@nocoo/basalt/icons";
 import { useDashboardService } from "@/contexts/dashboard-service";
 import type { EnrichmentScope } from "@/contexts/enrichment";
@@ -147,20 +145,11 @@ export function EnrichmentDialog({
     >
       <DialogContent
         size="xl"
+        closeLabel="关闭数据采集"
         className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:p-0"
         data-testid="enrichment-dialog"
       >
         <DialogHeader className="border-b border-basalt-border px-5 py-4 pr-12">
-          <DialogClose asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-3 top-3"
-              aria-label="关闭数据采集"
-            >
-              <X />
-            </Button>
-          </DialogClose>
           <DialogTitle>数据采集</DialogTitle>
           <DialogDescription>查看采集记录，并对单条链接进行首次采集、刷新或重试</DialogDescription>
         </DialogHeader>
