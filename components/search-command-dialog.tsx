@@ -68,6 +68,7 @@ export function SearchCommandDialog({ open, onOpenChange }: SearchCommandDialogP
   const router = useRouter();
   const { siteUrl } = useDashboardState();
   const returnFocus = useRef<HTMLElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
   const [query, setQuery] = useState("");
   const [source, setSource] = useState<SearchFilter>("all");
   const result = useSearch(query, source, 0, open);
@@ -86,13 +87,21 @@ export function SearchCommandDialog({ open, onOpenChange }: SearchCommandDialogP
       returnFocus.current?.focus();
     }
   }, [open]);
+  useEffect(() => {
+    if (!open || !hasQuery || !result.data) return;
+    // Select the first arriving hit without remounting CommandPalette (remounting flickers and breaks typing).
+    listRef.current
+      ?.closest("[cmdk-root]")
+      ?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Home", bubbles: true, cancelable: true }),
+      );
+  }, [open, hasQuery, result.data]);
   const navigate = (href: string) => {
     onOpenChange(false);
     router.push(href);
   };
   return (
     <CommandPalette
-      key={`${query}:${result.data?.items[0]?.kind ?? ""}:${result.data?.items[0]?.id ?? ""}`}
       open={open}
       onOpenChange={onOpenChange}
       size="lg"
@@ -119,7 +128,7 @@ export function SearchCommandDialog({ open, onOpenChange }: SearchCommandDialogP
           }}
         />
       </div>
-      <CommandList className="max-h-[min(60dvh,32rem)]" aria-busy={result.loading}>
+      <CommandList ref={listRef} className="max-h-[min(60dvh,32rem)]" aria-busy={result.loading}>
         {!hasQuery && (
           <div className="flex flex-col items-center gap-2 py-6 text-basalt-muted-foreground">
             <Search className="h-5 w-5" />

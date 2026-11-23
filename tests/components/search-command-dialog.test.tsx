@@ -121,3 +121,64 @@ it("retains copy and folder actions without opening the original link", async ()
   expect(push).toHaveBeenCalledWith("/dashboard?folder=f");
   open.mockRestore();
 });
+it("keeps the dialog and input mounted without remounting across sequential typing and arriving results", async () => {
+  useSearch.mockReturnValue({ loading: true, retry });
+  const view = show();
+  const dialog = screen.getByRole("dialog");
+  const input = screen.getByRole("combobox");
+  await waitFor(() => expect(input).toHaveFocus());
+
+  for (const typed of ["n", "ne", "nee", "need", "needle"]) {
+    fireEvent.change(input, { target: { value: typed } });
+    expect(screen.getByRole("dialog")).toBe(dialog);
+    expect(screen.getByRole("combobox")).toBe(input);
+    expect(input).toHaveFocus();
+  }
+
+  const first = toSearchHit(
+    buildSearchDocument({
+      kind: "link",
+      id: 1,
+      createdAt: 1,
+      url: "https://example.com/1",
+      title: "Needle First",
+      slug: "first-hit",
+    }),
+    "needle",
+  );
+  const second = toSearchHit(
+    buildSearchDocument({
+      kind: "link",
+      id: 2,
+      createdAt: 2,
+      url: "https://example.com/2",
+      title: "Needle Second",
+      slug: "second-hit",
+    }),
+    "needle",
+  );
+  useSearch.mockReturnValue({
+    data: { ...response, items: [first, second], total: 2 },
+    loading: false,
+    retry,
+  });
+  view.rerender(withTheme(<SearchCommandDialog open onOpenChange={closed} />));
+
+  expect(screen.getByRole("dialog")).toBe(dialog);
+  expect(screen.getByRole("combobox")).toBe(input);
+  expect(input).toHaveFocus();
+  await waitFor(() =>
+    expect(document.querySelector('[data-value="first-hit"]')).toHaveAttribute(
+      "aria-selected",
+      "true",
+    ),
+  );
+
+  fireEvent.keyDown(input, { key: "ArrowDown" });
+  await waitFor(() =>
+    expect(document.querySelector('[data-value="second-hit"]')).toHaveAttribute(
+      "aria-selected",
+      "true",
+    ),
+  );
+});

@@ -24,10 +24,13 @@ export function SearchPage() {
   const result = useSearch(query, source, offset);
   const input = useRef<HTMLInputElement>(null);
   const list = useRef<HTMLUListElement>(null);
+  const syncedUrl = useRef({ query: initial, source: selectedSource });
   useEffect(() => {
     input.current?.focus();
   }, []);
   useEffect(() => {
+    if (syncedUrl.current.query === initial && syncedUrl.current.source === selectedSource) return;
+    syncedUrl.current = { query: initial, source: selectedSource };
     setQuery(initial);
     setSource(selectedSource);
     setOffset(0);
@@ -39,6 +42,7 @@ export function SearchPage() {
       else next.searchParams.delete("q");
       if (source !== "all") next.searchParams.set("source", source);
       else next.searchParams.delete("source");
+      syncedUrl.current = { query, source };
       window.history.replaceState(null, "", next);
     }, 250);
     return () => clearTimeout(timer);

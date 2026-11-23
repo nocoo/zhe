@@ -86,12 +86,22 @@ test.describe("Cmd+K search", () => {
 
     await openSearchDialog(page);
 
+    const dialogHandle = await page.locator('[role="dialog"]').elementHandle();
     const input = page.locator(searchInputLocator);
-    await input.fill("alpha");
+    const inputHandle = await input.elementHandle();
+    expect(dialogHandle).not.toBeNull();
+    expect(inputHandle).not.toBeNull();
 
-    // Should find the first link (slug contains "alpha")
+    await input.pressSequentially("alpha", { delay: 40 });
+
+    // Should find the first link (slug contains "alpha") without remounting the dialog or input
     const resultItem = page.locator(`[cmdk-item][data-value="${slug1}"]`);
     await expect(resultItem).toBeVisible({ timeout: 5_000 });
+    await expect(resultItem).toHaveAttribute("aria-selected", "true");
+    await expect(input).toBeFocused();
+    await expect(input).toHaveValue("alpha");
+    expect(await dialogHandle?.evaluate((node) => node.isConnected)).toBe(true);
+    expect(await inputHandle?.evaluate((node) => node.isConnected)).toBe(true);
 
     // Should NOT show the other link
     await expect(page.locator(`[cmdk-item][data-value="${slug2}"]`)).not.toBeVisible();
