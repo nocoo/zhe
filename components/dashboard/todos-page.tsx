@@ -18,14 +18,8 @@
 import { LayerCard } from "@nocoo/basalt";
 import { Button } from "@nocoo/basalt/components/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@nocoo/basalt/components/popover";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@nocoo/basalt/components/sheet";
-import { ListTodo, Plus, SlidersHorizontal, X } from "@nocoo/basalt/icons";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@nocoo/basalt/components/sheet";
+import { ListTodo, Plus, SlidersHorizontal } from "@nocoo/basalt/icons";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePageCreateAction } from "@/contexts/create-action";
@@ -287,21 +281,10 @@ export function TodosPage() {
             className="flex w-full min-w-0 flex-col overflow-hidden p-0 sm:max-w-xl sm:p-0"
             data-todos-detail-sheet
           >
-            <SheetHeader className="flex min-w-0 flex-row items-center justify-between gap-2 space-y-0 px-4 pt-4 pb-2">
+            <SheetHeader className="flex min-w-0 flex-row items-center justify-between gap-2 space-y-0 pl-4 pr-12 pt-4 pb-2">
               <SheetTitle className="min-w-0 flex-1 truncate text-sm">
                 {vm.detail?.title ?? "待办详情"}
               </SheetTitle>
-              <SheetClose asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="shrink-0"
-                  aria-label="Close"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </SheetClose>
             </SheetHeader>
             <div className="flex-1 min-h-0 overflow-hidden">
               <TodoDetailPane
