@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [v2.3.11] - 2026-11-23
+
+### Changed
+- Align tags surface token assertion with Basalt 3.6.0
+- Upgrade @nocoo/basalt to 3.6.0
+- Bump @biomejs/biome 2.6.6 → 2.6.8
+- Bump @vitest/coverage-v8 5.1.0 → 5.1.1
+- Bump vitest 5.1.0 → 5.1.1
+- Bump @ai-sdk/provider 4.0.38 → 4.0.39
+- Bump ai 7.0.173 → 7.0.178
+- Bump @ai-sdk/openai 4.0.118 → 4.0.122
+- Bump @ai-sdk/anthropic 4.0.105 → 4.0.107
+- Bump recharts 3.10.1 → 3.11.0
+- Bump @aws-sdk/s3-request-presigner 3.1169.0 → 3.1173.0
+- Bump @aws-sdk/client-s3 3.1169.0 → 3.1173.0
+- Bump @testing-library/user-event 14.6.10 → 14.6.13
+- Bump tailwind-merge 3.7.0 → 3.7.1
+- Normalize AGENTS.md to system1 v2 standard
+
+### Fixed
+- Remove duplicate SheetClose button in todo detail sheet for Basalt 3.6.0
+- Reuse Basalt DialogContent closeLabel instead of duplicate DialogClose buttons
+- Keep command palette mounted while typing and prevent search page URL echo
+
 ## [v2.3.10] - 2026-11-20
 
 ### Added
