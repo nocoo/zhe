@@ -21,17 +21,26 @@ test.describe("Tags management", () => {
     for (const colorScheme of ["light", "dark"] as const) {
       await page.emulateMedia({ colorScheme });
       await expect(page.locator("html")).toHaveAttribute("data-mode", colorScheme);
-      const bright = await createForm.evaluate((el) => {
-        const probe = el.appendChild(document.createElement("span"));
-        probe.style.backgroundColor = "hsl(var(--basalt-bright))";
-        const color = getComputedStyle(probe).backgroundColor;
-        probe.remove();
-        return color;
+      const { card, secondary, bright } = await createForm.evaluate((el) => {
+        const resolve = (token: string) => {
+          const probe = el.appendChild(document.createElement("span"));
+          probe.style.backgroundColor = `hsl(var(${token}))`;
+          const color = getComputedStyle(probe).backgroundColor;
+          probe.remove();
+          return color;
+        };
+        return {
+          card: resolve("--basalt-card"),
+          secondary: resolve("--basalt-secondary"),
+          bright: resolve("--basalt-bright"),
+        };
       });
+      await expect(createForm).toHaveCSS("background-color", secondary);
       await expect(createInput).toHaveCSS("background-color", bright);
-      expect(bright).not.toBe(
-        await createForm.evaluate((el) => getComputedStyle(el).backgroundColor),
-      );
+      expect(secondary).not.toBe(card);
+      if (colorScheme === "dark") {
+        expect(bright).not.toBe(secondary);
+      }
     }
     await page.emulateMedia({ colorScheme: "light" });
     await createInput.fill(name);
