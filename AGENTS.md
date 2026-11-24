@@ -52,7 +52,7 @@ Test runners own local env overrides, migrations, readiness, and cleanup; no Clo
 
 Follows `system1-quality`; CI slot definitions and pinned `base-ci` revision live in `.github/workflows/quality-slots.yml` (`quality / Z1: Gate` required on `main` and by `.github/workflows/release.yml`), alongside `Linux standalone container` smoke in `.github/workflows/ci.yml`. Raise weaker enforcement rather than lowering this contract. Status vocabulary: `enforced`, `planned`, `manual`, `N/A`; no skipped or focused tests.
 
-- **Coverage**: L1 enforces >=95% statements/branches/functions/lines across web, CLI (incl. Python helper), and Worker; Worker excludes `src/local-resources.ts`, CLI excludes `src/index.ts` and `src/commands/**`.
+- **Coverage**: L1 enforces >=95% statements/branches/functions/lines across web (excluding `components/**` View layer covered by L4 E2E; `allowOnly: false`, `passWithNoTests: false`), CLI (incl. Python helper), and Worker; Worker excludes `src/local-resources.ts`, CLI excludes `src/index.ts` and `src/commands/**`.
 - **Exceptions**: `L3 Integration` is `N/A` in CI (covered by `L1: Unit` `test:integration` and `L2: Runtime` `test:api`); `P1 Package` is `N/A` in CI for the private root app (`@nocoo/zhe` consumer check is `planned`).
 - **Gaps / manual**: `L2` endpoint inventory, `L4` CLI workflows, and `G2` CLI/Worker lockfile + push-ref scans are `planned`; docs/migration review is `manual` ([testing](docs/05-testing.md)).
 - **Local pre-commit**: installed via `bun run prepare` (`.husky/`); checks index snapshot via `git checkout-index`, verifies lockfiles, runs `next typegen`, parallel web/cli/worker `S1/S2/L1`, then staged `gitleaks`.
