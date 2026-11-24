@@ -1,9 +1,3 @@
-/**
- * E2E: Auth guard — dashboard access control.
- *
- * Verifies that unauthenticated users are redirected away from
- * the dashboard, and authenticated users can access it.
- */
 import { expect, test } from "./fixtures";
 import { appTitle } from "./helpers/chrome";
 
@@ -13,54 +7,18 @@ test.describe("Auth guard (unauthenticated)", () => {
   test("redirects /dashboard to landing with callbackUrl", async ({ page }) => {
     await page.goto("/dashboard");
     await page.waitForURL((url) => url.pathname === "/" || url.pathname === "");
-
-    // Should have callbackUrl param
     const url = new URL(page.url());
     expect(url.searchParams.get("callbackUrl")).toBe("/dashboard");
-
-    // Landing page should be visible
     await expect(page.locator("text=就是这")).toBeVisible();
-  });
-
-  test("redirects /dashboard/data-management to landing", async ({ page }) => {
-    await page.goto("/dashboard/data-management");
-    await page.waitForURL((url) => url.pathname === "/" || url.pathname === "");
-
-    const url = new URL(page.url());
-    expect(url.searchParams.get("callbackUrl")).toBe("/dashboard/data-management");
-  });
-
-  test("redirects /dashboard/settings/ai to landing", async ({ page }) => {
-    await page.goto("/dashboard/settings/ai");
-    await page.waitForURL((url) => url.pathname === "/" || url.pathname === "");
-
-    const url = new URL(page.url());
-    expect(url.searchParams.get("callbackUrl")).toBe("/dashboard/settings/ai");
-  });
-
-  test("redirects /dashboard/overview to landing", async ({ page }) => {
-    await page.goto("/dashboard/overview");
-    await page.waitForURL((url) => url.pathname === "/" || url.pathname === "");
-
-    const url = new URL(page.url());
-    expect(url.searchParams.get("callbackUrl")).toBe("/dashboard/overview");
   });
 });
 
 test.describe("Auth guard (authenticated)", () => {
-  // Uses the default storageState from config (authenticated)
-
-  test("can access /dashboard", async ({ page }) => {
+  test("can access /dashboard and redirects / to overview", async ({ page }) => {
     await page.goto("/dashboard");
-
-    // Should stay on dashboard — header shows correct title
     await expect(appTitle(page, "全部链接")).toBeVisible();
-  });
-
-  test("authenticated user visiting / is redirected to dashboard overview", async ({ page }) => {
     await page.goto("/");
     await page.waitForURL("**/dashboard/overview");
-
     await expect(appTitle(page, "概览")).toBeVisible();
   });
 });

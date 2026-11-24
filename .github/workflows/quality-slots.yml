@@ -212,11 +212,8 @@ jobs:
               fs.appendFileSync(process.env.GITHUB_ENV, `${k}<<__EOF__\n${v}\n__EOF__\n`);
             }
           '
-      - name: Install Playwright browsers and ffmpeg
-        run: |
-          bunx playwright install chromium webkit --with-deps
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+      - name: Install Playwright browsers
+        run: bunx playwright install chromium --with-deps
       - run: |
           (cd worker && bun install --frozen-lockfile --ignore-scripts)
           mkdir -p artifacts

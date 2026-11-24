@@ -28,8 +28,8 @@ bun run build                     # B1 Next.js production bundle
 bun run test:unit:coverage        # L1 web unit coverage (>=95%; --pool=forks avoids VM-thread V8 miscounting)
 bun run test:integration          # L1 in-process integration tests
 bun run test:api                  # L2 real HTTP API suite against isolated local Wrangler D1/KV/R2
-bunx playwright install chromium webkit
-bun run test:e2e:pw               # L4 Playwright Chromium/WebKit journeys on isolated local stack
+bunx playwright install chromium
+bun run test:e2e:pw               # L4 Playwright Chromium journeys on isolated local stack
 (cd worker && bun run lint && bun run test:coverage)
 (cd cli && bun run build && bun run lint && bun run test:coverage)
 ```

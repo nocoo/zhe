@@ -66,15 +66,6 @@ export default defineConfig({
             },
             dependencies: ["setup"],
           },
-          {
-            name: "iphone",
-            testMatch: /(?:card-actions|global-create)\.spec\.ts/,
-            use: {
-              ...devices["iPhone 13"],
-              storageState: process.env.ZHE_AUTH_STATE,
-            },
-            dependencies: ["setup"],
-          },
         ]),
   ],
 

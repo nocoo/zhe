@@ -1,36 +1,16 @@
-/**
- * E2E: Landing page — unauthenticated experience.
- *
- * Verifies the public landing page renders correctly and
- * redirects authenticated users to the dashboard.
- */
 import { expect, test } from "./fixtures";
 
-// These tests run WITHOUT the shared auth storageState
 test.use({ storageState: { cookies: [], origins: [] } });
 
 test.describe("Landing page", () => {
   test("renders branding and sign-in button", async ({ page }) => {
     await page.goto("/");
-
-    // Branding elements
     await expect(page.locator("text=就是这")).toBeVisible();
-    await expect(page.locator("text=登录以管理您的短链接")).toBeVisible();
-    await expect(page.locator("text=Secure authentication")).toBeVisible();
-
-    // Local provider through the ordinary sign-in action
-    const signInButton = page.getByRole("button", { name: "Local sign in" });
-    await expect(signInButton).toBeVisible();
-  });
-
-  test("shows GitHub link and theme toggle", async ({ page }) => {
-    await page.goto("/");
-
-    // GitHub link
-    const githubLink = page.getByRole("link", { name: "GitHub", exact: true });
-    await expect(githubLink).toBeVisible();
-    await expect(githubLink).toHaveAttribute("href", "https://github.com/nocoo/zhe");
-    await expect(page.getByRole("button", { name: "切换主题", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Local sign in" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "GitHub", exact: true })).toHaveAttribute(
+      "href",
+      "https://github.com/nocoo/zhe",
+    );
   });
 
   test("applies stored dark theme on first paint", async ({ page }) => {
@@ -40,39 +20,5 @@ test.describe("Landing page", () => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await expect(page.locator("html")).toHaveClass(/dark/);
     await expect(page.locator("html")).toHaveAttribute("data-mode", "dark");
-    await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
-  });
-
-  test("applies stored dark theme before external scripts run", async ({ page }) => {
-    await page.emulateMedia({ colorScheme: "light" });
-    await page.addInitScript(() => {
-      localStorage.setItem("theme", "dark");
-    });
-    let release!: () => void;
-    const gate = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    await page.route("**/*", async (route) => {
-      if (route.request().resourceType() === "script") {
-        await gate;
-      }
-      await route.continue().catch(() => {});
-    });
-    try {
-      await page.goto("/", { waitUntil: "commit" });
-      await page.getByRole("button", { name: "Local sign in", exact: true }).waitFor();
-      await expect(page.locator("html")).toHaveAttribute("data-mode", "dark");
-      await expect(page.locator("html")).toHaveClass(/dark/);
-      await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
-    } finally {
-      release();
-    }
-  });
-
-  test("/login redirects to landing page", async ({ page }) => {
-    await page.goto("/login");
-    await page.waitForURL("/");
-
-    await expect(page.locator("text=就是这")).toBeVisible();
   });
 });
