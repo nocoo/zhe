@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Ensure .next/types exists and is up-to-date.
-# tsc --noEmit does NOT generate .next/types — only next dev/build does.
+# tsc --noEmit does NOT generate .next/types — next typegen/dev/build does.
 # tsconfig.json includes .next/types/**/*.ts for route type checking.
 # Without this directory, tsc silently skips route type validation.
 #
@@ -30,9 +30,9 @@ else
 fi
 
 if [ "$needs_rebuild" = true ]; then
-  echo "   Running next build to regenerate route types..."
+  echo "   Running next typegen to regenerate route types..."
   rm -rf .next/types
-  bun run build
+  bunx next typegen
 fi
 
 exec bun x tsc --noEmit

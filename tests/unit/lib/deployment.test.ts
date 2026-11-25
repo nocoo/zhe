@@ -29,7 +29,7 @@ describe("Docker deployment contract", () => {
       branches: ["main"],
     });
     expect(workflow.jobs.deploy.uses).toBe(
-      "nocoo/base-ci/.github/workflows/deploy-docker.yml@6424d395d36a815d931f10e557762eb635d511c0",
+      "nocoo/base-ci/.github/workflows/deploy-docker.yml@dc858360aa7812db61fd9d825943e4efd4dcd0e7",
     );
     expect(JSON.parse(workflow.jobs.deploy.with.images)).toEqual([
       { image: "ghcr.io/nocoo/zhe", service: "web" },
