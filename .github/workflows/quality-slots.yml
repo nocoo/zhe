@@ -234,10 +234,21 @@ jobs:
 
   p1-package:
     name: "P1: Package"
-    if: ${{ vars.ENABLE_P1_PACKAGE == 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - run: echo "N/A - Private package"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build without production credentials
+        run: docker build --tag zhe-container-smoke .
+      - name: Verify isolated runtime
+        run: |
+          docker run -d --name zhe-container-smoke --network none zhe-container-smoke
+          docker exec -i zhe-container-smoke node --input-type=module < scripts/check-container.mjs
+      - name: Container logs and cleanup
+        if: always()
+        run: |
+          docker logs zhe-container-smoke || true
+          docker rm -f zhe-container-smoke || true
 
   z1-gate:
     name: "Z1: Gate"
@@ -269,15 +280,15 @@ jobs:
             "${{ needs.b1-build.result }}" \
             "${{ needs.l1-unit.result }}" \
             "${{ needs.l2-runtime.result }}" \
-            "${{ needs.l4-e2e.result }}"; do
+            "${{ needs.l4-e2e.result }}" \
+            "${{ needs.p1-package.result }}"; do
             if [ "$r" != "success" ]; then
               echo "Required slot failed or was skipped: $r"
               exit 1
             fi
           done
           for r in \
-            "${{ needs.l3-integration.result }}" \
-            "${{ needs.p1-package.result }}"; do
+            "${{ needs.l3-integration.result }}"; do
             if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
               echo "Optional slot failed: $r"
               exit 1

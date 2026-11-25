@@ -15,24 +15,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  container-smoke:
-    name: "Linux standalone container"
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Build without production credentials
-        run: docker build --tag zhe-container-smoke .
-      - name: Verify isolated runtime
-        run: |
-          docker run -d --name zhe-container-smoke --network none zhe-container-smoke
-          docker exec -i zhe-container-smoke node --input-type=module < scripts/check-container.mjs
-      - name: Container logs and cleanup
-        if: always()
-        run: |
-          docker logs zhe-container-smoke || true
-          docker rm -f zhe-container-smoke || true
-
   quality:
     name: quality
     uses: ./.github/workflows/quality-slots.yml
