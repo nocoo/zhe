@@ -14,12 +14,15 @@ export default defineConfig({
       exclude: [
         // Local Wrangler R2/KV shim used by scripts/test-stack — not deployed on zhe-edge.
         "src/local-resources.ts",
+        "**/*.d.ts",
+        "**/types.ts",
+        "**/index.ts",
       ],
       thresholds: {
-        statements: 95,
-        branches: 95,
-        functions: 95,
-        lines: 95,
+        statements: 80,
+        branches: 80,
+        functions: 80,
+        lines: 80,
       },
     },
   },

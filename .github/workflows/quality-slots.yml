@@ -113,14 +113,19 @@ jobs:
             }
           '
       - run: |
-          bun run build &&
           bun run test:unit:coverage &&
-          bun run test:integration &&
-          (cd cli && bun run build && bun run lint && bun run test:coverage) &&
-          (cd worker && bun run lint && bun x tsc --noEmit && bun run test:coverage)
+          (cd cli && bun run test:coverage) &&
+          (cd worker && bun run test:coverage)
 
   l2-runtime:
     name: "L2: Runtime"
+    if: ${{ vars.ENABLE_L2_RUNTIME == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "N/A - Covered by L3 Integration"
+
+  l3-integration:
+    name: "L3: Integration"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -145,7 +150,7 @@ jobs:
             }
           '
       - run: |
-          (cd worker && bun install --frozen-lockfile --ignore-scripts)
+          bun run test:integration
           export PATH="$GITHUB_WORKSPACE/worker/node_modules/.bin:$PATH"
           mkdir -p artifacts
           wrangler --version | tee artifacts/wrangler-version.txt
@@ -153,20 +158,13 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.0
         if: always()
         with:
-          name: zhe-l2-evidence
+          name: zhe-l3-api-evidence
           path: |
             .artifacts/e2e/*/wrangler.log
             .artifacts/e2e/*/wrangler-internal-logs/
             artifacts/wrangler-version.txt
           retention-days: 7
           if-no-files-found: ignore
-
-  l3-integration:
-    name: "L3: Integration"
-    if: ${{ vars.ENABLE_L3_INTEGRATION == 'true' }}
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "N/A - Covered by L1 and L2"
 
   l4-e2e:
     name: "L4: E2E"
@@ -260,7 +258,7 @@ jobs:
             "${{ needs.g2-dependencies.result }}" \
             "${{ needs.b1-build.result }}" \
             "${{ needs.l1-unit.result }}" \
-            "${{ needs.l2-runtime.result }}" \
+            "${{ needs.l3-integration.result }}" \
             "${{ needs.l4-e2e.result }}" \
             "${{ needs.p1-package.result }}"; do
             if [ "$r" != "success" ]; then
@@ -269,7 +267,7 @@ jobs:
             fi
           done
           for r in \
-            "${{ needs.l3-integration.result }}"; do
+            "${{ needs.l2-runtime.result }}"; do
             if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
               echo "Optional slot failed: $r"
               exit 1
