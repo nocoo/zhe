@@ -19,11 +19,18 @@ test.describe("Dashboard navigation", () => {
     await expect(appTitle(page, "全部链接")).toBeVisible();
   });
 
-  test("Cmd+K opens search dialog", async ({ page }) => {
+  test("Cmd+K opens search dialog and Cmd+J opens global create", async ({ page }) => {
     await page.goto("/dashboard");
     await expect(page.getByRole("button", { name: "切换主题" })).toBeVisible();
-    const modifier = process.platform === "darwin" ? "Meta" : "Control";
-    await page.keyboard.press(`${modifier}+k`);
-    await expect(page.locator('[role="dialog"]')).toBeVisible();
+    const searchInput = page.getByPlaceholder("搜索标题、备注、正文、README…");
+    await page.keyboard.press("ControlOrMeta+k");
+    await expect(searchInput).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(searchInput).toBeHidden();
+    await page.keyboard.press("ControlOrMeta+j");
+    const input = page.getByLabel("原始链接");
+    await expect(input).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(input).toBeHidden();
   });
 });
