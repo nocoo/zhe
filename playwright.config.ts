@@ -23,8 +23,8 @@ export default defineConfig({
   failOnFlakyTests: true,
   maxFailures: 1,
   retries: process.env.CI ? 2 : 0,
-  // Conflicting browser mutations share one owned run.
-  workers: 1,
+  // Disjoint spec files run in parallel across workers; tests within a file stay sequential.
+  workers: process.env.CI ? 3 : 2,
   // Local runs share the machine with daily development.
   expect: { timeout: process.env.CI ? 5_000 : 15_000 },
   outputDir: `.artifacts/e2e/${runId}/results`,

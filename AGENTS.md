@@ -67,7 +67,7 @@ Follows `system1-quality`; CI slot definitions and pinned `base-ci` revision liv
 | Prod  | `https://zhe.to` -> `zhe-edge` -> `origin.zhe.to` -> Caddy -> `zhe-app` (`/data/zhe` on jp4, `127.0.0.1:17006` -> `7005`, `.next`) | Read-only checks unless deployment is authorized; secrets in `/data/zhe/.env.runtime`                                       |
 
 - Automation locks by launch intent (never `mode === "e2e"`), strips prod credentials, and ignores interactive preferences; never target Production ([local envs](docs/33-local-environments.md)).
-- Browser mutations run serially; do not run competing builds during motion tests.
+- Browser mutations share an owned run; disjoint Playwright specs run in parallel (`workers: 3` in CI); do not run competing builds during motion tests.
 
 ## Retrospective
 
