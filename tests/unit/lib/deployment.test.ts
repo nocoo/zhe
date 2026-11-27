@@ -39,7 +39,7 @@ describe("Docker deployment contract", () => {
     expect(workflow.jobs.quality.uses).toBe("./.github/workflows/quality-slots.yml");
     expect(workflow.jobs.deploy.needs).toEqual(["quality"]);
     expect(workflow.jobs.deploy.uses).toBe(
-      "nocoo/base-ci/.github/workflows/deploy-docker.yml@3703a073693d598159e87f77f99587e586c14cfe",
+      "nocoo/base-ci/.github/workflows/deploy-docker.yml@9933a7461a312cfaac526ccc5907357a7e3f669a",
     );
     expect(JSON.parse(workflow.jobs.deploy.with.images)).toEqual([
       { image: "ghcr.io/nocoo/zhe", service: "web" },
