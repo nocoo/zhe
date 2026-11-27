@@ -16,20 +16,30 @@ const expectedVersion = JSON.parse(
   readFileSync(new URL("../../../package.json", import.meta.url), "utf8"),
 ).version;
 const releaseWorkflow = readFileSync(
-  new URL("../../../.github/workflows/release.yml", import.meta.url),
+  new URL("../../../.github/workflows/pipeline.yml", import.meta.url),
   "utf8",
 );
 
 describe("Docker deployment contract", () => {
   it("uses verified main CI and the pinned shared CD without build secrets", () => {
     const workflow = parse(releaseWorkflow);
-    expect(workflow.on.workflow_run).toEqual({
-      workflows: ["CI"],
-      types: ["completed"],
-      branches: ["main"],
+    expect(workflow.on.push).toEqual({ branches: ["main"] });
+    expect(workflow.on).toHaveProperty("pull_request");
+    expect(workflow.on.workflow_dispatch.inputs.deploy.default).toBe(false);
+    expect(workflow.permissions).toMatchObject({
+      contents: "read",
+      actions: "read",
+      packages: "write",
+      "id-token": "write",
     });
+    expect(workflow.jobs.quality.permissions).toEqual({
+      contents: "read",
+      actions: "read",
+    });
+    expect(workflow.jobs.quality.uses).toBe("./.github/workflows/quality-slots.yml");
+    expect(workflow.jobs.deploy.needs).toEqual(["quality"]);
     expect(workflow.jobs.deploy.uses).toBe(
-      "nocoo/base-ci/.github/workflows/deploy-docker.yml@e5876a604547b1ddb0916f16dd841a4f832609a0",
+      "nocoo/base-ci/.github/workflows/deploy-docker.yml@3703a073693d598159e87f77f99587e586c14cfe",
     );
     expect(JSON.parse(workflow.jobs.deploy.with.images)).toEqual([
       { image: "ghcr.io/nocoo/zhe", service: "web" },

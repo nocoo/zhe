@@ -45,12 +45,12 @@ Test runners own local env overrides, migrations, readiness, and cleanup; no Clo
 - Reuse Basalt 3 primitives (`sm` 28px / `default` 34px / `lg` 40px, `PageHeader`, bright dialogs; no `xs`/`icon-sm` or raw checkbox) and update contract tests with [design tokens](docs/22-design-tokens.md).
 - Store bare SemVer only in root `package.json`, display `v` prefix, and import `APP_VERSION` (no hardcoded versions); sync `cli/package.json` only when releasing `@nocoo/zhe`, never on routine docs edits.
 - Manual previews use Chrome via Caddy at `https://zhe.dev.hexly.ai` (verify HTTPS first, incl. `/dashboard/x`); keep the user's dev server running, and run automated tests on isolated loopback ports.
-- Releases require approval via `bun run release` (patch default, Playwright preflight, Worker/schema parity); CD deploys digests to jp4, and tags are not deploy proof ([runbook](docs/29-maintainer-operations.md)).
+- Releases require approval via `bun run release` (patch default, Playwright preflight, Worker/schema parity); CD runs via `.github/workflows/pipeline.yml` (`D1`–`D5` Docker deploy on `main` push or `workflow_dispatch` with `deploy=true`) to jp4, and tags are not deploy proof ([runbook](docs/29-maintainer-operations.md)).
 - Preserve `origin.zhe.to` (Worker forwarding, lookup, analytics, cron). Never alter DNS, TLS, or shared Caddy without approval; validate and hot-reload Caddy, never restart ([jp4 topology](docs/34-jp4-migration.md)).
 
 ## Quality & Local Gates
 
-Follows `system1-quality`; CI slot definitions and pinned `base-ci` revision live in `.github/workflows/quality-slots.yml` (`quality / Z1: Gate` required on `main` and by `.github/workflows/release.yml`). Raise weaker enforcement rather than lowering this contract. Status vocabulary: `enforced`, `planned`, `manual`, `N/A`; no skipped or focused tests.
+Follows `system1-quality`; CI slot definitions and pinned `base-ci` revision live in `.github/workflows/quality-slots.yml` (`quality / Z1: Gate` required on `main` and invoked alongside `D1`–`D5` Docker CD via `.github/workflows/pipeline.yml`). Raise weaker enforcement rather than lowering this contract. Status vocabulary: `enforced`, `planned`, `manual`, `N/A`; no skipped or focused tests.
 
 - **Coverage**: L1 enforces >=80% statements/branches/functions/lines across web (excluding `components/**`, `views/**`, `pages/**`, and page/layout/error shells covered by L4 E2E; `allowOnly: false`, `passWithNoTests: false`), CLI (incl. Python helper), and Worker; Worker excludes `src/local-resources.ts`, CLI excludes `src/index.ts` and `src/commands/**`.
 - **Exceptions**: `L2 Runtime` is `N/A` in CI (covered by `L3: Integration` running `test:integration` and `test:api`); `P1 Package` verifies the Linux standalone container image (`zhe-container-smoke`) in CI (`@nocoo/zhe` consumer check is `planned`).
