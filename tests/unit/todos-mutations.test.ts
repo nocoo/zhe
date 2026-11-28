@@ -19,7 +19,11 @@ vi.mock("@/actions/todos", () => ({
   reorderTodoSiblings: (...args: unknown[]) => mockReorderTodoSiblings(...args),
 }));
 
-import { applyMoveResult, useTodosMutations } from "@/viewmodels/todos/useTodosMutations";
+import {
+  applyMoveResult,
+  applyUpdateInputToDetail,
+  useTodosMutations,
+} from "@/viewmodels/todos/useTodosMutations";
 
 /** Deterministic factory. */
 function node(overrides: Partial<TodoTreeNode> & { id: number }): TodoTreeNode {
@@ -429,5 +433,84 @@ describe("applyMoveResult", () => {
     if (!two) throw new Error("expected #2 in state");
     expect(two.parentId).toBeNull();
     expect(two.position).toBe(1);
+  });
+});
+
+describe("applyUpdateInputToDetail & fallback error branches", () => {
+  it("patches all fields on TodoDetail including null resets and empty content", () => {
+    const base = detailFromNode(node({ id: 1 }));
+    const patched = applyUpdateInputToDetail(base, {
+      title: "updated",
+      done: true,
+      tagNames: ["work"],
+      dueAtMs: 12345678,
+      emoji: "⭐",
+      content: "body",
+    });
+    expect(patched).toMatchObject({
+      title: "updated",
+      done: true,
+      tagNames: ["work"],
+      emoji: "⭐",
+      content: "body",
+      hasContent: true,
+    });
+    expect(patched.dueAt?.getTime()).toBe(12345678);
+
+    const cleared = applyUpdateInputToDetail(patched, { dueAtMs: null, content: "" });
+    expect(cleared.dueAt).toBeNull();
+    expect(cleared.hasContent).toBe(false);
+  });
+
+  it("handles createTodo throw, updateTodo field patches, and delete/reorder fallback errors", async () => {
+    const row = node({ id: 1, title: "orig" });
+    const { result } = renderHook(() => useTodosMutationsWithState([row]));
+
+    mockCreateTodo.mockRejectedValueOnce(new Error("network"));
+    await act(async () => {
+      expect(await result.current.handleCreateTodo({ title: "x" })).toBeNull();
+    });
+    expect(result.current.error).toBe("Failed to create todo");
+
+    mockUpdateTodo.mockResolvedValueOnce({
+      success: true,
+      data: detailFromNode(row, {
+        done: true,
+        dueAt: new Date(5000),
+        tagNames: ["t"],
+        hasContent: true,
+      }),
+    });
+    await act(async () => {
+      await result.current.handleUpdateTodo(1, {
+        done: true,
+        dueAtMs: 5000,
+        tagNames: ["t"],
+        content: "body",
+      });
+    });
+    expect(result.current.todos[0]).toMatchObject({
+      done: true,
+      tagNames: ["t"],
+      hasContent: true,
+    });
+
+    mockUpdateTodo.mockResolvedValueOnce({ success: false });
+    await act(async () => {
+      expect(await result.current.handleUpdateTodo(1, { dueAtMs: null, content: "" })).toBeNull();
+    });
+    expect(result.current.error).toBe("Failed to update todo");
+
+    mockDeleteTodo.mockRejectedValueOnce(new Error("fail"));
+    await act(async () => {
+      expect(await result.current.handleDeleteTodo(1)).toBe(false);
+    });
+    expect(result.current.error).toBe("Failed to delete todo");
+
+    mockReorderTodoSiblings.mockResolvedValueOnce({ success: false });
+    await act(async () => {
+      expect(await result.current.handleReorderSiblings(null, [1])).toBe(false);
+    });
+    expect(result.current.error).toBe("Failed to reorder todos");
   });
 });

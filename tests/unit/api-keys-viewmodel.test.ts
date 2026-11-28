@@ -8,6 +8,7 @@ vi.mock("@/lib/auth-context", () => ({
   getScopedDB: vi.fn(),
 }));
 
+import * as apiKeyActions from "@/actions/api-keys";
 import { getScopedDB } from "@/lib/auth-context";
 import { ScopedDB } from "@/lib/db/scoped";
 import { useApiKeysViewModel } from "@/viewmodels/useApiKeysViewModel";
@@ -85,5 +86,49 @@ describe("useApiKeysViewModel", () => {
 
     act(() => result.current.clearNewKey());
     expect(result.current.newlyCreatedKey).toBeNull();
+  });
+
+  it("handles list/create/revoke failures without corrupting state", async () => {
+    const listSpy = vi.spyOn(apiKeyActions, "listApiKeys").mockResolvedValueOnce({
+      success: false,
+      error: "Unauthorized",
+    });
+    const { result, unmount } = renderHook(() => useApiKeysViewModel());
+    await waitFor(() => expect(result.current.isLoading).toBe(false), { interval: 5 });
+    expect(result.current.keys).toEqual([]);
+    unmount();
+    listSpy.mockRestore();
+
+    const { result: vm } = renderHook(() => useApiKeysViewModel());
+    await waitFor(() => expect(vm.current.isLoading).toBe(false), { interval: 5 });
+
+    const createSpy = vi
+      .spyOn(apiKeyActions, "createApiKeyAction")
+      .mockResolvedValueOnce({ success: false, error: "Invalid name" });
+    await act(async () => {
+      const res = await vm.current.handleCreate("", ["links:read"]);
+      expect(res).toEqual({ success: false, error: "Invalid name" });
+    });
+    expect(vm.current.isCreating).toBe(false);
+    expect(vm.current.newlyCreatedKey).toBeNull();
+
+    createSpy.mockResolvedValueOnce({ success: false, error: "" });
+    await act(async () => {
+      await vm.current.handleCreate("", ["links:read"]);
+    });
+    createSpy.mockRestore();
+
+    const revokeSpy = vi
+      .spyOn(apiKeyActions, "revokeApiKeyAction")
+      .mockResolvedValueOnce({ success: false, error: "Not found" })
+      .mockResolvedValueOnce({ success: false, error: "" });
+    await act(async () => {
+      expect(await vm.current.handleRevoke("missing")).toEqual({
+        success: false,
+        error: "Not found",
+      });
+      await vm.current.handleRevoke("missing");
+    });
+    revokeSpy.mockRestore();
   });
 });

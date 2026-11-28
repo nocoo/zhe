@@ -8,1992 +8,264 @@ import { unwrap } from "../test-utils";
 const USER_A = "user-alice";
 const USER_B = "user-bob";
 
+const uploadInput = (
+  name: string,
+  overrides: Partial<Parameters<ScopedDB["createUpload"]>[0]> = {},
+) => ({
+  key: `20260212/${name}`,
+  fileName: name,
+  fileType: name.endsWith(".jpg")
+    ? "image/jpeg"
+    : name.endsWith(".pdf")
+      ? "application/pdf"
+      : "image/png",
+  fileSize: 100,
+  publicUrl: `https://s.zhe.to/20260212/${name}`,
+  ...overrides,
+});
+
+const apiKeyInput = (
+  id: string,
+  overrides: Partial<Parameters<ScopedDB["createApiKey"]>[0]> = {},
+) => ({
+  id,
+  prefix: `zhe_${id}`,
+  keyHash: `hash_${id}`,
+  name: `Key ${id}`,
+  scopes: "links:read",
+  ...overrides,
+});
+
 describe("ScopedDB", () => {
   beforeEach(() => {
     clearMockStorage();
   });
 
-  // ---- Construction ------------------------------------------
-
   it("throws on empty userId", () => {
     expect(() => new ScopedDB("")).toThrow("ScopedDB requires a non-empty userId");
   });
 
-  // ---- Link CRUD scoped to owner -----------------------------
-
   describe("link operations", () => {
-    it("createLink assigns the scoped userId", async () => {
+    it("createLink assigns scoped userId, defaults optional fields, and persists provided extras", async () => {
       const db = new ScopedDB(USER_A);
-      const link = await db.createLink({
-        originalUrl: "https://example.com",
-        slug: "abc",
-      });
+      const plain = await db.createLink({ originalUrl: "https://example.com", slug: "abc" });
+      expect(plain.userId).toBe(USER_A);
+      expect(plain.slug).toBe("abc");
+      expect(plain.screenshotUrl).toBeNull();
+      expect(plain.note).toBeNull();
+      expect(plain.isCustom).toBe(false);
 
-      expect(link.userId).toBe(USER_A);
-      expect(link.slug).toBe("abc");
-    });
-
-    it("createLink stores screenshotUrl when provided", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({
-        originalUrl: "https://example.com",
-        slug: "with-ss",
+      const expiry = new Date("2027-06-01");
+      const rich = await db.createLink({
+        originalUrl: "https://example.com/rich",
+        slug: "with-extras",
         screenshotUrl: "https://img.example.com/shot.png",
-      });
-
-      expect(link.screenshotUrl).toBe("https://img.example.com/shot.png");
-
-      // Verify persisted via getLinkById
-      const fetched = await db.getLinkById(link.id);
-      expect(fetched).not.toBeNull();
-      expect(unwrap(fetched).screenshotUrl).toBe("https://img.example.com/shot.png");
-    });
-
-    it("createLink stores note when provided", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({
-        originalUrl: "https://example.com",
-        slug: "with-note",
         note: "my note",
+        isCustom: true,
+        expiresAt: expiry,
       });
-
-      expect(link.note).toBe("my note");
+      expect(rich.screenshotUrl).toBe("https://img.example.com/shot.png");
+      expect(rich.note).toBe("my note");
+      expect(rich.isCustom).toBe(true);
+      expect(rich.expiresAt).toBeInstanceOf(Date);
+      expect(unwrap(await db.getLinkById(rich.id)).screenshotUrl).toBe(
+        "https://img.example.com/shot.png",
+      );
     });
 
-    it("createLink defaults screenshotUrl and note to null", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({
-        originalUrl: "https://example.com",
-        slug: "no-extras",
-      });
-
-      expect(link.screenshotUrl).toBeNull();
-      expect(link.note).toBeNull();
-    });
-
-    it("getLinks only returns own links", async () => {
+    it("getLinks, getLinkById, getLinksByIds, and deleteLink enforce user scoping", async () => {
       const dbA = new ScopedDB(USER_A);
       const dbB = new ScopedDB(USER_B);
 
-      await dbA.createLink({ originalUrl: "https://a.com", slug: "a1" });
-      await dbA.createLink({ originalUrl: "https://a2.com", slug: "a2" });
+      const a1 = await dbA.createLink({ originalUrl: "https://a.com", slug: "a1" });
+      const a2 = await dbA.createLink({ originalUrl: "https://a2.com", slug: "a2" });
       await dbB.createLink({ originalUrl: "https://b.com", slug: "b1" });
 
       const linksA = await dbA.getLinks();
       const linksB = await dbB.getLinks();
-
       expect(linksA).toHaveLength(2);
       expect(linksB).toHaveLength(1);
       expect(linksA.every((l) => l.userId === USER_A)).toBe(true);
       expect(linksB.every((l) => l.userId === USER_B)).toBe(true);
+
+      expect(await dbA.getLinkById(a1.id)).not.toBeNull();
+      expect(await dbB.getLinkById(a1.id)).toBeNull();
+
+      expect(await dbA.getLinksByIds([])).toEqual([]);
+      expect(await dbA.getLinksByIds([a1.id, a2.id])).toHaveLength(2);
+      expect(await dbB.getLinksByIds([a1.id])).toHaveLength(0);
+
+      expect(await dbB.deleteLink(a1.id)).toBe(false);
+      expect(await dbA.deleteLink(a1.id)).toBe(true);
     });
 
-    it("getLinks sorts by created date ascending", async () => {
+    it("getLinks supports sorting and filtering by query, folderId, inbox, and tagId", async () => {
       const db = new ScopedDB(USER_A);
-      // Create links in sequence with small delay between them
-      await db.createLink({ originalUrl: "https://first.com", slug: "sort-first" });
-      await db.createLink({ originalUrl: "https://second.com", slug: "sort-second" });
+      const folder = await db.createFolder({ name: "TestFolder" });
+      const tag = await db.createTag({ name: "tagged", color: "blue" });
 
-      const linksAsc = await db.getLinks({ sortBy: "created", sortOrder: "asc" });
-
-      expect(linksAsc[0]?.slug).toBe("sort-first");
-      expect(linksAsc[1]?.slug).toBe("sort-second");
-    });
-
-    it("getLinks sorts by clicks descending", async () => {
-      const db = new ScopedDB(USER_A);
-      // Create links with different click counts
-      await db.createLink({ originalUrl: "https://low.com", slug: "clicks-low", clicks: 5 });
+      const low = await db.createLink({
+        originalUrl: "https://low.com",
+        slug: "clicks-low",
+        clicks: 5,
+        folderId: folder.id,
+        note: "my important link",
+      });
       await db.createLink({ originalUrl: "https://high.com", slug: "clicks-high", clicks: 100 });
       await db.createLink({ originalUrl: "https://mid.com", slug: "clicks-mid", clicks: 50 });
+      await db.addTagToLink(low.id, tag.id);
 
-      const linksDesc = await db.getLinks({ sortBy: "clicks", sortOrder: "desc" });
+      const asc = await db.getLinks({ sortBy: "created", sortOrder: "asc" });
+      expect(asc[0]?.slug).toBe("clicks-low");
 
-      // Find our test links in the result
-      const highIndex = linksDesc.findIndex((l) => l.slug === "clicks-high");
-      const midIndex = linksDesc.findIndex((l) => l.slug === "clicks-mid");
-      const lowIndex = linksDesc.findIndex((l) => l.slug === "clicks-low");
+      const desc = await db.getLinks({ sortBy: "clicks", sortOrder: "desc" });
+      expect(desc.map((l) => l.slug)).toEqual(["clicks-high", "clicks-mid", "clicks-low"]);
 
-      expect(highIndex).toBeLessThan(midIndex);
-      expect(midIndex).toBeLessThan(lowIndex);
+      expect((await db.getLinks({ query: "important" })).map((l) => l.slug)).toEqual([
+        "clicks-low",
+      ]);
+      expect((await db.getLinks({ folderId: folder.id })).map((l) => l.slug)).toEqual([
+        "clicks-low",
+      ]);
+      expect(await db.getLinks({ folderId: "inbox" })).toHaveLength(2);
+      expect((await db.getLinks({ tagId: tag.id })).map((l) => l.slug)).toEqual(["clicks-low"]);
     });
 
-    it("getLinkById returns null for other user link", async () => {
+    it("updateLink updates and clears fields, handles empty/cross-user/foreign-folder, and enforces slug uniqueness", async () => {
       const dbA = new ScopedDB(USER_A);
       const dbB = new ScopedDB(USER_B);
-
-      const link = await dbA.createLink({ originalUrl: "https://a.com", slug: "priv" });
-
-      expect(await dbA.getLinkById(link.id)).not.toBeNull();
-      expect(await dbB.getLinkById(link.id)).toBeNull();
-    });
-
-    it("deleteLink cannot delete another user link", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const link = await dbA.createLink({ originalUrl: "https://a.com", slug: "del" });
-
-      // Bob cannot delete Alice's link
-      expect(await dbB.deleteLink(link.id)).toBe(false);
-      // Alice can
-      expect(await dbA.deleteLink(link.id)).toBe(true);
-    });
-
-    it("updateLink cannot update another user link", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
+      const folderA = await dbA.createFolder({ name: "FolderA" });
+      const folderB = await dbB.createFolder({ name: "Bob" });
 
       const link = await dbA.createLink({ originalUrl: "https://old.com", slug: "upd" });
+      await dbA.createLink({ originalUrl: "https://taken.com", slug: "taken" });
+      await dbB.createLink({ originalUrl: "https://b.com", slug: "bobs-slug" });
 
-      // Bob cannot update Alice's link
-      const bobResult = await dbB.updateLink(link.id, { originalUrl: "https://hacked.com" });
-      expect(bobResult).toBeNull();
+      expect(await dbB.updateLink(link.id, { originalUrl: "https://hacked.com" })).toBeNull();
+      expect(await dbA.updateLink(99999, {})).toBeNull();
+      expect(unwrap(await dbA.updateLink(link.id, {})).originalUrl).toBe("https://old.com");
+      expect(await dbA.updateLink(link.id, { folderId: folderB.id })).toBeNull();
 
-      // Alice can
-      const aliceResult = await dbA.updateLink(link.id, { originalUrl: "https://new.com" });
-      expect(aliceResult?.originalUrl).toBe("https://new.com");
-    });
-
-    it("updateLink with empty data returns existing link unchanged", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://keep.com", slug: "noop" });
-
-      // Pass empty object — should hit the early return (lines 140-142)
-      const result = await db.updateLink(link.id, {});
-      expect(result).not.toBeNull();
-      expect(unwrap(result).id).toBe(link.id);
-      expect(unwrap(result).originalUrl).toBe("https://keep.com");
-    });
-
-    it("updateLink with empty data returns null for non-existent link", async () => {
-      const db = new ScopedDB(USER_A);
-
-      // Non-existent id, empty data — exercises the early-return path with a miss
-      const result = await db.updateLink(99999, {});
-      expect(result).toBeNull();
-    });
-
-    it("updateLink updates slug and sets isCustom", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "oldslug" });
-
-      const updated = await db.updateLink(link.id, { slug: "newslug", isCustom: true });
-      expect(updated).not.toBeNull();
-      expect(unwrap(updated).slug).toBe("newslug");
-      expect(unwrap(updated).isCustom).toBe(true);
-    });
-
-    it("updateLink slug change is reflected in getLinks", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "before" });
-
-      await db.updateLink(link.id, { slug: "after" });
-      const links = await db.getLinks();
-      expect(links.find((l) => l.slug === "after")).toBeDefined();
-      expect(links.find((l) => l.slug === "before")).toBeUndefined();
-    });
-
-    it("updateLink updates screenshotUrl", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "ss1" });
-      expect(link.screenshotUrl).toBeNull();
-
-      const updated = await db.updateLink(link.id, {
+      const updated = unwrap(
+        await dbA.updateLink(link.id, {
+          originalUrl: "https://new.com",
+          slug: "newslug",
+          isCustom: true,
+          screenshotUrl: "https://img.example.com/shot.png",
+          folderId: folderA.id,
+          expiresAt: new Date("2027-01-01"),
+        }),
+      );
+      expect(updated).toMatchObject({
+        originalUrl: "https://new.com",
+        slug: "newslug",
+        isCustom: true,
         screenshotUrl: "https://img.example.com/shot.png",
+        folderId: folderA.id,
       });
-      expect(updated).not.toBeNull();
-      expect(unwrap(updated).screenshotUrl).toBe("https://img.example.com/shot.png");
-    });
+      expect(updated.expiresAt).toBeInstanceOf(Date);
+      expect(unwrap(await dbA.updateLink(link.id, { slug: "newslug" })).slug).toBe("newslug");
 
-    it("updateLink rejects a folder owned by another user", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-      const folderB = await dbB.createFolder({ name: "Bob", icon: "folder" });
-      const link = await dbA.createLink({ originalUrl: "https://example.com", slug: "own" });
+      const cleared = unwrap(
+        await dbA.updateLink(link.id, {
+          screenshotUrl: null,
+          folderId: null,
+          expiresAt: null,
+        }),
+      );
+      expect(cleared.screenshotUrl).toBeNull();
+      expect(cleared.folderId).toBeNull();
+      expect(cleared.expiresAt).toBeNull();
 
-      const updated = await dbA.updateLink(link.id, { folderId: folderB.id });
-      expect(updated).toBeNull();
-      expect((await dbA.getLinkById(link.id))?.folderId).toBeNull();
-    });
-
-    it("updateLink clears screenshotUrl when set to null", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "ss2" });
-      await db.updateLink(link.id, { screenshotUrl: "https://img.example.com/shot.png" });
-
-      const cleared = await db.updateLink(link.id, { screenshotUrl: null });
-      expect(cleared).not.toBeNull();
-      expect(unwrap(cleared).screenshotUrl).toBeNull();
-    });
-
-    it("updateLink rejects slug that collides with another existing link (UNIQUE constraint)", async () => {
-      const db = new ScopedDB(USER_A);
-      const first = await db.createLink({ originalUrl: "https://a.example.com", slug: "taken" });
-      const second = await db.createLink({ originalUrl: "https://b.example.com", slug: "free" });
-
-      await expect(db.updateLink(second.id, { slug: "taken" })).rejects.toThrow(
+      await expect(dbA.updateLink(link.id, { slug: "taken" })).rejects.toThrow(/UNIQUE constraint/);
+      await expect(dbA.updateLink(link.id, { slug: "bobs-slug" })).rejects.toThrow(
         /UNIQUE constraint/,
       );
-
-      // First link should still own the slug; second link slug unchanged
-      const links = await db.getLinks();
-      expect(links.find((l) => l.id === first.id)?.slug).toBe("taken");
-      expect(links.find((l) => l.id === second.id)?.slug).toBe("free");
-    });
-
-    it("updateLink rejects slug collision even when owned by another user", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-      await dbA.createLink({ originalUrl: "https://a.example.com", slug: "shared" });
-      const bobLink = await dbB.createLink({
-        originalUrl: "https://b.example.com",
-        slug: "bobs-own",
-      });
-
-      await expect(dbB.updateLink(bobLink.id, { slug: "shared" })).rejects.toThrow(
-        /UNIQUE constraint/,
-      );
-    });
-
-    it("updateLink allows setting slug to its own current value (no-op rename)", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "same" });
-
-      const updated = await db.updateLink(link.id, { slug: "same" });
-      expect(unwrap(updated).slug).toBe("same");
     });
   });
 
-  // ---- Link Metadata ----------------------------------------
+  describe("updateLinkMetadata, updateLinkNote, and screenshot methods", () => {
+    it("updates, clears, and isolates link metadata", async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+      const link = await dbA.createLink({ originalUrl: "https://example.com", slug: "meta1" });
 
-  describe("updateLinkMetadata", () => {
-    it("updates all metadata fields", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "meta1" });
+      expect(await dbB.updateLinkMetadata(link.id, { metaTitle: "Hacked" })).toBeNull();
+      expect(await dbA.updateLinkMetadata(99999, {})).toBeNull();
+      expect(unwrap(await dbA.updateLinkMetadata(link.id, {})).id).toBe(link.id);
 
-      const updated = await db.updateLinkMetadata(link.id, {
+      const partial = unwrap(await dbA.updateLinkMetadata(link.id, { metaTitle: "Only Title" }));
+      expect(partial.metaTitle).toBe("Only Title");
+
+      const full = unwrap(
+        await dbA.updateLinkMetadata(link.id, {
+          metaTitle: "Example",
+          metaDescription: "Desc",
+          metaFavicon: "https://example.com/favicon.ico",
+        }),
+      );
+      expect(full).toMatchObject({
         metaTitle: "Example",
-        metaDescription: "An example site",
+        metaDescription: "Desc",
         metaFavicon: "https://example.com/favicon.ico",
       });
 
-      expect(updated).not.toBeNull();
-      expect(unwrap(updated).metaTitle).toBe("Example");
-      expect(unwrap(updated).metaDescription).toBe("An example site");
-      expect(unwrap(updated).metaFavicon).toBe("https://example.com/favicon.ico");
-    });
-
-    it("updates only title when other fields are not provided", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "meta2" });
-
-      const updated = await db.updateLinkMetadata(link.id, { metaTitle: "Only Title" });
-
-      expect(updated).not.toBeNull();
-      expect(unwrap(updated).metaTitle).toBe("Only Title");
-    });
-
-    it("can set metadata to null (clear)", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "meta3" });
-
-      // First set metadata
-      await db.updateLinkMetadata(link.id, {
-        metaTitle: "Title",
-        metaDescription: "Desc",
-        metaFavicon: "https://example.com/icon.png",
-      });
-
-      // Then clear it
-      const cleared = await db.updateLinkMetadata(link.id, {
-        metaTitle: null,
-        metaDescription: null,
-        metaFavicon: null,
-      });
-
-      expect(cleared).not.toBeNull();
-      expect(unwrap(cleared).metaTitle).toBeNull();
-      expect(unwrap(cleared).metaDescription).toBeNull();
-      expect(unwrap(cleared).metaFavicon).toBeNull();
-    });
-
-    it("returns null for another user link", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const link = await dbA.createLink({ originalUrl: "https://example.com", slug: "meta4" });
-
-      const result = await dbB.updateLinkMetadata(link.id, { metaTitle: "Hacked" });
-      expect(result).toBeNull();
-    });
-
-    it("returns existing link when no metadata fields are provided", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "meta5" });
-
-      const result = await db.updateLinkMetadata(link.id, {});
-      expect(result).not.toBeNull();
-      expect(unwrap(result).id).toBe(link.id);
-    });
-
-    it("returns null for non-existent link with empty data", async () => {
-      const db = new ScopedDB(USER_A);
-
-      const result = await db.updateLinkMetadata(99999, {});
-      expect(result).toBeNull();
-    });
-  });
-
-  // ---- Analytics scoped through link ownership ---------------
-
-  describe("analytics operations", () => {
-    it("getAnalyticsByLinkId returns data only for owned links", async () => {
-      // Create links for both users via the unscoped db (simulating existing data)
-      const linkA = await createLink({
-        userId: USER_A,
-        originalUrl: "https://a.com",
-        slug: "analytics-a",
-      });
-      const linkB = await createLink({
-        userId: USER_B,
-        originalUrl: "https://b.com",
-        slug: "analytics-b",
-      });
-
-      // Record clicks (system-level, no user scope)
-      await recordClick({ linkId: linkA.id, country: "US" });
-      await recordClick({ linkId: linkA.id, country: "UK" });
-      await recordClick({ linkId: linkB.id, country: "JP" });
-
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      // Alice sees only her link's analytics
-      const analyticsA = await dbA.getAnalyticsByLinkId(linkA.id);
-      expect(analyticsA).toHaveLength(2);
-
-      // Alice cannot see Bob's link analytics
-      const crossAccess = await dbA.getAnalyticsByLinkId(linkB.id);
-      expect(crossAccess).toHaveLength(0);
-
-      // Bob sees only his own
-      const analyticsB = await dbB.getAnalyticsByLinkId(linkB.id);
-      expect(analyticsB).toHaveLength(1);
-    });
-
-    it("getAnalyticsStats enforces ownership via JOIN", async () => {
-      const linkA = await createLink({
-        userId: USER_A,
-        originalUrl: "https://a.com",
-        slug: "stats-a",
-      });
-
-      await recordClick({
-        linkId: linkA.id,
-        device: "desktop",
-        browser: "Chrome",
-        os: "macOS",
-        country: "US",
-      });
-      await recordClick({
-        linkId: linkA.id,
-        device: "mobile",
-        browser: "Safari",
-        os: "iOS",
-        country: "US",
-      });
-
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const statsA = await dbA.getAnalyticsStats(linkA.id);
-      expect(statsA.totalClicks).toBe(2);
-      expect(statsA.deviceBreakdown.desktop).toBe(1);
-      expect(statsA.deviceBreakdown.mobile).toBe(1);
-
-      // Bob gets zero stats for Alice's link
-      const statsB = await dbB.getAnalyticsStats(linkA.id);
-      expect(statsB.totalClicks).toBe(0);
-    });
-
-    it("getAnalyticsStats aggregates browser and OS breakdowns", async () => {
-      const link = await createLink({
-        userId: USER_A,
-        originalUrl: "https://a.com",
-        slug: "stats-full",
-      });
-
-      await recordClick({
-        linkId: link.id,
-        device: "desktop",
-        browser: "Chrome",
-        os: "macOS",
-        country: "US",
-      });
-      await recordClick({
-        linkId: link.id,
-        device: "desktop",
-        browser: "Chrome",
-        os: "Windows",
-        country: "DE",
-      });
-      await recordClick({
-        linkId: link.id,
-        device: "mobile",
-        browser: "Safari",
-        os: "iOS",
-        country: "US",
-      });
-
-      const db = new ScopedDB(USER_A);
-      const stats = await db.getAnalyticsStats(link.id);
-
-      expect(stats.totalClicks).toBe(3);
-      expect(stats.uniqueCountries).toContain("US");
-      expect(stats.uniqueCountries).toContain("DE");
-      expect(stats.browserBreakdown.Chrome).toBe(2);
-      expect(stats.browserBreakdown.Safari).toBe(1);
-      expect(stats.osBreakdown.macOS).toBe(1);
-      expect(stats.osBreakdown.Windows).toBe(1);
-      expect(stats.osBreakdown.iOS).toBe(1);
-    });
-
-    it("getAnalyticsStats returns empty breakdowns when no clicks exist", async () => {
-      const link = await createLink({
-        userId: USER_A,
-        originalUrl: "https://empty.com",
-        slug: "stats-empty",
-      });
-
-      const db = new ScopedDB(USER_A);
-      const stats = await db.getAnalyticsStats(link.id);
-
-      expect(stats.totalClicks).toBe(0);
-      expect(stats.uniqueCountries).toEqual([]);
-      expect(stats.deviceBreakdown).toEqual({});
-      expect(stats.browserBreakdown).toEqual({});
-      expect(stats.osBreakdown).toEqual({});
-    });
-  });
-
-  // ---- Folders -----------------------------------------------
-
-  describe("folder operations", () => {
-    it("getFolders returns an empty array when no folders exist", async () => {
-      const db = new ScopedDB(USER_A);
-      const folders = await db.getFolders();
-
-      expect(folders).toEqual([]);
-    });
-
-    it("createFolder assigns the scoped userId and defaults", async () => {
-      const db = new ScopedDB(USER_A);
-      const folder = await db.createFolder({ name: "Work", icon: "briefcase" });
-
-      expect(folder.userId).toBe(USER_A);
-      expect(folder.name).toBe("Work");
-      expect(folder.icon).toBe("briefcase");
-      expect(folder.id).toBeTruthy();
-      expect(folder.createdAt).toBeInstanceOf(Date);
-    });
-
-    it("createFolder uses default icon when not specified", async () => {
-      const db = new ScopedDB(USER_A);
-      const folder = await db.createFolder({ name: "Default" });
-
-      expect(folder.icon).toBe("folder");
-    });
-
-    it("getFolders only returns own folders", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      await dbA.createFolder({ name: "Alice Folder 1" });
-      await dbA.createFolder({ name: "Alice Folder 2" });
-      await dbB.createFolder({ name: "Bob Folder" });
-
-      const foldersA = await dbA.getFolders();
-      const foldersB = await dbB.getFolders();
-
-      expect(foldersA).toHaveLength(2);
-      expect(foldersB).toHaveLength(1);
-      expect(foldersA.every((f) => f.userId === USER_A)).toBe(true);
-      expect(foldersB.every((f) => f.userId === USER_B)).toBe(true);
-    });
-
-    it("getFolderById returns folder for owner", async () => {
-      const db = new ScopedDB(USER_A);
-      const folder = await db.createFolder({ name: "Mine" });
-
-      const found = await db.getFolderById(folder.id);
-      expect(found).not.toBeNull();
-      expect(unwrap(found).id).toBe(folder.id);
-      expect(unwrap(found).name).toBe("Mine");
-    });
-
-    it("getFolderById returns null for other user", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const folder = await dbA.createFolder({ name: "Private" });
-
-      expect(await dbB.getFolderById(folder.id)).toBeNull();
-    });
-
-    it("getFolderById returns null for non-existent folder", async () => {
-      const db = new ScopedDB(USER_A);
-      expect(await db.getFolderById("non-existent-id")).toBeNull();
-    });
-
-    it("updateFolder updates name and icon", async () => {
-      const db = new ScopedDB(USER_A);
-      const folder = await db.createFolder({ name: "Old Name", icon: "folder" });
-
-      const updated = await db.updateFolder(folder.id, { name: "New Name", icon: "star" });
-
-      expect(updated).not.toBeNull();
-      expect(unwrap(updated).name).toBe("New Name");
-      expect(unwrap(updated).icon).toBe("star");
-    });
-
-    it("updateFolder updates only name when icon is not provided", async () => {
-      const db = new ScopedDB(USER_A);
-      const folder = await db.createFolder({ name: "Original", icon: "heart" });
-
-      const updated = await db.updateFolder(folder.id, { name: "Renamed" });
-
-      expect(updated).not.toBeNull();
-      expect(unwrap(updated).name).toBe("Renamed");
-      expect(unwrap(updated).icon).toBe("heart");
-    });
-
-    it("updateFolder updates only icon when name is not provided", async () => {
-      const db = new ScopedDB(USER_A);
-      const folder = await db.createFolder({ name: "Keep", icon: "folder" });
-
-      const updated = await db.updateFolder(folder.id, { icon: "rocket" });
-
-      expect(updated).not.toBeNull();
-      expect(unwrap(updated).name).toBe("Keep");
-      expect(unwrap(updated).icon).toBe("rocket");
-    });
-
-    it("updateFolder with empty data returns existing folder", async () => {
-      const db = new ScopedDB(USER_A);
-      const folder = await db.createFolder({ name: "NoChange" });
-
-      const result = await db.updateFolder(folder.id, {});
-      expect(result).not.toBeNull();
-      expect(unwrap(result).name).toBe("NoChange");
-    });
-
-    it("updateFolder returns null for other user folder", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const folder = await dbA.createFolder({ name: "Protected" });
-
-      expect(await dbB.updateFolder(folder.id, { name: "Hacked" })).toBeNull();
-    });
-
-    it("deleteFolder removes the folder", async () => {
-      const db = new ScopedDB(USER_A);
-      const folder = await db.createFolder({ name: "ToDelete" });
-
-      expect(await db.deleteFolder(folder.id)).toBe(true);
-
-      const folders = await db.getFolders();
-      expect(folders).toHaveLength(0);
-    });
-
-    it("deleteFolder cannot delete other user folder", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const folder = await dbA.createFolder({ name: "Protected" });
-
-      expect(await dbB.deleteFolder(folder.id)).toBe(false);
-      // Folder still exists for Alice
-      const folders = await dbA.getFolders();
-      expect(folders).toHaveLength(1);
-    });
-
-    it("deleteFolder sets folder_id to null on associated links", async () => {
-      const db = new ScopedDB(USER_A);
-      const folder = await db.createFolder({ name: "Temp" });
-
-      const link = await db.createLink({
-        originalUrl: "https://example.com",
-        slug: "folder-link",
-        folderId: folder.id,
-      });
-
-      expect(link.folderId).toBe(folder.id);
-
-      await db.deleteFolder(folder.id);
-
-      const links = await db.getLinks();
-      expect(unwrap(links[0]).folderId).toBeNull();
-    });
-
-    it("getFoldersWithLinkCount returns folders with link counts", async () => {
-      const db = new ScopedDB(USER_A);
-      const folderA = await db.createFolder({ name: "Folder A" });
-      const folderB = await db.createFolder({ name: "Folder B" });
-
-      // Add 2 links to folderA, 1 link to folderB
-      await db.createLink({
-        originalUrl: "https://a1.com",
-        slug: "a1",
-        folderId: folderA.id,
-      });
-      await db.createLink({
-        originalUrl: "https://a2.com",
-        slug: "a2",
-        folderId: folderA.id,
-      });
-      await db.createLink({
-        originalUrl: "https://b1.com",
-        slug: "b1",
-        folderId: folderB.id,
-      });
-
-      const foldersWithCount = await db.getFoldersWithLinkCount();
-
-      // Should be sorted by createdAt DESC, so folderB first
-      expect(foldersWithCount).toHaveLength(2);
-      const folderBResult = foldersWithCount.find((f) => f.id === folderB.id);
-      const folderAResult = foldersWithCount.find((f) => f.id === folderA.id);
-      expect(folderBResult?.linkCount).toBe(1);
-      expect(folderAResult?.linkCount).toBe(2);
-    });
-
-    it("getFoldersWithLinkCount returns 0 for folders without links", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.createFolder({ name: "Empty Folder" });
-
-      const foldersWithCount = await db.getFoldersWithLinkCount();
-
-      expect(foldersWithCount).toHaveLength(1);
-      expect(foldersWithCount[0]?.linkCount).toBe(0);
-    });
-
-    it("getFoldersWithLinkCount only counts own folders", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const folderA = await dbA.createFolder({ name: "Alice Folder" });
-      await dbB.createFolder({ name: "Bob Folder" });
-
-      // Add link to Alice's folder
-      await dbA.createLink({
-        originalUrl: "https://alice.com",
-        slug: "alice",
-        folderId: folderA.id,
-      });
-
-      const aliceFolders = await dbA.getFoldersWithLinkCount();
-      const bobFolders = await dbB.getFoldersWithLinkCount();
-
-      expect(aliceFolders).toHaveLength(1);
-      expect(aliceFolders[0]?.linkCount).toBe(1);
-      expect(bobFolders).toHaveLength(1);
-      expect(bobFolders[0]?.linkCount).toBe(0);
-    });
-  });
-
-  // ---- Uploads -----------------------------------------------
-
-  describe("upload operations", () => {
-    it("createUpload assigns the scoped userId", async () => {
-      const db = new ScopedDB(USER_A);
-      const upload = await db.createUpload({
-        key: "20260212/test-uuid.png",
-        fileName: "photo.png",
-        fileType: "image/png",
-        fileSize: 1024,
-        publicUrl: "https://s.zhe.to/20260212/test-uuid.png",
-      });
-
-      expect(upload.userId).toBe(USER_A);
-      expect(upload.key).toBe("20260212/test-uuid.png");
-      expect(upload.fileName).toBe("photo.png");
-      expect(upload.fileType).toBe("image/png");
-      expect(upload.fileSize).toBe(1024);
-      expect(upload.publicUrl).toBe("https://s.zhe.to/20260212/test-uuid.png");
-      expect(upload.id).toBeGreaterThan(0);
-      expect(upload.createdAt).toBeInstanceOf(Date);
-    });
-
-    it("getUploads only returns own uploads", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      await dbA.createUpload({
-        key: "20260212/a1.png",
-        fileName: "a1.png",
-        fileType: "image/png",
-        fileSize: 100,
-        publicUrl: "https://s.zhe.to/20260212/a1.png",
-      });
-      await dbA.createUpload({
-        key: "20260212/a2.jpg",
-        fileName: "a2.jpg",
-        fileType: "image/jpeg",
-        fileSize: 200,
-        publicUrl: "https://s.zhe.to/20260212/a2.jpg",
-      });
-      await dbB.createUpload({
-        key: "20260212/b1.pdf",
-        fileName: "b1.pdf",
-        fileType: "application/pdf",
-        fileSize: 300,
-        publicUrl: "https://s.zhe.to/20260212/b1.pdf",
-      });
-
-      const uploadsA = await dbA.getUploads();
-      const uploadsB = await dbB.getUploads();
-
-      expect(uploadsA).toHaveLength(2);
-      expect(uploadsB).toHaveLength(1);
-      expect(uploadsA.every((u) => u.userId === USER_A)).toBe(true);
-      expect(uploadsB.every((u) => u.userId === USER_B)).toBe(true);
-    });
-
-    it("deleteUpload cannot delete another user upload", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const upload = await dbA.createUpload({
-        key: "20260212/priv.png",
-        fileName: "priv.png",
-        fileType: "image/png",
-        fileSize: 100,
-        publicUrl: "https://s.zhe.to/20260212/priv.png",
-      });
-
-      // Bob cannot delete Alice's upload
-      expect(await dbB.deleteUpload(upload.id)).toBe(false);
-      // Alice can
-      expect(await dbA.deleteUpload(upload.id)).toBe(true);
-    });
-
-    it("getUploadKey returns key for own upload", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const upload = await dbA.createUpload({
-        key: "20260212/getkey.png",
-        fileName: "getkey.png",
-        fileType: "image/png",
-        fileSize: 100,
-        publicUrl: "https://s.zhe.to/20260212/getkey.png",
-      });
-
-      expect(await dbA.getUploadKey(upload.id)).toBe("20260212/getkey.png");
-      expect(await dbB.getUploadKey(upload.id)).toBeNull();
-    });
-
-    it("getUploadKey returns null for non-existent upload", async () => {
-      const db = new ScopedDB(USER_A);
-      expect(await db.getUploadKey(99999)).toBeNull();
-    });
-
-    it("getUploads returns empty array when no uploads exist", async () => {
-      const db = new ScopedDB(USER_A);
-      const uploads = await db.getUploads();
-      expect(uploads).toEqual([]);
-    });
-  });
-
-  // ---- Tags --------------------------------------------------
-
-  describe("tag operations", () => {
-    it("getTags returns empty array when no tags exist", async () => {
-      const db = new ScopedDB(USER_A);
-      const tags = await db.getTags();
-      expect(tags).toEqual([]);
-    });
-
-    it("createTag assigns the scoped userId", async () => {
-      const db = new ScopedDB(USER_A);
-      const tag = await db.createTag({ name: "work", color: "blue" });
-
-      expect(tag.userId).toBe(USER_A);
-      expect(tag.name).toBe("work");
-      expect(tag.color).toBe("blue");
-      expect(tag.id).toBeTruthy();
-      expect(tag.createdAt).toBeInstanceOf(Date);
-    });
-
-    it("getTags only returns own tags", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      await dbA.createTag({ name: "work", color: "blue" });
-      await dbA.createTag({ name: "personal", color: "red" });
-      await dbB.createTag({ name: "bob-tag", color: "emerald" });
-
-      const tagsA = await dbA.getTags();
-      const tagsB = await dbB.getTags();
-
-      expect(tagsA).toHaveLength(2);
-      expect(tagsB).toHaveLength(1);
-      expect(tagsA.every((t) => t.userId === USER_A)).toBe(true);
-      expect(tagsB.every((t) => t.userId === USER_B)).toBe(true);
-    });
-
-    it("updateTag updates name and color", async () => {
-      const db = new ScopedDB(USER_A);
-      const tag = await db.createTag({ name: "old", color: "blue" });
-
-      const updated = await db.updateTag(tag.id, { name: "new", color: "red" });
-
-      expect(updated).not.toBeNull();
-      expect(unwrap(updated).name).toBe("new");
-      expect(unwrap(updated).color).toBe("red");
-    });
-
-    it("updateTag updates only name", async () => {
-      const db = new ScopedDB(USER_A);
-      const tag = await db.createTag({ name: "original", color: "emerald" });
-
-      const updated = await db.updateTag(tag.id, { name: "renamed" });
-
-      expect(updated).not.toBeNull();
-      expect(unwrap(updated).name).toBe("renamed");
-      expect(unwrap(updated).color).toBe("emerald");
-    });
-
-    it("updateTag updates only color", async () => {
-      const db = new ScopedDB(USER_A);
-      const tag = await db.createTag({ name: "keep", color: "blue" });
-
-      const updated = await db.updateTag(tag.id, { color: "rose" });
-
-      expect(updated).not.toBeNull();
-      expect(unwrap(updated).name).toBe("keep");
-      expect(unwrap(updated).color).toBe("rose");
-    });
-
-    it("updateTag with empty data returns existing tag", async () => {
-      const db = new ScopedDB(USER_A);
-      const tag = await db.createTag({ name: "nochange", color: "slate" });
-
-      const result = await db.updateTag(tag.id, {});
-      expect(result).not.toBeNull();
-      expect(unwrap(result).name).toBe("nochange");
-    });
-
-    it("updateTag returns null for other user tag", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const tag = await dbA.createTag({ name: "private", color: "blue" });
-
-      expect(await dbB.updateTag(tag.id, { name: "hacked" })).toBeNull();
-    });
-
-    it("updateTag with empty data returns null for non-existent tag", async () => {
-      const db = new ScopedDB(USER_A);
-      const result = await db.updateTag("non-existent-id", {});
-      expect(result).toBeNull();
-    });
-
-    it("deleteTag removes the tag", async () => {
-      const db = new ScopedDB(USER_A);
-      const tag = await db.createTag({ name: "to-delete", color: "red" });
-
-      expect(await db.deleteTag(tag.id)).toBe(true);
-
-      const tags = await db.getTags();
-      expect(tags).toHaveLength(0);
-    });
-
-    it("deleteTag cannot delete other user tag", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const tag = await dbA.createTag({ name: "protected", color: "blue" });
-
-      expect(await dbB.deleteTag(tag.id)).toBe(false);
-      const tags = await dbA.getTags();
-      expect(tags).toHaveLength(1);
-    });
-  });
-
-  // ---- Link-Tag associations --------------------------------
-
-  describe("link-tag operations", () => {
-    it("addTagToLink associates a tag with a link", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "lt1" });
-      const tag = await db.createTag({ name: "work", color: "blue" });
-
-      const result = await db.addTagToLink(link.id, tag.id);
-      expect(result).toBe(true);
-
-      const linkTags = await db.getLinkTags();
-      expect(linkTags).toHaveLength(1);
-      expect(unwrap(linkTags[0]).linkId).toBe(link.id);
-      expect(unwrap(linkTags[0]).tagId).toBe(tag.id);
-    });
-
-    it("addTagToLink returns false for unowned link", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const link = await dbA.createLink({ originalUrl: "https://a.com", slug: "lt2" });
-      const tag = await dbB.createTag({ name: "bob-tag", color: "red" });
-
-      expect(await dbB.addTagToLink(link.id, tag.id)).toBe(false);
-    });
-
-    it("addTagToLink returns false for unowned tag", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const link = await dbA.createLink({ originalUrl: "https://a.com", slug: "lt3" });
-      const tag = await dbB.createTag({ name: "bob-tag", color: "red" });
-
-      expect(await dbA.addTagToLink(link.id, tag.id)).toBe(false);
-    });
-
-    it("getLinkTags only returns associations for own links", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const linkA = await dbA.createLink({ originalUrl: "https://a.com", slug: "lt4" });
-      const tagA = await dbA.createTag({ name: "a-tag", color: "blue" });
-      await dbA.addTagToLink(linkA.id, tagA.id);
-
-      const linkB = await dbB.createLink({ originalUrl: "https://b.com", slug: "lt5" });
-      const tagB = await dbB.createTag({ name: "b-tag", color: "red" });
-      await dbB.addTagToLink(linkB.id, tagB.id);
-
-      const linkTagsA = await dbA.getLinkTags();
-      const linkTagsB = await dbB.getLinkTags();
-
-      expect(linkTagsA).toHaveLength(1);
-      expect(unwrap(linkTagsA[0]).linkId).toBe(linkA.id);
-      expect(linkTagsB).toHaveLength(1);
-      expect(unwrap(linkTagsB[0]).linkId).toBe(linkB.id);
-    });
-
-    it("removeTagFromLink removes the association", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "lt6" });
-      const tag = await db.createTag({ name: "temp", color: "amber" });
-      await db.addTagToLink(link.id, tag.id);
-
-      expect(await db.removeTagFromLink(link.id, tag.id)).toBe(true);
-
-      const linkTags = await db.getLinkTags();
-      expect(linkTags).toHaveLength(0);
-    });
-
-    it("removeTagFromLink returns false for non-existent association", async () => {
-      const db = new ScopedDB(USER_A);
-      expect(await db.removeTagFromLink(99999, "fake-id")).toBe(false);
-    });
-
-    it("removeTagFromLink cannot remove other user associations", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const link = await dbA.createLink({ originalUrl: "https://a.com", slug: "lt7" });
-      const tag = await dbA.createTag({ name: "a-tag", color: "blue" });
-      await dbA.addTagToLink(link.id, tag.id);
-
-      expect(await dbB.removeTagFromLink(link.id, tag.id)).toBe(false);
-
-      const linkTags = await dbA.getLinkTags();
-      expect(linkTags).toHaveLength(1);
-    });
-
-    it("deleting a tag cascades to link_tags", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "lt8" });
-      const tag = await db.createTag({ name: "cascade", color: "violet" });
-      await db.addTagToLink(link.id, tag.id);
-
-      await db.deleteTag(tag.id);
-
-      const linkTags = await db.getLinkTags();
-      expect(linkTags).toHaveLength(0);
-    });
-
-    it("deleting a link cascades to link_tags", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "lt9" });
-      const tag = await db.createTag({ name: "cascade2", color: "pink" });
-      await db.addTagToLink(link.id, tag.id);
-
-      await db.deleteLink(link.id);
-
-      const linkTags = await db.getLinkTags();
-      expect(linkTags).toHaveLength(0);
-    });
-
-    it("addTagToLink is idempotent (INSERT OR IGNORE)", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "lt10" });
-      const tag = await db.createTag({ name: "dup", color: "cyan" });
-
-      await db.addTagToLink(link.id, tag.id);
-      await db.addTagToLink(link.id, tag.id); // duplicate — should not throw
-
-      const linkTags = await db.getLinkTags();
-      expect(linkTags).toHaveLength(1);
-    });
-  });
-
-  // ---- Link Note --------------------------------------------
-
-  describe("updateLinkNote", () => {
-    it("sets note on a link", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "note1" });
-
-      const updated = await db.updateLinkNote(link.id, "this is a note");
-
-      expect(updated).not.toBeNull();
-      expect(unwrap(updated).note).toBe("this is a note");
-    });
-
-    it("clears note by setting null", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "note2" });
-      await db.updateLinkNote(link.id, "has note");
-
-      const cleared = await db.updateLinkNote(link.id, null);
-
-      expect(cleared).not.toBeNull();
-      expect(unwrap(cleared).note).toBeNull();
-    });
-
-    it("returns null for other user link", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const link = await dbA.createLink({ originalUrl: "https://example.com", slug: "note3" });
-
-      expect(await dbB.updateLinkNote(link.id, "hacked")).toBeNull();
-    });
-
-    it("returns null for non-existent link", async () => {
-      const db = new ScopedDB(USER_A);
-      expect(await db.updateLinkNote(99999, "no link")).toBeNull();
-    });
-
-    it("newly created links have null note", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://example.com", slug: "note4" });
-      expect(link.note).toBeNull();
-    });
-  });
-
-  // ---- Overview stats ----------------------------------------
-
-  describe("getOverviewStats", () => {
-    it("returns zeroed stats when user has no data", async () => {
-      const db = new ScopedDB(USER_A);
-      const stats = await db.getOverviewStats();
-
-      expect(stats.totalLinks).toBe(0);
-      expect(stats.totalClicks).toBe(0);
-      expect(stats.totalUploads).toBe(0);
-      expect(stats.totalStorageBytes).toBe(0);
-      expect(stats.clickTrend).toEqual([]);
-      expect(stats.uploadTrend).toEqual([]);
-      expect(stats.topLinks).toEqual([]);
-      expect(stats.deviceBreakdown).toEqual({});
-      expect(stats.browserBreakdown).toEqual({});
-      expect(stats.osBreakdown).toEqual({});
-      expect(stats.fileTypeBreakdown).toEqual({});
-    });
-
-    it("aggregates link and click counts across all user links", async () => {
-      const db = new ScopedDB(USER_A);
-      const link1 = await db.createLink({
-        originalUrl: "https://a.com",
-        slug: "ov-a1",
-        clicks: 10,
-      });
-      const link2 = await db.createLink({ originalUrl: "https://b.com", slug: "ov-a2", clicks: 5 });
-
-      // Record some analytics clicks
-      await recordClick({
-        linkId: link1.id,
-        device: "desktop",
-        browser: "Chrome",
-        os: "macOS",
-        country: "US",
-      });
-      await recordClick({
-        linkId: link1.id,
-        device: "mobile",
-        browser: "Safari",
-        os: "iOS",
-        country: "JP",
-      });
-      await recordClick({
-        linkId: link2.id,
-        device: "desktop",
-        browser: "Firefox",
-        os: "Windows",
-        country: "DE",
-      });
-
-      const stats = await db.getOverviewStats();
-
-      expect(stats.totalLinks).toBe(2);
-      // totalClicks comes from sum of links.clicks column (10 + 5 initial + 3 recorded = 18)
-      expect(stats.totalClicks).toBe(18);
-      expect(stats.clickTrend).toHaveLength(1); // all 3 clicks on same day
-      expect(unwrap(stats.clickTrend[0]).clicks).toBe(3);
-      expect(unwrap(stats.clickTrend[0]).origin).toBe(3); // no source tag (NULL) → counted as origin
-      expect(unwrap(stats.clickTrend[0]).worker).toBe(0);
-    });
-
-    it("does not include other users data", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      await dbA.createLink({ originalUrl: "https://a.com", slug: "ov-iso-a", clicks: 100 });
-      const linkB = await createLink({
-        userId: USER_B,
-        originalUrl: "https://b.com",
-        slug: "ov-iso-b",
-      });
-      await recordClick({ linkId: linkB.id, device: "desktop", browser: "Edge", os: "Windows" });
-
-      const statsA = await dbA.getOverviewStats();
-      expect(statsA.totalLinks).toBe(1);
-      expect(statsA.totalClicks).toBe(100);
-      // Alice should not see Bob's analytics
-      expect(statsA.clickTrend).toHaveLength(0);
-
-      const statsB = await dbB.getOverviewStats();
-      expect(statsB.totalLinks).toBe(1);
-      expect(statsB.clickTrend).toHaveLength(1);
-    });
-
-    it("computes device/browser/OS breakdowns across all links", async () => {
-      const db = new ScopedDB(USER_A);
-      const link1 = await db.createLink({ originalUrl: "https://a.com", slug: "ov-br1" });
-      const link2 = await db.createLink({ originalUrl: "https://b.com", slug: "ov-br2" });
-
-      await recordClick({ linkId: link1.id, device: "desktop", browser: "Chrome", os: "macOS" });
-      await recordClick({ linkId: link1.id, device: "mobile", browser: "Chrome", os: "Android" });
-      await recordClick({ linkId: link2.id, device: "desktop", browser: "Safari", os: "macOS" });
-
-      const stats = await db.getOverviewStats();
-
-      expect(stats.deviceBreakdown).toEqual({ desktop: 2, mobile: 1 });
-      expect(stats.browserBreakdown).toEqual({ Chrome: 2, Safari: 1 });
-      expect(stats.osBreakdown).toEqual({ macOS: 2, Android: 1 });
-    });
-
-    it("returns top links sorted by clicks descending", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.createLink({ originalUrl: "https://low.com", slug: "ov-top-low", clicks: 5 });
-      await db.createLink({ originalUrl: "https://high.com", slug: "ov-top-high", clicks: 100 });
-      await db.createLink({ originalUrl: "https://mid.com", slug: "ov-top-mid", clicks: 50 });
-
-      const stats = await db.getOverviewStats();
-
-      expect(stats.topLinks).toHaveLength(3);
-      expect(unwrap(stats.topLinks[0]).slug).toBe("ov-top-high");
-      expect(unwrap(stats.topLinks[0]).clicks).toBe(100);
-      expect(unwrap(stats.topLinks[1]).slug).toBe("ov-top-mid");
-      expect(unwrap(stats.topLinks[2]).slug).toBe("ov-top-low");
-    });
-
-    it("includes upload stats with timestamps and file type breakdown", async () => {
-      const db = new ScopedDB(USER_A);
-
-      await db.createUpload({
-        key: "20260212/ov1.png",
-        fileName: "ov1.png",
-        fileType: "image/png",
-        fileSize: 1024,
-        publicUrl: "https://s.zhe.to/20260212/ov1.png",
-      });
-      await db.createUpload({
-        key: "20260212/ov2.jpg",
-        fileName: "ov2.jpg",
-        fileType: "image/jpeg",
-        fileSize: 2048,
-        publicUrl: "https://s.zhe.to/20260212/ov2.jpg",
-      });
-
-      const stats = await db.getOverviewStats();
-
-      expect(stats.totalUploads).toBe(2);
-      expect(stats.totalStorageBytes).toBe(3072);
-      expect(stats.uploadTrend).toHaveLength(1); // both uploads on same day
-      expect(unwrap(stats.uploadTrend[0]).uploads).toBe(2);
-      expect(stats.fileTypeBreakdown).toEqual({ "image/png": 1, "image/jpeg": 1 });
-    });
-
-    it("does not include other users uploads", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      await dbA.createUpload({
-        key: "20260212/alice.png",
-        fileName: "alice.png",
-        fileType: "image/png",
-        fileSize: 500,
-        publicUrl: "https://s.zhe.to/20260212/alice.png",
-      });
-      await dbB.createUpload({
-        key: "20260212/bob.png",
-        fileName: "bob.png",
-        fileType: "image/png",
-        fileSize: 700,
-        publicUrl: "https://s.zhe.to/20260212/bob.png",
-      });
-
-      const statsA = await dbA.getOverviewStats();
-      expect(statsA.totalUploads).toBe(1);
-      expect(statsA.totalStorageBytes).toBe(500);
-
-      const statsB = await dbB.getOverviewStats();
-      expect(statsB.totalUploads).toBe(1);
-      expect(statsB.totalStorageBytes).toBe(700);
-    });
-  });
-
-  // ---- User Settings ----------------------------------------
-
-  describe("user settings operations", () => {
-    it("getUserSettings returns null when no settings exist", async () => {
-      const db = new ScopedDB(USER_A);
-      expect(await db.getUserSettings()).toBeNull();
-    });
-
-    it("upsertPreviewStyle creates settings when none exist", async () => {
-      const db = new ScopedDB(USER_A);
-      const settings = await db.upsertPreviewStyle("screenshot");
-
-      expect(settings.userId).toBe(USER_A);
-      expect(settings.previewStyle).toBe("screenshot");
-    });
-
-    it("getUserSettings returns settings after upsert", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.upsertPreviewStyle("favicon");
-
-      const settings = await db.getUserSettings();
-
-      expect(settings).not.toBeNull();
-      expect(unwrap(settings).userId).toBe(USER_A);
-      expect(unwrap(settings).previewStyle).toBe("favicon");
-    });
-
-    it("upsertPreviewStyle updates existing settings", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.upsertPreviewStyle("favicon");
-
-      const updated = await db.upsertPreviewStyle("screenshot");
-
-      expect(updated.previewStyle).toBe("screenshot");
-
-      const settings = await db.getUserSettings();
-      expect(unwrap(settings).previewStyle).toBe("screenshot");
-    });
-
-    it("settings are scoped to user (user isolation)", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      await dbA.upsertPreviewStyle("screenshot");
-      await dbB.upsertPreviewStyle("favicon");
-
-      const settingsA = await dbA.getUserSettings();
-      const settingsB = await dbB.getUserSettings();
-
-      expect(unwrap(settingsA).previewStyle).toBe("screenshot");
-      expect(unwrap(settingsB).previewStyle).toBe("favicon");
-    });
-
-    it("user without settings does not see other user settings", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      await dbA.upsertPreviewStyle("screenshot");
-
-      expect(await dbB.getUserSettings()).toBeNull();
-    });
-  });
-
-  // ---- Webhook Operations -----------------------------------
-
-  describe("Webhook Operations", () => {
-    it("upsertWebhook creates a new webhook", async () => {
-      const db = new ScopedDB(USER_A);
-      const webhook = await db.upsertWebhook("tok_abc123");
-
-      expect(webhook.userId).toBe(USER_A);
-      expect(webhook.token).toBe("tok_abc123");
-      expect(webhook.rateLimit).toBe(5);
-      expect(webhook.createdAt).toBeInstanceOf(Date);
-      expect(webhook.id).toBeGreaterThan(0);
-    });
-
-    it("upsertWebhook replaces existing webhook token", async () => {
-      const db = new ScopedDB(USER_A);
-      const first = await db.upsertWebhook("tok_old");
-      const second = await db.upsertWebhook("tok_new");
-
-      expect(second.userId).toBe(USER_A);
-      expect(second.token).toBe("tok_new");
-      // Should be the same user's webhook (upsert, not insert)
-      expect(second.id).toBe(first.id);
-    });
-
-    it("upsertWebhook is scoped to user", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      await dbA.upsertWebhook("tok_alice");
-      await dbB.upsertWebhook("tok_bob");
-
-      const webhookA = await dbA.getWebhook();
-      const webhookB = await dbB.getWebhook();
-
-      expect(webhookA).not.toBeNull();
-      expect(unwrap(webhookA).token).toBe("tok_alice");
-      expect(webhookB).not.toBeNull();
-      expect(unwrap(webhookB).token).toBe("tok_bob");
-    });
-
-    it("getWebhook returns null when no webhook exists", async () => {
-      const db = new ScopedDB(USER_A);
-      expect(await db.getWebhook()).toBeNull();
-    });
-
-    it("updateWebhookRateLimit updates the rate limit", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.upsertWebhook("tok_rate");
-
-      const updated = await db.updateWebhookRateLimit(20);
-
-      expect(updated).not.toBeNull();
-      expect(unwrap(updated).rateLimit).toBe(20);
-      expect(unwrap(updated).token).toBe("tok_rate");
-    });
-
-    it("updateWebhookRateLimit returns null when no webhook exists", async () => {
-      const db = new ScopedDB(USER_A);
-
-      const result = await db.updateWebhookRateLimit(10);
-
-      expect(result).toBeNull();
-    });
-
-    it("updateWebhookRateLimit is scoped to user", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      await dbA.upsertWebhook("tok_alice");
-
-      // Bob cannot update Alice's webhook rate limit (he has no webhook)
-      const bobResult = await dbB.updateWebhookRateLimit(100);
-      expect(bobResult).toBeNull();
-
-      // Alice can update her own
-      const aliceResult = await dbA.updateWebhookRateLimit(15);
-      expect(aliceResult).not.toBeNull();
-      expect(unwrap(aliceResult).rateLimit).toBe(15);
-    });
-
-    it("deleteWebhook removes the webhook", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.upsertWebhook("tok_delete");
-
-      const deleted = await db.deleteWebhook();
-      expect(deleted).toBe(true);
-
-      const webhook = await db.getWebhook();
-      expect(webhook).toBeNull();
-    });
-
-    it("deleteWebhook returns false when no webhook exists", async () => {
-      const db = new ScopedDB(USER_A);
-
-      const result = await db.deleteWebhook();
-      expect(result).toBe(false);
-    });
-
-    it("deleteWebhook is scoped to user", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      await dbA.upsertWebhook("tok_alice");
-      await dbB.upsertWebhook("tok_bob");
-
-      // Delete Alice's webhook
-      expect(await dbA.deleteWebhook()).toBe(true);
-      expect(await dbA.getWebhook()).toBeNull();
-
-      // Bob's webhook should still exist
-      expect(await dbB.getWebhook()).not.toBeNull();
-      expect(unwrap(await dbB.getWebhook()).token).toBe("tok_bob");
-    });
-  });
-
-  // ---- API Key CRUD -------------------------------------------
-
-  describe("api key operations", () => {
-    it("createApiKey creates a key scoped to user", async () => {
-      const db = new ScopedDB(USER_A);
-      const key = await db.createApiKey({
-        id: "key-1",
-        prefix: "zhe_abcd1234",
-        keyHash: "hash123",
-        name: "Test Key",
-        scopes: "links:read,links:write",
-      });
-      expect(key.userId).toBe(USER_A);
-      expect(key.name).toBe("Test Key");
-      expect(key.revokedAt).toBeNull();
-    });
-
-    it("getApiKeys returns only non-revoked keys for user", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      await dbA.createApiKey({
-        id: "key-a1",
-        prefix: "zhe_a1",
-        keyHash: "h1",
-        name: "Key A1",
-        scopes: "links:read",
-      });
-      await dbA.createApiKey({
-        id: "key-a2",
-        prefix: "zhe_a2",
-        keyHash: "h2",
-        name: "Key A2",
-        scopes: "links:write",
-      });
-      await dbB.createApiKey({
-        id: "key-b1",
-        prefix: "zhe_b1",
-        keyHash: "h3",
-        name: "Key B1",
-        scopes: "links:read",
-      });
-
-      const keysA = await dbA.getApiKeys();
-      expect(keysA).toHaveLength(2);
-      for (const k of keysA) {
-        expect(k.userId).toBe(USER_A);
-      }
-
-      const keysB = await dbB.getApiKeys();
-      expect(keysB).toHaveLength(1);
-    });
-
-    it("revokeApiKey soft-deletes and excludes from getApiKeys", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.createApiKey({
-        id: "key-rev",
-        prefix: "zhe_rev",
-        keyHash: "hrev",
-        name: "Revokable",
-        scopes: "links:read",
-      });
-
-      const revoked = await db.revokeApiKey("key-rev");
-      expect(revoked).not.toBeNull();
-      expect(revoked?.revokedAt).not.toBeNull();
-
-      const keys = await db.getApiKeys();
-      expect(keys).toHaveLength(0);
-    });
-
-    it("revokeApiKey returns null for other user key", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      await dbA.createApiKey({
-        id: "key-own",
-        prefix: "zhe_own",
-        keyHash: "hown",
-        name: "A key",
-        scopes: "links:read",
-      });
-
-      const result = await dbB.revokeApiKey("key-own");
-      expect(result).toBeNull();
-
-      // Key should still exist for user A
-      const keysA = await dbA.getApiKeys();
-      expect(keysA).toHaveLength(1);
-    });
-
-    it("updateApiKeyLastUsed updates timestamp", async () => {
-      const db = new ScopedDB(USER_A);
-      const key = await db.createApiKey({
-        id: "key-used",
-        prefix: "zhe_used",
-        keyHash: "hused",
-        name: "Used Key",
-        scopes: "links:read",
-      });
-      expect(key.lastUsedAt).toBeNull();
-
-      await db.updateApiKeyLastUsed("key-used");
-      const keys = await db.getApiKeys();
-      const updated = keys.find((k) => k.id === "key-used");
-      expect(updated).toBeDefined();
-      // lastUsedAt should now be set (non-null)
-    });
-  });
-
-  // ---- Ideas CRUD ------------------------------------------
-
-  describe("idea operations", () => {
-    it("getIdeas returns empty array when no ideas exist", async () => {
-      const db = new ScopedDB(USER_A);
-      const ideas = await db.getIdeas();
-      expect(ideas).toEqual([]);
-    });
-
-    it("createIdea creates an idea with generated excerpt", async () => {
-      const db = new ScopedDB(USER_A);
-      const content =
-        "# My Idea\n\nThis is **bold** and *italic* text with a [link](https://example.com).";
-      const idea = await db.createIdea({ content });
-
-      expect(idea.id).toBeTruthy();
-      expect(idea.content).toBe(content);
-      expect(idea.title).toBeNull();
-      expect(idea.excerpt).toBe("My Idea This is bold and italic text with a link.");
-      expect(idea.tagIds).toEqual([]);
-      expect(idea.createdAt).toBeInstanceOf(Date);
-      expect(idea.updatedAt).toBeInstanceOf(Date);
-    });
-
-    it("createIdea with title stores title", async () => {
-      const db = new ScopedDB(USER_A);
-      const idea = await db.createIdea({ content: "Body text", title: "My Title" });
-
-      expect(idea.title).toBe("My Title");
-      expect(idea.content).toBe("Body text");
-    });
-
-    it("createIdea with valid tagIds creates idea with tags atomically", async () => {
-      const db = new ScopedDB(USER_A);
-      const tag1 = await db.createTag({ name: "work", color: "blue" });
-      const tag2 = await db.createTag({ name: "project", color: "green" });
-
-      const idea = await db.createIdea({
-        content: "Tagged idea",
-        tagIds: [tag1.id, tag2.id],
-      });
-
-      expect(idea.tagIds).toHaveLength(2);
-      expect(idea.tagIds).toContain(tag1.id);
-      expect(idea.tagIds).toContain(tag2.id);
-    });
-
-    it("createIdea with invalid tagId throws error", async () => {
-      const db = new ScopedDB(USER_A);
-
-      await expect(
-        db.createIdea({ content: "Body", tagIds: ["non-existent-tag"] }),
-      ).rejects.toThrow("Invalid tag IDs: non-existent-tag");
-    });
-
-    it("createIdea with other user tagId throws error", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const bobTag = await dbB.createTag({ name: "bob-tag", color: "red" });
-
-      await expect(dbA.createIdea({ content: "Body", tagIds: [bobTag.id] })).rejects.toThrow(
-        `Invalid tag IDs: ${bobTag.id}`,
-      );
-    });
-
-    it("createIdea with empty tagIds array creates idea without tags", async () => {
-      const db = new ScopedDB(USER_A);
-      const idea = await db.createIdea({ content: "No tags", tagIds: [] });
-
-      expect(idea.tagIds).toEqual([]);
-    });
-
-    it("getIdeas only returns own ideas", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      await dbA.createIdea({ content: "Alice idea 1" });
-      await dbA.createIdea({ content: "Alice idea 2" });
-      await dbB.createIdea({ content: "Bob idea" });
-
-      const ideasA = await dbA.getIdeas();
-      const ideasB = await dbB.getIdeas();
-
-      expect(ideasA).toHaveLength(2);
-      expect(ideasB).toHaveLength(1);
-    });
-
-    it("getIdeas returns list shape without content", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.createIdea({ content: "Full markdown content here" });
-
-      const ideas = await db.getIdeas();
-      expect(ideas).toHaveLength(1);
-
-      const idea = unwrap(ideas[0]);
-      expect(idea.id).toBeTruthy();
-      expect(idea.excerpt).toBeTruthy();
-      expect(idea.createdAt).toBeInstanceOf(Date);
-      expect(idea.updatedAt).toBeInstanceOf(Date);
-      // List shape should not include full content
-      expect((idea as unknown as Record<string, unknown>).content).toBeUndefined();
-    });
-
-    it("getIdeas filters by tagId", async () => {
-      const db = new ScopedDB(USER_A);
-      const tag = await db.createTag({ name: "filter-tag", color: "blue" });
-
-      await db.createIdea({ content: "Tagged", tagIds: [tag.id] });
-      await db.createIdea({ content: "Not tagged" });
-
-      const filtered = await db.getIdeas({ tagId: tag.id });
-      expect(filtered).toHaveLength(1);
-      expect(unwrap(filtered[0]).tagIds).toContain(tag.id);
-    });
-
-    it("getIdeaById returns null for non-existent idea", async () => {
-      const db = new ScopedDB(USER_A);
-      const idea = await db.getIdeaById(999);
-      expect(idea).toBeNull();
-    });
-
-    it("getIdeaById returns null for other user idea", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const idea = await dbA.createIdea({ content: "Alice private" });
-
-      expect(await dbA.getIdeaById(idea.id)).not.toBeNull();
-      expect(await dbB.getIdeaById(idea.id)).toBeNull();
-    });
-
-    it("getIdeaById returns detail shape with full content", async () => {
-      const db = new ScopedDB(USER_A);
-      const created = await db.createIdea({ content: "Full content here" });
-
-      const detail = unwrap(await db.getIdeaById(created.id));
-      expect(detail.content).toBe("Full content here");
-      expect(detail.id).toBe(created.id);
-    });
-
-    it("updateIdea updates title and content", async () => {
-      const db = new ScopedDB(USER_A);
-      const idea = await db.createIdea({ content: "Original", title: "Old Title" });
-      const originalUpdatedAt = idea.updatedAt;
-
-      // Small delay to ensure updatedAt changes
-      await new Promise((r) => setTimeout(r, 10));
-
-      const updated = unwrap(
-        await db.updateIdea(idea.id, {
-          title: "New Title",
-          content: "New content",
+      const cleared = unwrap(
+        await dbA.updateLinkMetadata(link.id, {
+          metaTitle: null,
+          metaDescription: null,
+          metaFavicon: null,
         }),
       );
-
-      expect(updated.title).toBe("New Title");
-      expect(updated.content).toBe("New content");
-      expect(updated.excerpt).toBe("New content"); // Excerpt regenerated
-      expect(updated.updatedAt.getTime()).toBeGreaterThan(originalUpdatedAt.getTime());
+      expect(cleared.metaTitle).toBeNull();
+      expect(cleared.metaDescription).toBeNull();
+      expect(cleared.metaFavicon).toBeNull();
     });
 
-    it("updateIdea sets title to null", async () => {
-      const db = new ScopedDB(USER_A);
-      const idea = await db.createIdea({ content: "Body", title: "Has Title" });
+    it("updates, clears, and isolates link notes", async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+      const link = await dbA.createLink({ originalUrl: "https://example.com", slug: "note1" });
 
-      const updated = unwrap(await db.updateIdea(idea.id, { title: null }));
-
-      expect(updated.title).toBeNull();
-    });
-
-    it("updateIdea syncs tags atomically", async () => {
-      const db = new ScopedDB(USER_A);
-      const tag1 = await db.createTag({ name: "tag1", color: "blue" });
-      const tag2 = await db.createTag({ name: "tag2", color: "green" });
-      const tag3 = await db.createTag({ name: "tag3", color: "red" });
-
-      const idea = await db.createIdea({ content: "Body", tagIds: [tag1.id, tag2.id] });
-      expect(idea.tagIds).toHaveLength(2);
-
-      // Replace tags: remove tag1, keep tag2, add tag3
-      const updated = unwrap(await db.updateIdea(idea.id, { tagIds: [tag2.id, tag3.id] }));
-
-      expect(updated.tagIds).toHaveLength(2);
-      expect(updated.tagIds).toContain(tag2.id);
-      expect(updated.tagIds).toContain(tag3.id);
-      expect(updated.tagIds).not.toContain(tag1.id);
-    });
-
-    it("updateIdea with invalid tagId throws error", async () => {
-      const db = new ScopedDB(USER_A);
-      const idea = await db.createIdea({ content: "Body" });
-
-      await expect(db.updateIdea(idea.id, { tagIds: ["non-existent"] })).rejects.toThrow(
-        "Invalid tag IDs: non-existent",
+      expect(unwrap(await dbA.updateLinkNote(link.id, "this is a note")).note).toBe(
+        "this is a note",
       );
+      expect(unwrap(await dbA.updateLinkNote(link.id, null)).note).toBeNull();
+      expect(await dbB.updateLinkNote(link.id, "hacked")).toBeNull();
+      expect(await dbA.updateLinkNote(99999, "no link")).toBeNull();
     });
 
-    it("updateIdea returns null for non-existent idea", async () => {
-      const db = new ScopedDB(USER_A);
-      const result = await db.updateIdea(999, { title: "New" });
-      expect(result).toBeNull();
-    });
-
-    it("updateIdea returns null for other user idea", async () => {
+    it("updates and deletes link screenshots safely with R2 env checks", async () => {
       const dbA = new ScopedDB(USER_A);
       const dbB = new ScopedDB(USER_B);
+      const link = await dbA.createLink({ originalUrl: "https://a.com", slug: "upd-ss" });
 
-      const idea = await dbA.createIdea({ content: "Alice idea" });
-
-      expect(await dbB.updateIdea(idea.id, { title: "Hacked" })).toBeNull();
-    });
-
-    it("deleteIdea removes the idea", async () => {
-      const db = new ScopedDB(USER_A);
-      const idea = await db.createIdea({ content: "To delete" });
-
-      expect(await db.deleteIdea(idea.id)).toBe(true);
-
-      const ideas = await db.getIdeas();
-      expect(ideas).toHaveLength(0);
-    });
-
-    it("deleteIdea returns false for non-existent idea", async () => {
-      const db = new ScopedDB(USER_A);
-      expect(await db.deleteIdea(999)).toBe(false);
-    });
-
-    it("deleteIdea returns false for other user idea", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const idea = await dbA.createIdea({ content: "Alice idea" });
-
-      expect(await dbB.deleteIdea(idea.id)).toBe(false);
-
-      // Idea should still exist for user A
-      const ideasA = await dbA.getIdeas();
-      expect(ideasA).toHaveLength(1);
-    });
-
-    it("deleteIdea cascade deletes idea_tags", async () => {
-      const db = new ScopedDB(USER_A);
-      const tag = await db.createTag({ name: "tag", color: "blue" });
-      const idea = await db.createIdea({ content: "Body", tagIds: [tag.id] });
-
-      await db.deleteIdea(idea.id);
-
-      const ideaTags = await db.getIdeaTags();
-      expect(ideaTags).toHaveLength(0);
-    });
-
-    it("getIdeaTags returns only associations for own ideas", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-
-      const tagA = await dbA.createTag({ name: "a-tag", color: "blue" });
-      const tagB = await dbB.createTag({ name: "b-tag", color: "red" });
-
-      await dbA.createIdea({ content: "Alice", tagIds: [tagA.id] });
-      await dbB.createIdea({ content: "Bob", tagIds: [tagB.id] });
-
-      const ideaTagsA = await dbA.getIdeaTags();
-      const ideaTagsB = await dbB.getIdeaTags();
-
-      expect(ideaTagsA).toHaveLength(1);
-      expect(unwrap(ideaTagsA[0]).tagId).toBe(tagA.id);
-      expect(ideaTagsB).toHaveLength(1);
-      expect(unwrap(ideaTagsB[0]).tagId).toBe(tagB.id);
-    });
-    it("getLinks filters by keyword query", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.createLink({
-        originalUrl: "https://example.com",
-        slug: "search-me",
-        note: "my important link",
-      });
-      await db.createLink({ originalUrl: "https://other.com", slug: "other" });
-
-      const results = await db.getLinks({ query: "important" });
-      expect(results).toHaveLength(1);
-      expect(results[0]?.slug).toBe("search-me");
-    });
-
-    it("getLinks filters by folderId", async () => {
-      const db = new ScopedDB(USER_A);
-      const folder = await db.createFolder({ name: "TestFolder" });
-      await db.createLink({ originalUrl: "https://a.com", slug: "in-folder", folderId: folder.id });
-      await db.createLink({ originalUrl: "https://b.com", slug: "no-folder" });
-
-      const results = await db.getLinks({ folderId: folder.id });
-      expect(results).toHaveLength(1);
-      expect(results[0]?.slug).toBe("in-folder");
-    });
-
-    it("getLinks filters by folderId=inbox (null folder)", async () => {
-      const db = new ScopedDB(USER_A);
-      const folder = await db.createFolder({ name: "Folder" });
-      await db.createLink({
-        originalUrl: "https://a.com",
-        slug: "in-folder2",
-        folderId: folder.id,
-      });
-      await db.createLink({ originalUrl: "https://b.com", slug: "inbox-link" });
-
-      const results = await db.getLinks({ folderId: "inbox" });
-      expect(results).toHaveLength(1);
-      expect(results[0]?.slug).toBe("inbox-link");
-    });
-
-    it("getLinks filters by tagId", async () => {
-      const db = new ScopedDB(USER_A);
-      const tag = await db.createTag({ name: "tagged", color: "blue" });
-      const link = await db.createLink({ originalUrl: "https://a.com", slug: "tagged-link" });
-      await db.createLink({ originalUrl: "https://b.com", slug: "untagged" });
-      await db.addTagToLink(link.id, tag.id);
-
-      const results = await db.getLinks({ tagId: tag.id });
-      expect(results).toHaveLength(1);
-      expect(results[0]?.slug).toBe("tagged-link");
-    });
-
-    it("getLinksByIds returns empty for empty array", async () => {
-      const db = new ScopedDB(USER_A);
-      const results = await db.getLinksByIds([]);
-      expect(results).toEqual([]);
-    });
-
-    it("getLinksByIds returns links by ids", async () => {
-      const db = new ScopedDB(USER_A);
-      const link1 = await db.createLink({ originalUrl: "https://a.com", slug: "byid1" });
-      const link2 = await db.createLink({ originalUrl: "https://b.com", slug: "byid2" });
-      await db.createLink({ originalUrl: "https://c.com", slug: "byid3" });
-
-      const results = await db.getLinksByIds([link1.id, link2.id]);
-      expect(results).toHaveLength(2);
-    });
-
-    it("getLinksByIds does not return other user links", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-      const link = await dbA.createLink({ originalUrl: "https://a.com", slug: "byid-cross" });
-
-      const results = await dbB.getLinksByIds([link.id]);
-      expect(results).toHaveLength(0);
-    });
-
-    it("updateLink updates folderId", async () => {
-      const db = new ScopedDB(USER_A);
-      const folder = await db.createFolder({ name: "F" });
-      const link = await db.createLink({ originalUrl: "https://a.com", slug: "upd-folder" });
-
-      const updated = await db.updateLink(link.id, { folderId: folder.id });
-      expect(unwrap(updated).folderId).toBe(folder.id);
-    });
-
-    it("updateLink clears folderId when set to null", async () => {
-      const db = new ScopedDB(USER_A);
-      const folder = await db.createFolder({ name: "ToClear" });
-      const link = await db.createLink({
-        originalUrl: "https://a.com",
-        slug: "clear-folder",
-        folderId: folder.id,
-      });
-      expect(link.folderId).toBe(folder.id);
-
-      // Explicitly set folderId to null to clear it (move to inbox)
-      const cleared = await db.updateLink(link.id, { folderId: null });
-      expect(unwrap(cleared).folderId).toBeNull();
-    });
-
-    it("updateLink updates expiresAt", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://a.com", slug: "upd-expires" });
-      const expiry = new Date("2027-01-01");
-
-      const updated = await db.updateLink(link.id, { expiresAt: expiry });
-      expect(unwrap(updated).expiresAt).toBeInstanceOf(Date);
-
-      // Clear expiresAt
-      const cleared = await db.updateLink(link.id, { expiresAt: null });
-      expect(unwrap(cleared).expiresAt).toBeNull();
-    });
-
-    it("updateLinkScreenshot updates screenshot URL", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://a.com", slug: "upd-ss" });
-
-      const updated = await db.updateLinkScreenshot(link.id, "https://img.example.com/new.png");
-      expect(unwrap(updated).screenshotUrl).toBe("https://img.example.com/new.png");
-    });
-
-    it("deleteLinkScreenshot early returns when link does not exist or url does not match", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({
-        originalUrl: "https://a.com",
-        slug: "del-ss",
-        screenshotUrl: "https://img.example.com/current.png",
-      });
-
-      // Non-existent link
+      expect(await dbB.updateLinkScreenshot(link.id, "https://hacked.png")).toBeNull();
       expect(
-        await db.deleteLinkScreenshot(999999, "https://img.example.com/current.png"),
-      ).toBeNull();
+        unwrap(await dbA.updateLinkScreenshot(link.id, "https://r2.example.com/shot.png"))
+          .screenshotUrl,
+      ).toBe("https://r2.example.com/shot.png");
 
-      // Empty string url
-      const notCleared1 = await db.deleteLinkScreenshot(link.id, "   ");
-      expect(unwrap(notCleared1).screenshotUrl).toBe("https://img.example.com/current.png");
-
-      // Mismatched screenshotUrl
-      const notCleared2 = await db.deleteLinkScreenshot(
-        link.id,
-        "https://img.example.com/other.png",
+      expect(await dbA.deleteLinkScreenshot(999999, "https://r2.example.com/shot.png")).toBeNull();
+      expect(unwrap(await dbA.deleteLinkScreenshot(link.id, "   ")).screenshotUrl).toBe(
+        "https://r2.example.com/shot.png",
       );
-      expect(unwrap(notCleared2).screenshotUrl).toBe("https://img.example.com/current.png");
-    });
-
-    it("deleteLinkScreenshot throws if R2 env is not configured, or enqueues and clears when configured", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({
-        originalUrl: "https://a.com",
-        slug: "del-ss-r2",
-        screenshotUrl: "https://r2.example.com/shot.png",
-      });
+      expect(
+        unwrap(await dbA.deleteLinkScreenshot(link.id, "https://img.example.com/other.png"))
+          .screenshotUrl,
+      ).toBe("https://r2.example.com/shot.png");
 
       const oldDomain = process.env.R2_PUBLIC_DOMAIN;
       const oldSalt = process.env.R2_USER_HASH_SALT;
-
       try {
         delete process.env.R2_PUBLIC_DOMAIN;
         await expect(
-          db.deleteLinkScreenshot(link.id, "https://r2.example.com/shot.png"),
+          dbA.deleteLinkScreenshot(link.id, "https://r2.example.com/shot.png"),
         ).rejects.toThrow("R2 screenshot storage is not configured");
 
         process.env.R2_PUBLIC_DOMAIN = "r2.example.com";
         process.env.R2_USER_HASH_SALT = "testsalt";
-
-        const cleared = await db.deleteLinkScreenshot(link.id, "https://r2.example.com/shot.png");
+        const cleared = await dbA.deleteLinkScreenshot(link.id, "https://r2.example.com/shot.png");
         expect(unwrap(cleared).screenshotUrl).toBeNull();
       } finally {
         if (oldDomain !== undefined) process.env.R2_PUBLIC_DOMAIN = oldDomain;
@@ -2002,183 +274,377 @@ describe("ScopedDB", () => {
         else delete process.env.R2_USER_HASH_SALT;
       }
     });
+  });
 
-    it("updateLink with originalUrl returns latest link", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://old.com", slug: "link-orig-url" });
-      const updated = await db.updateLink(link.id, { originalUrl: "https://new-url.com" });
-      expect(unwrap(updated).originalUrl).toBe("https://new-url.com");
-    });
-
-    it("getLinksPage with query filters items", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.createLink({
-        originalUrl: "https://searchpage.com",
-        slug: "sp-link",
-        note: "unique-kw",
+  describe("analytics operations", () => {
+    it("enforces link ownership and aggregates device/browser/OS breakdowns", async () => {
+      const linkA = await createLink({ userId: USER_A, originalUrl: "https://a.com", slug: "aa" });
+      const linkB = await createLink({ userId: USER_B, originalUrl: "https://b.com", slug: "ab" });
+      const emptyLink = await createLink({
+        userId: USER_A,
+        originalUrl: "https://empty.com",
+        slug: "empty",
       });
-      const res = await db.getLinksPage({ query: "unique-kw", limit: 10, offset: 0 });
-      expect(res.total).toBe(1);
-      expect(res.items[0]?.slug).toBe("sp-link");
-    });
 
-    it("updateLinkScreenshot returns null for other user link", async () => {
+      await recordClick({
+        linkId: linkA.id,
+        device: "desktop",
+        browser: "Chrome",
+        os: "macOS",
+        country: "US",
+      });
+      await recordClick({
+        linkId: linkA.id,
+        device: "desktop",
+        browser: "Chrome",
+        os: "Windows",
+        country: "DE",
+      });
+      await recordClick({
+        linkId: linkA.id,
+        device: "mobile",
+        browser: "Safari",
+        os: "iOS",
+        country: "US",
+      });
+      await recordClick({ linkId: linkB.id, country: "JP" });
+
       const dbA = new ScopedDB(USER_A);
       const dbB = new ScopedDB(USER_B);
-      const link = await dbA.createLink({ originalUrl: "https://a.com", slug: "ss-cross" });
 
-      expect(await dbB.updateLinkScreenshot(link.id, "https://hacked.png")).toBeNull();
-    });
+      expect(await dbA.getAnalyticsByLinkId(linkA.id)).toHaveLength(3);
+      expect(await dbA.getAnalyticsByLinkId(linkB.id)).toHaveLength(0);
+      expect(await dbB.getAnalyticsByLinkId(linkB.id)).toHaveLength(1);
 
-    it("createLink with expiresAt and isCustom=true", async () => {
-      const db = new ScopedDB(USER_A);
-      const expiry = new Date("2027-06-01");
-      const link = await db.createLink({
-        originalUrl: "https://a.com",
-        slug: "custom-expires",
-        isCustom: true,
-        expiresAt: expiry,
+      const statsA = await dbA.getAnalyticsStats(linkA.id);
+      expect(statsA.totalClicks).toBe(3);
+      expect(statsA.uniqueCountries).toEqual(expect.arrayContaining(["US", "DE"]));
+      expect(statsA.deviceBreakdown).toEqual({ desktop: 2, mobile: 1 });
+      expect(statsA.browserBreakdown).toEqual({ Chrome: 2, Safari: 1 });
+      expect(statsA.osBreakdown).toEqual({ macOS: 1, Windows: 1, iOS: 1 });
+
+      expect((await dbB.getAnalyticsStats(linkA.id)).totalClicks).toBe(0);
+      expect(await dbA.getAnalyticsStats(emptyLink.id)).toMatchObject({
+        totalClicks: 0,
+        uniqueCountries: [],
+        deviceBreakdown: {},
+        browserBreakdown: {},
+        osBreakdown: {},
       });
-
-      expect(link.isCustom).toBe(true);
-      expect(link.expiresAt).toBeInstanceOf(Date);
     });
+  });
 
-    it("getLinks sorts by created date descending by default", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.createLink({ originalUrl: "https://first.com", slug: "default-first" });
-      await db.createLink({ originalUrl: "https://second.com", slug: "default-second" });
-
-      const links = await db.getLinks();
-      // Default sort is created DESC — both should be returned
-      expect(links).toHaveLength(2);
-    });
-
-    // ---- Upload getById -----------------------------------------
-
-    it("getUploadById returns upload for own user", async () => {
-      const db = new ScopedDB(USER_A);
-      const upload = await db.createUpload({
-        key: "20260212/getbyid.png",
-        fileName: "getbyid.png",
-        fileType: "image/png",
-        fileSize: 100,
-        publicUrl: "https://s.zhe.to/20260212/getbyid.png",
-      });
-
-      const found = await db.getUploadById(upload.id);
-      expect(found).not.toBeNull();
-      expect(unwrap(found).id).toBe(upload.id);
-    });
-
-    it("getUploadById returns null for other user", async () => {
+  describe("folder operations", () => {
+    it("supports CRUD, partial updates, isolation, and cascades folder_id to null on delete", async () => {
       const dbA = new ScopedDB(USER_A);
       const dbB = new ScopedDB(USER_B);
-      const upload = await dbA.createUpload({
-        key: "20260212/cross.png",
-        fileName: "cross.png",
-        fileType: "image/png",
-        fileSize: 100,
-        publicUrl: "https://s.zhe.to/20260212/cross.png",
+
+      expect(await dbA.getFolders()).toEqual([]);
+
+      const folderA = await dbA.createFolder({ name: "Work", icon: "briefcase" });
+      const folderDefault = await dbA.createFolder({ name: "Default" });
+      await dbB.createFolder({ name: "Bob Folder" });
+
+      expect(folderA.userId).toBe(USER_A);
+      expect(folderA.createdAt).toBeInstanceOf(Date);
+      expect(folderDefault.icon).toBe("folder");
+
+      expect(await dbA.getFolders()).toHaveLength(2);
+      expect(await dbB.getFolders()).toHaveLength(1);
+      expect(unwrap(await dbA.getFolderById(folderA.id)).name).toBe("Work");
+      expect(await dbB.getFolderById(folderA.id)).toBeNull();
+      expect(await dbA.getFolderById("non-existent-id")).toBeNull();
+
+      expect(unwrap(await dbA.updateFolder(folderA.id, {})).name).toBe("Work");
+      expect(unwrap(await dbA.updateFolder(folderA.id, { name: "Renamed" }))).toMatchObject({
+        name: "Renamed",
+        icon: "briefcase",
       });
+      expect(unwrap(await dbA.updateFolder(folderA.id, { icon: "rocket" }))).toMatchObject({
+        name: "Renamed",
+        icon: "rocket",
+      });
+      expect(
+        unwrap(await dbA.updateFolder(folderA.id, { name: "New", icon: "star" })),
+      ).toMatchObject({ name: "New", icon: "star" });
+      expect(await dbB.updateFolder(folderA.id, { name: "Hacked" })).toBeNull();
 
-      expect(await dbB.getUploadById(upload.id)).toBeNull();
+      const link = await dbA.createLink({
+        originalUrl: "https://example.com",
+        slug: "folder-link",
+        folderId: folderA.id,
+      });
+      expect(link.folderId).toBe(folderA.id);
+
+      expect(await dbB.deleteFolder(folderA.id)).toBe(false);
+      expect(await dbA.deleteFolder(folderA.id)).toBe(true);
+      expect(unwrap((await dbA.getLinks())[0]).folderId).toBeNull();
     });
 
-    // ---- Tag getById and getTagsForLink -------------------------
-
-    it("getTagById returns tag for own user", async () => {
-      const db = new ScopedDB(USER_A);
-      const tag = await db.createTag({ name: "findme", color: "blue" });
-
-      const found = await db.getTagById(tag.id);
-      expect(found).not.toBeNull();
-      expect(unwrap(found).name).toBe("findme");
-    });
-
-    it("getTagById returns null for other user", async () => {
+    it("getFoldersWithLinkCount counts owned folders accurately including zero-count folders", async () => {
       const dbA = new ScopedDB(USER_A);
       const dbB = new ScopedDB(USER_B);
-      const tag = await dbA.createTag({ name: "private-tag", color: "red" });
 
+      const folderA = await dbA.createFolder({ name: "Folder A" });
+      const emptyFolder = await dbA.createFolder({ name: "Empty Folder" });
+      await dbB.createFolder({ name: "Bob Folder" });
+
+      await dbA.createLink({ originalUrl: "https://a1.com", slug: "a1", folderId: folderA.id });
+      await dbA.createLink({ originalUrl: "https://a2.com", slug: "a2", folderId: folderA.id });
+
+      const aliceFolders = await dbA.getFoldersWithLinkCount();
+      const bobFolders = await dbB.getFoldersWithLinkCount();
+
+      expect(aliceFolders.find((f) => f.id === folderA.id)?.linkCount).toBe(2);
+      expect(aliceFolders.find((f) => f.id === emptyFolder.id)?.linkCount).toBe(0);
+      expect(bobFolders).toHaveLength(1);
+      expect(bobFolders[0]?.linkCount).toBe(0);
+    });
+  });
+
+  describe("upload operations", () => {
+    it("supports create, getUploads, getUploadById, getUploadKey, and deleteUpload with isolation", async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      expect(await dbA.getUploads()).toEqual([]);
+
+      const u1 = await dbA.createUpload(uploadInput("a1.png", { fileSize: 1024 }));
+      await dbA.createUpload(uploadInput("a2.jpg", { fileSize: 200 }));
+      await dbB.createUpload(uploadInput("b1.pdf", { fileSize: 300 }));
+
+      expect(u1.userId).toBe(USER_A);
+      expect(u1.id).toBeGreaterThan(0);
+      expect(u1.createdAt).toBeInstanceOf(Date);
+
+      expect(await dbA.getUploads()).toHaveLength(2);
+      expect(await dbB.getUploads()).toHaveLength(1);
+
+      expect(unwrap(await dbA.getUploadById(u1.id)).id).toBe(u1.id);
+      expect(await dbB.getUploadById(u1.id)).toBeNull();
+
+      expect(await dbA.getUploadKey(u1.id)).toBe("20260212/a1.png");
+      expect(await dbB.getUploadKey(u1.id)).toBeNull();
+      expect(await dbA.getUploadKey(99999)).toBeNull();
+
+      expect(await dbB.deleteUpload(u1.id)).toBe(false);
+      expect(await dbA.deleteUpload(u1.id)).toBe(true);
+    });
+  });
+
+  describe("tag and link-tag operations", () => {
+    it("supports tag CRUD, partial updates, and user isolation", async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      expect(await dbA.getTags()).toEqual([]);
+
+      const tag = await dbA.createTag({ name: "work", color: "blue" });
+      await dbB.createTag({ name: "bob-tag", color: "red" });
+
+      expect(tag.userId).toBe(USER_A);
+      expect(tag.createdAt).toBeInstanceOf(Date);
+      expect(await dbA.getTags()).toHaveLength(1);
+      expect(unwrap(await dbA.getTagById(tag.id)).name).toBe("work");
       expect(await dbB.getTagById(tag.id)).toBeNull();
+
+      expect(unwrap(await dbA.updateTag(tag.id, {})).name).toBe("work");
+      expect(await dbA.updateTag("non-existent-id", {})).toBeNull();
+      expect(unwrap(await dbA.updateTag(tag.id, { name: "renamed" }))).toMatchObject({
+        name: "renamed",
+        color: "blue",
+      });
+      expect(unwrap(await dbA.updateTag(tag.id, { color: "rose" }))).toMatchObject({
+        name: "renamed",
+        color: "rose",
+      });
+      expect(unwrap(await dbA.updateTag(tag.id, { name: "new", color: "red" }))).toMatchObject({
+        name: "new",
+        color: "red",
+      });
+      expect(await dbB.updateTag(tag.id, { name: "hacked" })).toBeNull();
+
+      expect(await dbB.deleteTag(tag.id)).toBe(false);
+      expect(await dbA.deleteTag(tag.id)).toBe(true);
+      expect(await dbA.getTags()).toEqual([]);
     });
 
-    it("getTagsForLink returns tags for a link", async () => {
-      const db = new ScopedDB(USER_A);
-      const link = await db.createLink({ originalUrl: "https://a.com", slug: "tags-for-link" });
-      const tag1 = await db.createTag({ name: "t1", color: "blue" });
-      const tag2 = await db.createTag({ name: "t2", color: "red" });
-      await db.addTagToLink(link.id, tag1.id);
-      await db.addTagToLink(link.id, tag2.id);
+    it("manages link-tag associations with ownership, idempotency, and cascade deletes", async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
 
-      const tags = await db.getTagsForLink(link.id);
-      expect(tags).toHaveLength(2);
+      const linkA = await dbA.createLink({ originalUrl: "https://a.com", slug: "lt1" });
+      const tag1 = await dbA.createTag({ name: "t1", color: "blue" });
+      const tag2 = await dbA.createTag({ name: "t2", color: "red" });
+      const linkB = await dbB.createLink({ originalUrl: "https://b.com", slug: "lt2" });
+      const tagB = await dbB.createTag({ name: "b-tag", color: "red" });
+
+      expect(await dbA.addTagToLink(linkA.id, tag1.id)).toBe(true);
+      expect(await dbA.addTagToLink(linkA.id, tag1.id)).toBe(true);
+      expect(await dbA.addTagToLink(linkA.id, tag2.id)).toBe(true);
+      expect(await dbB.addTagToLink(linkA.id, tagB.id)).toBe(false);
+      expect(await dbA.addTagToLink(linkA.id, tagB.id)).toBe(false);
+      await dbB.addTagToLink(linkB.id, tagB.id);
+
+      expect(await dbA.getLinkTags()).toHaveLength(2);
+      expect(await dbA.getTagsForLink(linkA.id)).toHaveLength(2);
+      expect(await dbB.getLinkTags()).toHaveLength(1);
+
+      expect(await dbB.removeTagFromLink(linkA.id, tag1.id)).toBe(false);
+      expect(await dbA.removeTagFromLink(99999, "fake-id")).toBe(false);
+      expect(await dbA.removeTagFromLink(linkA.id, tag1.id)).toBe(true);
+      expect(await dbA.getLinkTags()).toHaveLength(1);
+
+      await dbA.deleteTag(tag2.id);
+      expect(await dbA.getLinkTags()).toHaveLength(0);
+
+      const tag3 = await dbA.createTag({ name: "t3", color: "cyan" });
+      await dbA.addTagToLink(linkA.id, tag3.id);
+      await dbA.deleteLink(linkA.id);
+      expect(await dbA.getLinkTags()).toHaveLength(0);
     });
   });
 
-  // ---- Backy Settings -----------------------------------------
+  describe("getOverviewStats", () => {
+    it("returns zeroed stats when empty and aggregates scoped links, clicks, and uploads", async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
 
-  describe("backy settings", () => {
-    it("getBackySettings returns null when not configured", async () => {
-      const db = new ScopedDB(USER_A);
-      expect(await db.getBackySettings()).toBeNull();
-    });
-
-    it("upsertBackySettings saves and retrieves backy config", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.upsertBackySettings({
-        webhookUrl: "https://backy.example.com/hook",
-        apiKey: "secret-key",
+      expect(await dbA.getOverviewStats()).toMatchObject({
+        totalLinks: 0,
+        totalClicks: 0,
+        totalUploads: 0,
+        totalStorageBytes: 0,
+        clickTrend: [],
+        uploadTrend: [],
+        topLinks: [],
+        deviceBreakdown: {},
+        browserBreakdown: {},
+        osBreakdown: {},
+        fileTypeBreakdown: {},
       });
 
-      const settings = await db.getBackySettings();
-      expect(settings).not.toBeNull();
-      expect(unwrap(settings).webhookUrl).toBe("https://backy.example.com/hook");
-      expect(unwrap(settings).apiKey).toBe("secret-key");
-    });
+      const linkLow = await dbA.createLink({
+        originalUrl: "https://low.com",
+        slug: "ov-low",
+        clicks: 5,
+      });
+      const linkHigh = await dbA.createLink({
+        originalUrl: "https://high.com",
+        slug: "ov-high",
+        clicks: 100,
+      });
+      const linkMid = await dbA.createLink({
+        originalUrl: "https://mid.com",
+        slug: "ov-mid",
+        clicks: 50,
+      });
+      const linkB = await dbB.createLink({
+        originalUrl: "https://b.com",
+        slug: "ov-b",
+        clicks: 20,
+      });
 
-    it("getBackySettings returns null when only preview_style is set", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.upsertPreviewStyle("favicon");
-      expect(await db.getBackySettings()).toBeNull();
+      await recordClick({
+        linkId: linkLow.id,
+        device: "desktop",
+        browser: "Chrome",
+        os: "macOS",
+        country: "US",
+      });
+      await recordClick({
+        linkId: linkLow.id,
+        device: "mobile",
+        browser: "Safari",
+        os: "iOS",
+        country: "JP",
+      });
+      await recordClick({
+        linkId: linkMid.id,
+        device: "desktop",
+        browser: "Chrome",
+        os: "Windows",
+        country: "DE",
+      });
+      await recordClick({ linkId: linkB.id, device: "desktop", browser: "Edge", os: "Windows" });
+
+      await dbA.createUpload(uploadInput("ov1.png", { fileSize: 1024 }));
+      await dbA.createUpload(uploadInput("ov2.jpg", { fileSize: 2048 }));
+      await dbB.createUpload(uploadInput("bob.png", { fileSize: 700 }));
+
+      const statsA = await dbA.getOverviewStats();
+      expect(statsA.totalLinks).toBe(3);
+      expect(statsA.totalClicks).toBe(158);
+      expect(statsA.clickTrend).toHaveLength(1);
+      expect(unwrap(statsA.clickTrend[0])).toMatchObject({ clicks: 3, origin: 3, worker: 0 });
+      expect(statsA.deviceBreakdown).toEqual({ desktop: 2, mobile: 1 });
+      expect(statsA.browserBreakdown).toEqual({ Chrome: 2, Safari: 1 });
+      expect(statsA.osBreakdown).toEqual({ macOS: 1, iOS: 1, Windows: 1 });
+      expect(statsA.topLinks.map((l) => l.slug)).toEqual([
+        linkHigh.slug,
+        linkMid.slug,
+        linkLow.slug,
+      ]);
+      expect(statsA.totalUploads).toBe(2);
+      expect(statsA.totalStorageBytes).toBe(3072);
+      expect(statsA.uploadTrend).toHaveLength(1);
+      expect(statsA.fileTypeBreakdown).toEqual({ "image/png": 1, "image/jpeg": 1 });
+
+      const statsB = await dbB.getOverviewStats();
+      expect(statsB.totalLinks).toBe(1);
+      expect(statsB.totalUploads).toBe(1);
+      expect(statsB.totalStorageBytes).toBe(700);
     });
   });
 
-  // ---- Xray Settings ------------------------------------------
+  describe("settings, webhooks, and api keys", () => {
+    it("manages user preview settings with user isolation", async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
 
-  describe("xray settings", () => {
-    it("getXraySettings returns null when not configured", async () => {
+      expect(await dbA.getUserSettings()).toBeNull();
+      expect((await dbA.upsertPreviewStyle("screenshot")).previewStyle).toBe("screenshot");
+      expect(await dbB.getUserSettings()).toBeNull();
+      expect((await dbA.upsertPreviewStyle("favicon")).previewStyle).toBe("favicon");
+      expect(unwrap(await dbA.getUserSettings()).previewStyle).toBe("favicon");
+    });
+
+    it("manages webhooks (upsert, rate limit, delete) with user isolation", async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      expect(await dbA.getWebhook()).toBeNull();
+      expect(await dbA.updateWebhookRateLimit(10)).toBeNull();
+      expect(await dbA.deleteWebhook()).toBe(false);
+
+      const first = await dbA.upsertWebhook("tok_old");
+      expect(first).toMatchObject({ userId: USER_A, token: "tok_old", rateLimit: 5 });
+      const second = await dbA.upsertWebhook("tok_new");
+      expect(second.id).toBe(first.id);
+      expect(second.token).toBe("tok_new");
+
+      await dbB.upsertWebhook("tok_bob");
+      expect(unwrap(await dbA.updateWebhookRateLimit(20)).rateLimit).toBe(20);
+      expect(await dbA.deleteWebhook()).toBe(true);
+      expect(await dbA.getWebhook()).toBeNull();
+      expect(unwrap(await dbB.getWebhook()).token).toBe("tok_bob");
+    });
+
+    it("manages Backy, Xray, AI settings, and Backy pull webhook without clobbering sibling keys", async () => {
       const db = new ScopedDB(USER_A);
+      const aiData = {
+        provider: "anthropic",
+        apiKey: "sk-test-key-1234",
+        model: "claude-sonnet-4-5",
+        baseURL: null,
+        sdkType: null,
+        authType: null,
+      };
+
+      expect(await db.getBackySettings()).toBeNull();
       expect(await db.getXraySettings()).toBeNull();
-    });
-
-    it("upsertXraySettings saves and retrieves xray config", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.upsertXraySettings({
-        apiUrl: "https://xray.example.com/api",
-        apiToken: "xray-token",
-      });
-
-      const settings = await db.getXraySettings();
-      expect(settings).not.toBeNull();
-      expect(unwrap(settings).apiUrl).toBe("https://xray.example.com/api");
-      expect(unwrap(settings).apiToken).toBe("xray-token");
-    });
-  });
-
-  describe("ai settings", () => {
-    const aiData = {
-      provider: "anthropic",
-      apiKey: "sk-test-key-1234",
-      model: "claude-sonnet-4-5",
-      baseURL: null,
-      sdkType: null,
-      authType: null,
-    };
-
-    it("getAiSettings returns empty fields when none exist", async () => {
-      const db = new ScopedDB(USER_A);
+      expect(await db.getBackyPullWebhook()).toBeNull();
+      expect(await db.deleteBackyPullWebhook()).toBeNull();
       expect(await db.getAiSettings()).toEqual({
         provider: null,
         apiKey: null,
@@ -2187,16 +653,10 @@ describe("ScopedDB", () => {
         sdkType: null,
         authType: null,
       });
-    });
 
-    it("upsertAiSettings saves and retrieves AI config", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.upsertAiSettings(aiData);
-      expect(await db.getAiSettings()).toEqual(aiData);
-    });
+      await db.upsertPreviewStyle("favicon");
+      expect(await db.getBackySettings()).toBeNull();
 
-    it("AI upsert keeps Backy and Xray on a fresh and existing row", async () => {
-      const db = new ScopedDB(USER_A);
       await db.upsertBackySettings({
         webhookUrl: "https://backy.example.com/hook",
         apiKey: "backy-key",
@@ -2222,220 +682,190 @@ describe("ScopedDB", () => {
         apiKey: "backy-key-2",
       });
       expect(await db.getAiSettings()).toEqual(aiData);
-    });
-  });
 
-  // ---- Backy Pull Webhook -------------------------------------
-
-  describe("backy pull webhook", () => {
-    it("getBackyPullWebhook returns null when not configured", async () => {
-      const db = new ScopedDB(USER_A);
-      expect(await db.getBackyPullWebhook()).toBeNull();
-    });
-
-    it("upsertBackyPullWebhook saves and retrieves pull key", async () => {
-      const db = new ScopedDB(USER_A);
       await db.upsertBackyPullWebhook({ key: "pull-key-123" });
-
-      const result = await db.getBackyPullWebhook();
-      expect(result).not.toBeNull();
-      expect(unwrap(result).key).toBe("pull-key-123");
-    });
-
-    it("deleteBackyPullWebhook clears the pull key", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.upsertBackyPullWebhook({ key: "pull-key-to-delete" });
-
-      const deleted = await db.deleteBackyPullWebhook();
-      expect(deleted).not.toBeNull();
+      expect(unwrap(await db.getBackyPullWebhook()).key).toBe("pull-key-123");
+      expect(await db.deleteBackyPullWebhook()).not.toBeNull();
       expect(await db.getBackyPullWebhook()).toBeNull();
     });
 
-    it("deleteBackyPullWebhook returns null when no settings exist", async () => {
-      const db = new ScopedDB(USER_A);
-      expect(await db.deleteBackyPullWebhook()).toBeNull();
+    it("manages API keys (create, list, revoke, lastUsedAt) with user isolation", async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+
+      const k1 = await dbA.createApiKey(apiKeyInput("key-a1"));
+      await dbA.createApiKey(apiKeyInput("key-a2", { scopes: "links:write" }));
+      await dbB.createApiKey(apiKeyInput("key-b1"));
+
+      expect(k1).toMatchObject({ userId: USER_A, name: "Key key-a1", revokedAt: null });
+      expect(await dbA.getApiKeys()).toHaveLength(2);
+      expect(await dbB.getApiKeys()).toHaveLength(1);
+
+      await dbA.updateApiKeyLastUsed("key-a1");
+      expect((await dbA.getApiKeys()).find((k) => k.id === "key-a1")).toBeDefined();
+
+      expect(await dbB.revokeApiKey("key-a1")).toBeNull();
+      expect((await dbA.revokeApiKey("key-a1"))?.revokedAt).not.toBeNull();
+      expect(await dbA.getApiKeys()).toHaveLength(1);
     });
   });
 
-  // ---- Ideas additional tests ---------------------------------
+  describe("idea operations", () => {
+    it("creates ideas with excerpts and valid tags, and rejects invalid/foreign tags", async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+      const tag1 = await dbA.createTag({ name: "work", color: "blue" });
+      const tag2 = await dbA.createTag({ name: "project", color: "green" });
+      const bobTag = await dbB.createTag({ name: "bob-tag", color: "red" });
 
-  describe("idea query filter", () => {
-    it("getIdeas filters by keyword query", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.createIdea({ content: "Machine learning project notes", title: "ML Project" });
-      await db.createIdea({ content: "Recipe for pasta", title: "Cooking" });
+      const plain = await dbA.createIdea({
+        content:
+          "# My Idea\n\nThis is **bold** and *italic* text with a [link](https://example.com).",
+      });
+      expect(plain.title).toBeNull();
+      expect(plain.excerpt).toBe("My Idea This is bold and italic text with a link.");
+      expect(plain.tagIds).toEqual([]);
 
-      const results = await db.getIdeas({ query: "pasta" });
-      expect(results).toHaveLength(1);
-      expect(unwrap(results[0]).title).toBe("Cooking");
+      const tagged = await dbA.createIdea({
+        title: "My Title",
+        content: "Tagged idea",
+        tagIds: [tag1.id, tag2.id],
+      });
+      expect(tagged.title).toBe("My Title");
+      expect(tagged.tagIds).toEqual(expect.arrayContaining([tag1.id, tag2.id]));
+
+      const emptyTags = await dbA.createIdea({ content: "No tags", tagIds: [] });
+      expect(emptyTags.tagIds).toEqual([]);
+
+      await expect(
+        dbA.createIdea({ content: "Body", tagIds: ["non-existent-tag"] }),
+      ).rejects.toThrow("Invalid tag IDs: non-existent-tag");
+      await expect(dbA.createIdea({ content: "Body", tagIds: [bobTag.id] })).rejects.toThrow(
+        `Invalid tag IDs: ${bobTag.id}`,
+      );
     });
 
-    it("updateIdea with empty tagIds clears all tags", async () => {
-      const db = new ScopedDB(USER_A);
-      const tag = await db.createTag({ name: "to-clear", color: "blue" });
-      const idea = await db.createIdea({ content: "Body", tagIds: [tag.id] });
+    it("lists, filters, reads detail, updates, and deletes ideas with tag sync and isolation", async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
+      expect(await dbA.getIdeas()).toEqual([]);
 
-      const updated = unwrap(await db.updateIdea(idea.id, { tagIds: [] }));
-      expect(updated.tagIds).toEqual([]);
-    });
+      const tag1 = await dbA.createTag({ name: "t1", color: "blue" });
+      const tag2 = await dbA.createTag({ name: "t2", color: "green" });
+      const tagB = await dbB.createTag({ name: "tb", color: "red" });
 
-    it("updateIdea preserves tags when tagIds is undefined", async () => {
-      const db = new ScopedDB(USER_A);
-      const tag = await db.createTag({ name: "keep-tag", color: "green" });
-      const idea = await db.createIdea({ content: "Body", tagIds: [tag.id] });
+      const idea = await dbA.createIdea({
+        title: "ML Project",
+        content: "Machine learning notes",
+        tagIds: [tag1.id],
+      });
+      await dbA.createIdea({ title: "Cooking", content: "Recipe for pasta" });
+      await dbB.createIdea({ content: "Bob idea", tagIds: [tagB.id] });
 
-      const updated = unwrap(await db.updateIdea(idea.id, { title: "New Title" }));
-      expect(updated.tagIds).toContain(tag.id);
+      const listA = await dbA.getIdeas();
+      expect(listA).toHaveLength(2);
+      expect((unwrap(listA[0]) as unknown as Record<string, unknown>).content).toBeUndefined();
+      expect(await dbA.getIdeas({ tagId: tag1.id })).toHaveLength(1);
+      expect(unwrap((await dbA.getIdeas({ query: "pasta" }))[0]).title).toBe("Cooking");
+
+      expect(await dbA.getIdeaById(999)).toBeNull();
+      expect(await dbB.getIdeaById(idea.id)).toBeNull();
+      expect(unwrap(await dbA.getIdeaById(idea.id)).content).toBe("Machine learning notes");
+
+      await new Promise((r) => setTimeout(r, 10));
+      const updated = unwrap(
+        await dbA.updateIdea(idea.id, {
+          title: "New Title",
+          content: "New content",
+          tagIds: [tag2.id],
+        }),
+      );
+      expect(updated.title).toBe("New Title");
+      expect(updated.excerpt).toBe("New content");
+      expect(updated.tagIds).toEqual([tag2.id]);
+      expect(updated.updatedAt.getTime()).toBeGreaterThan(idea.updatedAt.getTime());
+
+      expect(unwrap(await dbA.updateIdea(idea.id, { title: null })).tagIds).toEqual([tag2.id]);
+      expect(unwrap(await dbA.updateIdea(idea.id, { tagIds: [] })).tagIds).toEqual([]);
+      await expect(dbA.updateIdea(idea.id, { tagIds: ["missing"] })).rejects.toThrow(
+        "Invalid tag IDs: missing",
+      );
+      expect(await dbA.updateIdea(999, { title: "New" })).toBeNull();
+      expect(await dbB.updateIdea(idea.id, { title: "Hacked" })).toBeNull();
+
+      await dbA.updateIdea(idea.id, { tagIds: [tag1.id] });
+      expect(await dbA.getIdeaTags()).toHaveLength(1);
+      expect(await dbB.getIdeaTags()).toHaveLength(1);
+
+      expect(await dbA.deleteIdea(999)).toBe(false);
+      expect(await dbB.deleteIdea(idea.id)).toBe(false);
+      expect(await dbA.deleteIdea(idea.id)).toBe(true);
+      expect(await dbA.getIdeaTags()).toHaveLength(0);
     });
   });
 
-  // ---- DB-level pagination -----------------------------------
+  describe("pagination (getLinksPage & getIdeasPage)", () => {
+    it("getLinksPage paginates, sorts, filters by query, and scopes by user", async () => {
+      const dbA = new ScopedDB(USER_A);
+      const dbB = new ScopedDB(USER_B);
 
-  describe("getLinksPage", () => {
-    it("returns correct total and limited items", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.createLink({ originalUrl: "https://1.com", slug: "p1" });
-      await db.createLink({ originalUrl: "https://2.com", slug: "p2" });
-      await db.createLink({ originalUrl: "https://3.com", slug: "p3" });
-      await db.createLink({ originalUrl: "https://4.com", slug: "p4" });
+      await dbA.createLink({ originalUrl: "https://low.com", slug: "p1", clicks: 5 });
+      await dbA.createLink({
+        originalUrl: "https://high.com",
+        slug: "p2",
+        clicks: 100,
+        note: "unique-kw",
+      });
+      await dbA.createLink({ originalUrl: "https://mid.com", slug: "p3", clicks: 50 });
+      await dbB.createLink({ originalUrl: "https://b1.com", slug: "usr-b1" });
 
-      const page = await db.getLinksPage({ limit: 2, offset: 0 });
-
-      expect(page.total).toBe(4);
-      expect(page.items).toHaveLength(2);
-    });
-
-    it("offset skips items correctly", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.createLink({ originalUrl: "https://a.com", slug: "off-a" });
-      await db.createLink({ originalUrl: "https://b.com", slug: "off-b" });
-      await db.createLink({ originalUrl: "https://c.com", slug: "off-c" });
-
-      const page1 = await db.getLinksPage({ limit: 2, offset: 0 });
-      const page2 = await db.getLinksPage({ limit: 2, offset: 2 });
-
-      expect(page1.items).toHaveLength(2);
-      expect(page2.items).toHaveLength(1);
-      expect(page2.total).toBe(3);
-
-      // No overlap between pages
-      const page1Ids = page1.items.map((l) => l.id);
-      const page2Ids = page2.items.map((l) => l.id);
-      expect(page1Ids.filter((id) => page2Ids.includes(id))).toHaveLength(0);
-    });
-
-    it("respects sorting order", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.createLink({ originalUrl: "https://low.com", slug: "srt-low", clicks: 5 });
-      await db.createLink({ originalUrl: "https://high.com", slug: "srt-high", clicks: 100 });
-      await db.createLink({ originalUrl: "https://mid.com", slug: "srt-mid", clicks: 50 });
-
-      const page = await db.getLinksPage({
+      const page1 = await dbA.getLinksPage({
         sortBy: "clicks",
         sortOrder: "desc",
         limit: 2,
         offset: 0,
       });
+      const page2 = await dbA.getLinksPage({
+        sortBy: "clicks",
+        sortOrder: "desc",
+        limit: 2,
+        offset: 2,
+      });
+      expect(page1.total).toBe(3);
+      expect(page1.items.map((l) => l.slug)).toEqual(["p2", "p3"]);
+      expect(page2.items.map((l) => l.slug)).toEqual(["p1"]);
 
-      expect(page.total).toBe(3);
-      expect(page.items).toHaveLength(2);
-      expect(page.items[0]?.slug).toBe("srt-high");
-      expect(page.items[1]?.slug).toBe("srt-mid");
-    });
+      const queryPage = await dbA.getLinksPage({ query: "unique-kw", limit: 10, offset: 0 });
+      expect(queryPage.total).toBe(1);
+      expect(queryPage.items[0]?.slug).toBe("p2");
 
-    it("scopes total and items to current user only", async () => {
-      const dbA = new ScopedDB(USER_A);
-      const dbB = new ScopedDB(USER_B);
-      await dbA.createLink({ originalUrl: "https://a1.com", slug: "usr-a1" });
-      await dbA.createLink({ originalUrl: "https://a2.com", slug: "usr-a2" });
-      await dbB.createLink({ originalUrl: "https://b1.com", slug: "usr-b1" });
-
-      const pageA = await dbA.getLinksPage({ limit: 10, offset: 0 });
       const pageB = await dbB.getLinksPage({ limit: 10, offset: 0 });
-
-      expect(pageA.total).toBe(2);
-      expect(pageA.items).toHaveLength(2);
       expect(pageB.total).toBe(1);
-      expect(pageB.items).toHaveLength(1);
-    });
-  });
-
-  describe("getIdeasPage", () => {
-    it("returns correct total and limited items", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.createIdea({ content: "Idea 1" });
-      await db.createIdea({ content: "Idea 2" });
-      await db.createIdea({ content: "Idea 3" });
-      await db.createIdea({ content: "Idea 4" });
-
-      const page = await db.getIdeasPage({ limit: 2, offset: 0 });
-
-      expect(page.total).toBe(4);
-      expect(page.items).toHaveLength(2);
     });
 
-    it("offset skips items correctly", async () => {
-      const db = new ScopedDB(USER_A);
-      await db.createIdea({ content: "First" });
-      await db.createIdea({ content: "Second" });
-      await db.createIdea({ content: "Third" });
-
-      const page1 = await db.getIdeasPage({ limit: 2, offset: 0 });
-      const page2 = await db.getIdeasPage({ limit: 2, offset: 2 });
-
-      expect(page1.items).toHaveLength(2);
-      expect(page2.items).toHaveLength(1);
-      expect(page2.total).toBe(3);
-
-      // No overlap between pages
-      const page1Ids = page1.items.map((i) => i.id);
-      const page2Ids = page2.items.map((i) => i.id);
-      expect(page1Ids.filter((id) => page2Ids.includes(id))).toHaveLength(0);
-    });
-
-    it("returns items sorted by createdAt desc", async () => {
-      const db = new ScopedDB(USER_A);
-      // Create ideas with a time gap to ensure deterministic ordering
-      const idea1 = await db.createIdea({ content: "Oldest", title: "Oldest" });
-      // Force a slightly later timestamp
-      await new Promise((resolve) => setTimeout(resolve, 5));
-      const idea2 = await db.createIdea({ content: "Newest", title: "Newest" });
-
-      const page = await db.getIdeasPage({ limit: 10, offset: 0 });
-
-      // Newest first (DESC) — idea2 has later createdAt
-      expect(page.items[0]?.id).toBe(idea2.id);
-      expect(page.items[1]?.id).toBe(idea1.id);
-    });
-
-    it("scopes total and items to current user only", async () => {
+    it("getIdeasPage paginates, sorts by createdAt desc, filters by tagId, and scopes by user", async () => {
       const dbA = new ScopedDB(USER_A);
       const dbB = new ScopedDB(USER_B);
-      await dbA.createIdea({ content: "A idea 1" });
-      await dbA.createIdea({ content: "A idea 2" });
-      await dbA.createIdea({ content: "A idea 3" });
-      await dbB.createIdea({ content: "B idea 1" });
+      const tag = await dbA.createTag({ name: "page-tag", color: "red" });
 
-      const pageA = await dbA.getIdeasPage({ limit: 10, offset: 0 });
-      const pageB = await dbB.getIdeasPage({ limit: 10, offset: 0 });
+      const idea1 = await dbA.createIdea({ content: "First", tagIds: [tag.id] });
+      await new Promise((r) => setTimeout(r, 5));
+      await dbA.createIdea({ content: "Second", tagIds: [tag.id] });
+      await new Promise((r) => setTimeout(r, 5));
+      const idea3 = await dbA.createIdea({ content: "Third" });
+      await dbB.createIdea({ content: "B idea" });
 
-      expect(pageA.total).toBe(3);
-      expect(pageA.items).toHaveLength(3);
-      expect(pageB.total).toBe(1);
-      expect(pageB.items).toHaveLength(1);
-    });
+      const page1 = await dbA.getIdeasPage({ limit: 2, offset: 0 });
+      const page2 = await dbA.getIdeasPage({ limit: 2, offset: 2 });
+      expect(page1.total).toBe(3);
+      expect(page1.items[0]?.id).toBe(idea3.id);
+      expect(page2.items.map((i) => i.id)).toEqual([idea1.id]);
 
-    it("filters by tagId and returns correct total", async () => {
-      const db = new ScopedDB(USER_A);
-      const tag = await db.createTag({ name: "page-tag", color: "red" });
-      await db.createIdea({ content: "Tagged 1", tagIds: [tag.id] });
-      await db.createIdea({ content: "Tagged 2", tagIds: [tag.id] });
-      await db.createIdea({ content: "Untagged" });
+      const tagPage = await dbA.getIdeasPage({ tagId: tag.id, limit: 10, offset: 0 });
+      expect(tagPage.total).toBe(2);
+      expect(tagPage.items).toHaveLength(2);
 
-      const page = await db.getIdeasPage({ tagId: tag.id, limit: 10, offset: 0 });
-
-      expect(page.total).toBe(2);
-      expect(page.items).toHaveLength(2);
+      expect((await dbB.getIdeasPage({ limit: 10, offset: 0 })).total).toBe(1);
     });
   });
 });

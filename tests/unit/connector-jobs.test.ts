@@ -163,6 +163,29 @@ const screenshotBody = (bytes = screenshot) =>
     },
   });
 
+const jsonHeaders = {
+  authorization: "Bearer zhe_test_cli-key",
+  "content-type": "application/json",
+};
+
+const apiRequest = (path = "", body?: unknown, extra: Record<string, string> = {}) =>
+  new NextRequest(`https://zhe.to/api/v1/connector${path}`, {
+    method: body === undefined ? "GET" : "POST",
+    headers: { ...jsonHeaders, ...extra },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+
+function photoBytes(mime: "image/png" | "image/webp" | "image/jpeg"): Uint8Array<ArrayBuffer> {
+  const bytes = new Uint8Array(32);
+  if (mime === "image/png") bytes.set([137, 80, 78, 71, 13, 10, 26, 10]);
+  else if (mime === "image/jpeg") bytes.set([255, 216, 255, 224]);
+  else {
+    bytes.set(new TextEncoder().encode("RIFF"));
+    bytes.set(new TextEncoder().encode("WEBP"), 8);
+  }
+  return bytes;
+}
+
 function link(url = source, owner = "owner", slug = crypto.randomUUID()) {
   return Number(
     db
@@ -1069,65 +1092,60 @@ describe("Connector HTTP boundary uses the same CLI authentication", () => {
     expect(response.headers.get("Sunset")).toBeNull();
     expect((await response.json()).deprecation).toBeUndefined();
   });
-  const headers = { authorization: "Bearer zhe_test_cli-key", "content-type": "application/json" };
-  const request = (path = "", body?: unknown, extra: Record<string, string> = {}) =>
-    new NextRequest(`https://zhe.to/api/v1/connector${path}`, {
-      method: body === undefined ? "GET" : "POST",
-      headers: { ...headers, ...extra },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    });
-  it("keeps an existing key without an explicit expiry valid after 30 days", async () => {
+  it("keeps an existing key without an explicit expiry valid after 365 days and enforces owner/scope", async () => {
     db.prepare("UPDATE api_keys SET created_at=0 WHERE id=?").run(identity.keyId);
-    const response = await status(request());
+    const response = await status(apiRequest());
     expect(response.status).toBe(200);
     expect((await response.json()).expiresAt).toBeNull();
     expect((await loadConnectorSummary()).lastSeenAt).toBe(now);
-    expect(await connectorKeyActive(identity, now + 31 * 86400_000)).toBe(true);
+    expect(await connectorKeyActive(identity, now + 365 * 86400_000)).toBe(true);
+    expect(await connectorKeyActive({ ...identity, userId: "other" }, now)).toBe(false);
   });
   it("requires authentication, scope and unexpired capability", async () => {
     expect((await status(new NextRequest("https://zhe.to/api/v1/connector"))).status).toBe(401);
-    expect((await status(request())).status).toBe(200);
+    expect((await status(apiRequest())).status).toBe(200);
     db.prepare("UPDATE api_keys SET scopes='links:read' WHERE id=?").run(identity.keyId);
-    expect((await status(request())).status).toBe(403);
+    expect(await connectorKeyActive(identity, now)).toBe(false);
+    expect((await status(apiRequest())).status).toBe(403);
     db.prepare("UPDATE api_keys SET scopes='connector:write',expires_at=0 WHERE id=?").run(
       identity.keyId,
     );
-    expect((await status(request())).status).toBe(401);
+    expect((await status(apiRequest())).status).toBe(401);
     expect((await loadConnectorSummary()).lastSeenAt).toBeNull();
   });
   it("reports the selected expiry in milliseconds and rejects it at the exact second", async () => {
     const expiresAt = (Math.floor(now / 1000) + 60) * 1000;
     db.prepare("UPDATE api_keys SET expires_at=? WHERE id=?").run(expiresAt / 1000, identity.keyId);
-    expect((await (await status(request())).json()).expiresAt).toBe(expiresAt);
+    expect((await (await status(apiRequest())).json()).expiresAt).toBe(expiresAt);
     expect(await connectorKeyActive(identity, expiresAt - 1)).toBe(true);
     expect(await connectorKeyActive(identity, expiresAt)).toBe(false);
     vi.spyOn(Date, "now").mockReturnValue(expiresAt);
-    expect((await status(request())).status).toBe(401);
+    expect((await status(apiRequest())).status).toBe(401);
     expect((await loadConnectorSummary()).lastSeenAt).toBeNull();
   });
   it("polls a saved bookmark and completes text with an opaque lease", async () => {
     const id = link();
-    const reply = await poll(request("", {}));
+    const reply = await poll(apiRequest("", {}));
     expect(reply.status).toBe(200);
     const { job } = await reply.json();
     expect(job.linkId).toBe(id);
     const context = { params: Promise.resolve({ id: String(id) }) };
     expect(
-      (await updateJob(request(`/jobs/${id}`, { action: "capture", capture }), context)).status,
+      (await updateJob(apiRequest(`/jobs/${id}`, { action: "capture", capture }), context)).status,
     ).toBe(400);
     const leased = { "x-connector-lease": job.leaseToken };
     expect(
-      (await updateJob(request(`/jobs/${id}`, { action: "capture", capture }, leased), context))
+      (await updateJob(apiRequest(`/jobs/${id}`, { action: "capture", capture }, leased), context))
         .status,
     ).toBe(200);
     expect(
-      (await updateJob(request(`/jobs/${id}`, { action: "renew" }, leased), context)).status,
+      (await updateJob(apiRequest(`/jobs/${id}`, { action: "renew" }, leased), context)).status,
     ).toBe(200);
     expect(
-      (await updateJob(request(`/jobs/${id}`, { action: "complete" }, leased), context)).status,
+      (await updateJob(apiRequest(`/jobs/${id}`, { action: "complete" }, leased), context)).status,
     ).toBe(200);
     expect(
-      (await updateJob(request(`/jobs/${id}`, { action: "complete" }, leased), context)).status,
+      (await updateJob(apiRequest(`/jobs/${id}`, { action: "complete" }, leased), context)).status,
     ).toBe(409);
     expect((await getXBookmarks("owner", [id]))[0]?.state).toBe("complete");
   });
@@ -1136,24 +1154,24 @@ describe("Connector HTTP boundary uses the same CLI authentication", () => {
     const lease = { "x-connector-lease": crypto.randomUUID() };
     const badJson = new NextRequest("https://zhe.to/api/v1/connector/jobs/1", {
       method: "POST",
-      headers: { ...headers, ...lease },
+      headers: { ...jsonHeaders, ...lease },
       body: "{",
     });
     expect((await updateJob(badJson, context)).status).toBe(400);
     expect(
-      (await updateJob(request("/jobs/1", { action: "unknown" }, lease), context)).status,
+      (await updateJob(apiRequest("/jobs/1", { action: "unknown" }, lease), context)).status,
     ).toBe(400);
     expect(
       (
         await updateJob(
-          request("/jobs/1", { action: "capture", capture: "x".repeat(512_001) }, lease),
+          apiRequest("/jobs/1", { action: "capture", capture: "x".repeat(512_001) }, lease),
           context,
         )
       ).status,
     ).toBe(413);
     const upload = new NextRequest("https://zhe.to/api/v1/connector/jobs/1/media/id", {
       method: "PUT",
-      headers: { ...headers, ...lease },
+      headers: { ...jsonHeaders, ...lease },
       body: "test",
     });
     expect(
@@ -1212,13 +1230,6 @@ describe("shared CLI authorization", () => {
       expect(required(await claimXBookmark(identity, later)).attempts).toBe(1);
     },
   );
-  it("uses an existing scoped API key with its owner and no implicit lifetime", async () => {
-    expect(await connectorKeyActive(identity, now)).toBe(true);
-    expect(await connectorKeyActive({ ...identity, userId: "other" }, now)).toBe(false);
-    expect(await connectorKeyActive(identity, now + 365 * 86400_000)).toBe(true);
-    db.prepare("UPDATE api_keys SET scopes='links:read' WHERE id=?").run(identity.keyId);
-    expect(await connectorKeyActive(identity, now)).toBe(false);
-  });
   it.each(["revoked_at", "expires_at"])("honors %s at every task mutation", async (column) => {
     link();
     const job = required(await claimXBookmark(identity, now));
@@ -1351,39 +1362,38 @@ describe("existing R2 uploads, publication and cascading deletion", () => {
     expect(rows("uploads")).toHaveLength(0);
     expect((await getXBookmarks("owner", [id]))[0]?.tweet?.media).toEqual([]);
   });
-  it.each(["image/png", "image/webp"])(
+  async function archivePhoto(mime: "image/png" | "image/webp") {
+    const id = link();
+    const job = required(await claimXBookmark(identity, now));
+    const photoCapture = structuredClone(capture);
+    photoCapture.tweet.media = [
+      { id: mediaId, type: "PHOTO", url: "https://pbs.twimg.com/media/test.png" },
+    ];
+    await stageXCapture(identity, id, job.leaseToken, photoCapture, now);
+    const imageBytes = photoBytes(mime);
+    const asset = required(
+      await reserveXMedia(
+        identity,
+        id,
+        job.leaseToken,
+        {
+          ...descriptor,
+          kind: "photo",
+          mime,
+          size: imageBytes.length,
+          sha256: createHash("sha256").update(imageBytes).digest("hex"),
+        },
+        now,
+      ),
+    );
+    await writeXMedia(identity, id, job.leaseToken, asset.id, stream(imageBytes), now);
+    await completeXBookmark(identity, id, job.leaseToken, now);
+    return { id, imageBytes };
+  }
+  it.each(["image/png", "image/webp"] as const)(
     "preserves the actual photo extension for %s in storage",
     async (mime) => {
-      const id = link();
-      const job = required(await claimXBookmark(identity, now));
-      const photoCapture = structuredClone(capture);
-      photoCapture.tweet.media = [
-        { id: mediaId, type: "PHOTO", url: "https://pbs.twimg.com/media/test.png" },
-      ];
-      await stageXCapture(identity, id, job.leaseToken, photoCapture, now);
-      const imageBytes = new Uint8Array(32);
-      if (mime === "image/png") imageBytes.set([137, 80, 78, 71, 13, 10, 26, 10]);
-      else {
-        imageBytes.set(new TextEncoder().encode("RIFF"));
-        imageBytes.set(new TextEncoder().encode("WEBP"), 8);
-      }
-      const asset = required(
-        await reserveXMedia(
-          identity,
-          id,
-          job.leaseToken,
-          {
-            ...descriptor,
-            kind: "photo",
-            mime,
-            size: imageBytes.length,
-            sha256: createHash("sha256").update(imageBytes).digest("hex"),
-          },
-          now,
-        ),
-      );
-      await writeXMedia(identity, id, job.leaseToken, asset.id, stream(imageBytes), now);
-      await completeXBookmark(identity, id, job.leaseToken, now);
+      await archivePhoto(mime);
       expect(required(rows("uploads")[0]).file_name).toBe(`${mediaId}.${mime.split("/")[1]}`);
     },
   );
@@ -1728,7 +1738,6 @@ describe("existing R2 uploads, publication and cascading deletion", () => {
   });
 
   it("maps published video and photo attachments without inventing resolution", async () => {
-    // Video publish keeps its resolution; photo publish has none.
     const videoJob = await prepare();
     await writeXMedia(
       identity,
@@ -1740,31 +1749,10 @@ describe("existing R2 uploads, publication and cascading deletion", () => {
     );
     expect(await completeXBookmark(identity, videoJob.id, videoJob.job.leaseToken, now)).toBe(true);
     const videoTweet = (await getXBookmarks("owner", [videoJob.id]))[0]?.tweet;
-    expect(videoTweet?.media[0]).toMatchObject({
-      size: bytes.length,
-      resolution: "720p",
-    });
+    expect(videoTweet?.media[0]).toMatchObject({ size: bytes.length, resolution: "720p" });
     expect(videoTweet?.media[0]?.url).toContain("https://cdn.example.com/");
 
-    const id = link();
-    const job = required(await claimXBookmark(identity, now));
-    const photoCapture = structuredClone(capture);
-    photoCapture.tweet.media = [
-      { id: mediaId, type: "PHOTO", url: "https://pbs.twimg.com/media/test.png" },
-    ];
-    await stageXCapture(identity, id, job.leaseToken, photoCapture, now);
-    const imageBytes = new Uint8Array(32);
-    imageBytes.set([137, 80, 78, 71, 13, 10, 26, 10]);
-    const photoDescriptor = {
-      mediaId,
-      kind: "photo" as const,
-      mime: "image/png",
-      size: imageBytes.length,
-      sha256: createHash("sha256").update(imageBytes).digest("hex"),
-    };
-    const photo = required(await reserveXMedia(identity, id, job.leaseToken, photoDescriptor, now));
-    await writeXMedia(identity, id, job.leaseToken, photo.id, stream(imageBytes), now);
-    expect(await completeXBookmark(identity, id, job.leaseToken, now)).toBe(true);
+    const { id, imageBytes } = await archivePhoto("image/png");
     const photoTweet = (await getXBookmarks("owner", [id]))[0]?.tweet;
     expect(photoTweet?.media[0]).toMatchObject({ size: imageBytes.length });
     expect(photoTweet?.media[0]?.url).toContain(".png");
